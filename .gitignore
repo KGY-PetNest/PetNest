@@ -14,6 +14,23 @@ local.properties
 *.iws
 out/
 
+# Android
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Android: релизные артефакты (Generate Signed Bundle кладёт их в app/release/)
+*.apk
+*.aab
+*.ap_
+android/app/release/
+*.hprof
+
+# Ключи подписи — НИКОГДА не коммитить
+*.jks
+*.keystore
+keystore.properties
+
 # VS Code
 .vscode/
 
