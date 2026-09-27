@@ -20,8 +20,8 @@ import com.example.pet.ui.theme.IBMPlexMono
 
 
 @Composable
-fun WelcomeScreen(onStart: () -> Unit){
-    Column(horizontalAlignment = Alignment.CenterHorizontally){
+fun WelcomeScreen(onStart: () -> Unit, modifier: Modifier = Modifier){
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier){
         Spacer(modifier = Modifier.weight(1f))
         Text(
             text = stringResource(R.string.app_name),
@@ -29,11 +29,22 @@ fun WelcomeScreen(onStart: () -> Unit){
             fontWeight = FontWeight.Normal,
             fontSize = 64.sp
         )
-        Text(text = stringResource(R.string.text_1_2), style = MaterialTheme.typography.bodyLarge)
+        Text(
+            text = stringResource(R.string.text_1_2),
+            style = MaterialTheme.typography.bodyLarge)
         Spacer(modifier = Modifier.weight(1f))
-        Image(painter = painterResource(R.drawable.welcome_cat), contentDescription = null)
+        Image(
+            painter = painterResource(R.drawable.welcome_cat),
+            contentDescription = null
+        )
         Spacer(modifier = Modifier.weight(3f))
-        PrimaryButton(text = stringResource(R.string.start_text),height = 80.dp, fontSize = 42.sp, onClick = onStart,  modifier = Modifier.padding(horizontal = 24.dp))
+        PrimaryButton(
+            text = stringResource(R.string.start_text),
+            height = 80.dp,
+            fontSize = 42.sp,
+            onClick = onStart,
+            modifier = Modifier.padding(horizontal = 24.dp)
+        )
         Spacer(modifier = Modifier.weight(0.5f))
     }
 }

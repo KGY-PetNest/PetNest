@@ -3,4 +3,12 @@
     <string name="text_1_2">Найдите с кем оставить питомца</string>
     <string name="start_text">Начать</string>
     <string name="text_2_1">Авторизация</string>
+    <string name="text_2_2">Владелец</string>
+    <string name="text_2_3">Волонтёр</string>
+    <string name="text_2_4">E-mail</string>
+    <string name="text_2_5">Пароль</string>
+    <string name="text_2_6">Войти</string>
+    <string name="text_2_7">Нет аккаунта?</string>
+    <string name="text_2_8">Зарегистрироваться</string>
+    <string name="text_2_9">Политика конфиденциальности</string>
 </resources>
