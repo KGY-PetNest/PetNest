@@ -7,8 +7,5 @@ import ru.hukm.petnest.plugins.configureSerialization
 import ru.hukm.petnest.plugins.configureStatusPages
 
 fun Application.module() {
-    configureMonitoring()
-    configureSerialization()
-    configureStatusPages()
     configureRouting()
 }
