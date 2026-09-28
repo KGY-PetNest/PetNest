@@ -11,6 +11,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
+import com.example.pet.navigation.NavGraph
 import com.example.pet.ui.theme.PetTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,8 +21,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             PetTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-
+                Scaffold() { innerPadding ->
+                    val navController = rememberNavController()
+                    NavGraph(navController, innerPadding)
                 }
             }
         }
