@@ -1,6 +1,8 @@
 package com.example.pet.ui.login
 
+import android.R.id.primary
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,19 +54,15 @@ fun LoginScreen(
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.Default.ArrowBack, contentDescription = null)
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
+    Column(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.Center) {
+        Spacer(modifier = Modifier.weight(1f))
 
         Text(
             text = stringResource(R.string.text_2_1),
             fontSize = 28.sp,
             fontFamily = IBMPlexMono,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 4.dp)
+            modifier = Modifier.padding(start = 8.dp)
             )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -74,7 +72,7 @@ fun LoginScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
                 .background(MaterialTheme.colorScheme.primaryContainer)
-                .padding(4.dp)
+                .padding(horizontal = 8.dp)
         ) {
             SegmentButton(
                 text = stringResource(R.string.text_2_2),
@@ -154,5 +152,6 @@ fun LoginScreen(
                 style = MaterialTheme.typography.bodyMedium
             )
         }
+        Spacer(modifier = Modifier.weight(2f))
     }
 }

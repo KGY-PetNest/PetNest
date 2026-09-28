@@ -11,4 +11,9 @@
     <string name="text_2_7">Нет аккаунта?</string>
     <string name="text_2_8">Зарегистрироваться</string>
     <string name="text_2_9">Политика конфиденциальности</string>
+    <string name="text_3_1">Регистрация</string>
+    <string name="text_3_2">ФИО</string>
+    <string name="text_3_3">Номер телефона</string>
+    <string name="text_3_4">Зарегистрироваться</string>
+    <string name="text_3_5">У вас уже есть аккаунт?</string>
 </resources>
