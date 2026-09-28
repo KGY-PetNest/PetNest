@@ -186,16 +186,6 @@ fun RegistrationScreen(
         }
 
         Spacer(Modifier.weight(1f))
-
-        Icon(
-            painter = painterResource(R.drawable.ic_launcher_foreground),
-            contentDescription = null,
-            tint = Color.Unspecified,
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .size(48.dp)
-        )
-
         Spacer(Modifier.height(32.dp))
     }
 }
