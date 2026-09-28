@@ -65,14 +65,14 @@ fun LoginScreen(
             modifier = Modifier.padding(start = 8.dp)
             )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(Modifier.height(20.dp))
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
                 .background(MaterialTheme.colorScheme.primaryContainer)
-                .padding(horizontal = 8.dp)
+                .padding(4.dp)
         ) {
             SegmentButton(
                 text = stringResource(R.string.text_2_2),
