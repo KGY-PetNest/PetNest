@@ -1,7 +1,6 @@
 package com.example.pet.ui.registration
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,24 +14,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.outlined.Call
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -44,7 +37,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pet.R
@@ -59,19 +51,19 @@ fun RegistrationScreen(
     onSuccess: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedRole by rememberSaveable { mutableStateOf(0) }
-    var name by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-
+    var selectedRole by rememberSaveable { mutableIntStateOf(0) }
+    var name by rememberSaveable { mutableStateOf("") }
+    var phone by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        Spacer(Modifier.weight(1f))
+
+        Spacer(Modifier.height(96.dp))
 
         Text(
             text = stringResource(R.string.text_3_1),
@@ -107,15 +99,20 @@ fun RegistrationScreen(
         Spacer(Modifier.height(24.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            val modifier: Modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+            val fieldModifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)
+
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
                 placeholder = { Text(stringResource(R.string.text_3_2)) },
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
                 shape = RoundedCornerShape(16.dp),
-                modifier = modifier, maxLines = 1
+                modifier = fieldModifier,
+                maxLines = 1
             )
+
             OutlinedTextField(
                 value = phone,
                 onValueChange = { phone = it },
@@ -123,7 +120,8 @@ fun RegistrationScreen(
                 leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 shape = RoundedCornerShape(16.dp),
-                modifier = modifier, maxLines = 1
+                modifier = fieldModifier,
+                maxLines = 1
             )
 
             OutlinedTextField(
@@ -133,7 +131,8 @@ fun RegistrationScreen(
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 shape = RoundedCornerShape(16.dp),
-                modifier = modifier, maxLines = 1
+                modifier = fieldModifier,
+                maxLines = 1
             )
 
             OutlinedTextField(
@@ -144,7 +143,8 @@ fun RegistrationScreen(
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 shape = RoundedCornerShape(16.dp),
-                modifier = modifier, maxLines = 1
+                modifier = fieldModifier,
+                maxLines = 1
             )
         }
 
@@ -157,19 +157,16 @@ fun RegistrationScreen(
             onClick = onSuccess
         )
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Row(horizontalArrangement = Arrangement.Center) {
                 Text(
                     text = stringResource(R.string.text_3_5),
-                    color = Color.Gray,
+                    color = Color.Gray
                 )
                 Text(
                     text = stringResource(R.string.text_2_6),
@@ -178,7 +175,7 @@ fun RegistrationScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(Modifier.height(4.dp))
 
             Text(
                 text = stringResource(R.string.text_2_9),
@@ -188,7 +185,7 @@ fun RegistrationScreen(
             )
         }
 
-        Spacer(Modifier.weight(2f))
+        Spacer(Modifier.weight(1f))
 
         Icon(
             painter = painterResource(R.drawable.ic_launcher_foreground),

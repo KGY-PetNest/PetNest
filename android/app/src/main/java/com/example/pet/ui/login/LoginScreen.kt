@@ -1,11 +1,8 @@
 package com.example.pet.ui.login
 
-import android.R.id.primary
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,32 +11,32 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pet.R
 import com.example.pet.ui.components.PrimaryButton
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import com.example.pet.ui.components.SegmentButton
 import com.example.pet.ui.theme.IBMPlexMono
 
@@ -50,12 +47,17 @@ fun LoginScreen(
     onSuccess: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedRole by rememberSaveable { mutableStateOf(0) }
+    var selectedRole by rememberSaveable { mutableIntStateOf(0) }
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
 
-    Column(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.Center) {
-        Spacer(modifier = Modifier.weight(1f))
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+    ) {
+
+        Spacer(Modifier.height(96.dp))
 
         Text(
             text = stringResource(R.string.text_2_1),
@@ -63,7 +65,7 @@ fun LoginScreen(
             fontFamily = IBMPlexMono,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(start = 8.dp)
-            )
+        )
 
         Spacer(Modifier.height(20.dp))
 
@@ -88,32 +90,38 @@ fun LoginScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(Modifier.height(24.dp))
 
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            placeholder = { Text(stringResource(R.string.text_2_4)) },
-            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            maxLines = 1
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            val fieldModifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)
 
-        Spacer(modifier = Modifier.height(12.dp))
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                placeholder = { Text(stringResource(R.string.text_2_4)) },
+                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                shape = RoundedCornerShape(16.dp),
+                modifier = fieldModifier,
+                maxLines = 1
+            )
 
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            placeholder = { Text(stringResource(R.string.text_2_5)) },
-            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-            visualTransformation = PasswordVisualTransformation(),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            maxLines = 1
-        )
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                placeholder = { Text(stringResource(R.string.text_2_5)) },
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                shape = RoundedCornerShape(16.dp),
+                modifier = fieldModifier,
+                maxLines = 1
+            )
+        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(Modifier.height(24.dp))
 
         PrimaryButton(
             text = stringResource(R.string.text_2_6),
@@ -122,19 +130,16 @@ fun LoginScreen(
             onClick = onSuccess
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(Modifier.height(16.dp))
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-            ) {
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(horizontalArrangement = Arrangement.Center) {
                 Text(
                     text = stringResource(R.string.text_2_7),
-                    color = Color.Gray,
+                    color = Color.Gray
                 )
                 Text(
                     text = stringResource(R.string.text_2_8),
@@ -143,7 +148,7 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(Modifier.height(4.dp))
 
             Text(
                 text = stringResource(R.string.text_2_9),
@@ -152,6 +157,5 @@ fun LoginScreen(
                 style = MaterialTheme.typography.bodyMedium
             )
         }
-        Spacer(modifier = Modifier.weight(2f))
     }
 }

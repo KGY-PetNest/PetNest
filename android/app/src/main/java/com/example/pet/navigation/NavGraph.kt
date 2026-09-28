@@ -8,12 +8,13 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.pet.ui.login.LoginScreen
+import com.example.pet.ui.petprofile.PetProfileScreen
 import com.example.pet.ui.registration.RegistrationScreen
 import com.example.pet.ui.welcome.WelcomeScreen
 
 @Composable
 fun NavGraph(navController: NavHostController, innerPadding: PaddingValues) {
-    NavHost(navController = navController, startDestination = Screen.Welcome.name) {
+    NavHost(navController = navController, startDestination = Screen.PetProfile.name) {
         composable(Screen.Welcome.name) {
             WelcomeScreen(onStart = { navController.navigate(Screen.Login.name) }, modifier = Modifier.padding(innerPadding))
         }
@@ -30,6 +31,13 @@ fun NavGraph(navController: NavHostController, innerPadding: PaddingValues) {
                 onBack = { navController.popBackStack() },
                 onRegisterClick = { navController.navigate(Screen.Registration.name) },
                 onSuccess = {  },
+                modifier = Modifier.padding(innerPadding)
+            )
+        }
+                composable(Screen.PetProfile.name) {
+            PetProfileScreen(
+                onBack = { navController.popBackStack() },
+                onSave = { /* TODO: сохранение */ },
                 modifier = Modifier.padding(innerPadding)
             )
         }
