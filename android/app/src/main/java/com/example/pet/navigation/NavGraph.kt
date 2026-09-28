@@ -14,7 +14,7 @@ import com.example.pet.ui.welcome.WelcomeScreen
 
 @Composable
 fun NavGraph(navController: NavHostController, innerPadding: PaddingValues) {
-    NavHost(navController = navController, startDestination = Screen.PetProfile.name) {
+    NavHost(navController = navController, startDestination = Screen.Welcome.name) {
         composable(Screen.Welcome.name) {
             WelcomeScreen(onStart = { navController.navigate(Screen.Login.name) }, modifier = Modifier.padding(innerPadding))
         }
