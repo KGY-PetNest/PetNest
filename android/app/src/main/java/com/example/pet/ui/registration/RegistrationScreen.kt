@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -40,6 +41,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pet.R
+import com.example.pet.ui.components.AuthFooterLink
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.SegmentButton
 import com.example.pet.ui.theme.IBMPlexMono
@@ -60,10 +62,11 @@ fun RegistrationScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .padding(horizontal = 16.dp)
     ) {
 
-        Spacer(Modifier.height(96.dp))
+        Spacer(Modifier.height(24.dp))
 
         Text(
             text = stringResource(R.string.text_3_1),
@@ -163,17 +166,11 @@ fun RegistrationScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Row(horizontalArrangement = Arrangement.Center) {
-                Text(
-                    text = stringResource(R.string.text_3_5),
-                    color = Color.Gray
-                )
-                Text(
-                    text = stringResource(R.string.text_2_6),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { onLoginClick() }
-                )
-            }
+            AuthFooterLink(
+                plainText = stringResource(R.string.text_3_5),
+                linkText = stringResource(R.string.text_2_6),
+                onClick = onLoginClick
+            )
 
             Spacer(Modifier.height(4.dp))
 
