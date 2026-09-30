@@ -1,5 +1,7 @@
 package com.example.pet.ui.petprofile
 
+import android.R.attr.label
+import android.R.attr.singleLine
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -22,10 +24,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -50,7 +56,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pet.R
 import com.example.pet.ui.components.PrimaryButton
-import com.example.pet.ui.components.ScreenTopBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -88,16 +93,22 @@ fun PetProfileScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
-            .verticalScroll(rememberScrollState())
     ) {
-        ScreenTopBar(
-            onBack = onBack,
-            title = stringResource(R.string.text_4_1)
-        )
-
+        Box(modifier = Modifier.fillMaxWidth()) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.align(Alignment.CenterStart),
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+            }
+            Text(
+                text = stringResource(R.string.text_4_1),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.align(Alignment.Center)
+            )
+        }
         Spacer(Modifier.height(16.dp))
 
-        // Аватар: клик открывает выбор фото
         Box(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
@@ -122,7 +133,7 @@ fun PetProfileScreen(
                 )
             } else {
                 Icon(
-                    imageVector = Icons.Default.Person,
+                    imageVector = Icons.Default.Pets,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(48.dp)
@@ -131,7 +142,7 @@ fun PetProfileScreen(
         }
 
         Text(
-            text = stringResource(R.string.text_4_7),
+            text = stringResource(R.string.text_4_2),
             color = MaterialTheme.colorScheme.primary,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier
@@ -146,36 +157,49 @@ fun PetProfileScreen(
 
         Spacer(Modifier.height(20.dp))
 
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.weight(1f)
+        ) {
             LabeledField(
-                label = stringResource(R.string.text_4_2),
+                label = stringResource(R.string.text_4_3),
                 value = name,
                 onValueChange = { name = it }
             )
             LabeledField(
-                label = stringResource(R.string.text_4_3),
+                label = stringResource(R.string.text_4_4),
                 value = animal,
                 onValueChange = { animal = it }
             )
             LabeledField(
-                label = stringResource(R.string.text_4_4),
+                label = stringResource(R.string.text_4_5),
                 value = age,
                 onValueChange = { age = it.filter(Char::isDigit) },
                 keyboardType = KeyboardType.Number
             )
-            LabeledField(
-                label = stringResource(R.string.text_4_5),
-                value = features,
-                onValueChange = { features = it },
-                singleLine = false,
-                fieldHeight = 140.dp
-            )
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).weight(1f)) {
+                Text(
+                    text = stringResource(R.string.text_4_6),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.Gray,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                )
+                OutlinedTextField(
+                    value = features,
+                    onValueChange = { features = it },
+                    shape = RoundedCornerShape(16.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    modifier = Modifier
+                        .fillMaxWidth().weight(1f)
+                )
+            }
         }
 
         Spacer(Modifier.height(24.dp))
 
         PrimaryButton(
-            text = stringResource(R.string.text_4_6),
+            text = stringResource(R.string.text_4_7),
             height = 56.dp,
             fontSize = 16.sp,
             onClick = onSave

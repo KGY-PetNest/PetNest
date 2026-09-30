@@ -17,10 +17,10 @@
     <string name="text_3_4">Зарегистрироваться</string>
     <string name="text_3_5">У вас уже есть аккаунт?</string>
     <string name="text_4_1">Анкета питомца</string>
-    <string name="text_4_2">Имя</string>
-    <string name="text_4_3">Животное</string>
-    <string name="text_4_4">Возраст</string>
-    <string name="text_4_5">Особенности</string>
-    <string name="text_4_6">Сохранить</string>
-    <string name="text_4_7">Выбрать фото</string>
+    <string name="text_4_2">Выбрать фото</string>
+    <string name="text_4_3">Имя</string>
+    <string name="text_4_4">Животное</string>
+    <string name="text_4_5">Возраст</string>
+    <string name="text_4_6">Особенности</string>
+    <string name="text_4_7">Сохранить</string>
 </resources>

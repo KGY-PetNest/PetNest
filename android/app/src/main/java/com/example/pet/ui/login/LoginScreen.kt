@@ -36,13 +36,13 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pet.R
+import com.example.pet.ui.components.AuthFooterLink
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.SegmentButton
 import com.example.pet.ui.theme.IBMPlexMono
 
 @Composable
 fun LoginScreen(
-    onBack: () -> Unit,
     onRegisterClick: () -> Unit,
     onSuccess: () -> Unit,
     modifier: Modifier = Modifier
@@ -54,11 +54,9 @@ fun LoginScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.Center
     ) {
-
-        Spacer(Modifier.height(96.dp))
-
         Text(
             text = stringResource(R.string.text_2_1),
             fontSize = 28.sp,
@@ -136,17 +134,11 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Row(horizontalArrangement = Arrangement.Center) {
-                Text(
-                    text = stringResource(R.string.text_2_7),
-                    color = Color.Gray
-                )
-                Text(
-                    text = stringResource(R.string.text_2_8),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { onRegisterClick() }
-                )
-            }
+            AuthFooterLink(
+                plainText = stringResource(R.string.text_2_7),
+                linkText = stringResource(R.string.text_2_8),
+                onClick = onRegisterClick
+            )
 
             Spacer(Modifier.height(4.dp))
 

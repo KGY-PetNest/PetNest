@@ -20,7 +20,6 @@ fun NavGraph(navController: NavHostController, innerPadding: PaddingValues) {
         }
         composable(Screen.Registration.name) {
             RegistrationScreen(
-                onBack = { navController.popBackStack() },
                 onLoginClick = { navController.navigate(Screen.Login.name) },
                 onSuccess = {  },
                 modifier = Modifier.padding(innerPadding)
@@ -28,9 +27,8 @@ fun NavGraph(navController: NavHostController, innerPadding: PaddingValues) {
         }
         composable(Screen.Login.name) {
             LoginScreen(
-                onBack = { navController.popBackStack() },
                 onRegisterClick = { navController.navigate(Screen.Registration.name) },
-                onSuccess = {  },
+                onSuccess = { navController.navigate(Screen.PetProfile.name) },
                 modifier = Modifier.padding(innerPadding)
             )
         }

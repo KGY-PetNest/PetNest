@@ -1,5 +1,6 @@
 package com.example.pet.ui.registration
 
+import android.R.attr.onClick
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,13 +41,13 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pet.R
+import com.example.pet.ui.components.AuthFooterLink
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.SegmentButton
 import com.example.pet.ui.theme.IBMPlexMono
 
 @Composable
 fun RegistrationScreen(
-    onBack: () -> Unit,
     onLoginClick: () -> Unit,
     onSuccess: () -> Unit,
     modifier: Modifier = Modifier
@@ -60,11 +61,9 @@ fun RegistrationScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.Center
     ) {
-
-        Spacer(Modifier.height(96.dp))
-
         Text(
             text = stringResource(R.string.text_3_1),
             fontSize = 28.sp,
@@ -163,17 +162,11 @@ fun RegistrationScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Row(horizontalArrangement = Arrangement.Center) {
-                Text(
-                    text = stringResource(R.string.text_3_5),
-                    color = Color.Gray
-                )
-                Text(
-                    text = stringResource(R.string.text_2_6),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { onLoginClick() }
-                )
-            }
+            AuthFooterLink(
+                plainText = stringResource(R.string.text_2_7),
+                linkText = stringResource(R.string.text_2_8),
+                onClick = onLoginClick
+            )
 
             Spacer(Modifier.height(4.dp))
 
@@ -184,8 +177,5 @@ fun RegistrationScreen(
                 style = MaterialTheme.typography.bodyMedium
             )
         }
-
-        Spacer(Modifier.weight(1f))
-        Spacer(Modifier.height(32.dp))
     }
 }
