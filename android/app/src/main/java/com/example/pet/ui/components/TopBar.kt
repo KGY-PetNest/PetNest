@@ -1,6 +1,6 @@
 package com.example.pet.ui.components
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
@@ -21,23 +21,20 @@ fun ScreenTopBar(
     modifier: Modifier = Modifier,
     title: String? = null
 ) {
-    Box(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(48.dp)
+            .height(48.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier.align(Alignment.CenterStart)
-        ) {
+        IconButton(onClick = onBack) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
         }
         if (title != null) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.align(Alignment.Center)
+                fontWeight = FontWeight.Bold
             )
         }
     }

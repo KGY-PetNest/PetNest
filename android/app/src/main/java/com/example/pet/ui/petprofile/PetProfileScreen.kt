@@ -6,7 +6,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,9 +21,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.background
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -72,12 +72,6 @@ fun PetProfileScreen(
         ActivityResultContracts.PickVisualMedia()
     ) { uri -> if (uri != null) photoUri = uri }
 
-    val openPicker = {
-        photoPicker.launch(
-            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-        )
-    }
-
     val avatar by produceState<ImageBitmap?>(initialValue = null, photoUri) {
         value = photoUri?.let { uri ->
             withContext(Dispatchers.IO) {
@@ -96,8 +90,6 @@ fun PetProfileScreen(
             .padding(horizontal = 16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Spacer(Modifier.height(24.dp))
-
         ScreenTopBar(
             onBack = onBack,
             title = stringResource(R.string.text_4_1)
@@ -105,7 +97,7 @@ fun PetProfileScreen(
 
         Spacer(Modifier.height(16.dp))
 
-
+        // Аватар: клик открывает выбор фото
         Box(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
@@ -113,7 +105,11 @@ fun PetProfileScreen(
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primaryContainer)
                 .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                .clickable { openPicker() },
+                .clickable {
+                    photoPicker.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
             contentAlignment = Alignment.Center
         ) {
             val bmp = avatar
@@ -126,7 +122,7 @@ fun PetProfileScreen(
                 )
             } else {
                 Icon(
-                    imageVector = Icons.Default.Pets,
+                    imageVector = Icons.Default.Person,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(48.dp)
@@ -135,47 +131,51 @@ fun PetProfileScreen(
         }
 
         Text(
-            text = stringResource(R.string.text_4_2),
+            text = stringResource(R.string.text_4_7),
             color = MaterialTheme.colorScheme.primary,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .padding(top = 8.dp)
-                .clickable { openPicker() }
+                .clickable {
+                    photoPicker.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                }
         )
 
         Spacer(Modifier.height(20.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             LabeledField(
-                label = stringResource(R.string.text_4_3),
+                label = stringResource(R.string.text_4_2),
                 value = name,
                 onValueChange = { name = it }
             )
             LabeledField(
-                label = stringResource(R.string.text_4_4),
+                label = stringResource(R.string.text_4_3),
                 value = animal,
                 onValueChange = { animal = it }
             )
             LabeledField(
-                label = stringResource(R.string.text_4_5),
+                label = stringResource(R.string.text_4_4),
                 value = age,
                 onValueChange = { age = it.filter(Char::isDigit) },
                 keyboardType = KeyboardType.Number
             )
             LabeledField(
-                label = stringResource(R.string.text_4_6),
+                label = stringResource(R.string.text_4_5),
                 value = features,
                 onValueChange = { features = it },
                 singleLine = false,
-                minLines = 3
+                fieldHeight = 140.dp
             )
         }
 
         Spacer(Modifier.height(24.dp))
 
         PrimaryButton(
-            text = stringResource(R.string.text_4_7),
+            text = stringResource(R.string.text_4_6),
             height = 56.dp,
             fontSize = 16.sp,
             onClick = onSave
@@ -193,13 +193,14 @@ private fun LabeledField(
     modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Text,
     singleLine: Boolean = true,
-    minLines: Int = 1
+    fieldHeight: androidx.compose.ui.unit.Dp? = null
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
             color = Color.Gray,
+            fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
         )
         OutlinedTextField(
@@ -207,9 +208,10 @@ private fun LabeledField(
             onValueChange = onValueChange,
             shape = RoundedCornerShape(16.dp),
             singleLine = singleLine,
-            minLines = minLines,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (fieldHeight != null) Modifier.height(fieldHeight) else Modifier)
         )
     }
 }
