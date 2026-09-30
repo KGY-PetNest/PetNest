@@ -4,4 +4,5 @@ enum class Screen {
     Welcome,
     Registration,
     Login,
+    PetProfile,
 }
