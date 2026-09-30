@@ -34,7 +34,7 @@ fun NavGraph(navController: NavHostController, innerPadding: PaddingValues) {
                 modifier = Modifier.padding(innerPadding)
             )
         }
-        composable(Screen.PetProfile.name) {
+                composable(Screen.PetProfile.name) {
             PetProfileScreen(
                 onBack = { navController.popBackStack() },
                 onSave = { /* TODO: сохранение */ },
