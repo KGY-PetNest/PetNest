@@ -21,8 +21,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
@@ -97,8 +97,9 @@ fun CreateRequestScreen(
                     return utcTimeMillis >= todayStartUtc
                 }
 
-                override fun isSelectableYear(utcYear: Int): Boolean {
-                    return utcYear >= currentYear
+
+                override fun isSelectableYear(year: Int): Boolean {
+                    return year >= currentYear
                 }
             }
         }
@@ -124,7 +125,8 @@ fun CreateRequestScreen(
     }
 
     if (showDatePicker) {
-        val localeRu = remember { Locale("ru", "RU") }
+
+        val localeRu = remember { Locale.forLanguageTag("ru-RU") }
         DisposableEffect(Unit) {
             val oldLocale = Locale.getDefault()
             Locale.setDefault(localeRu)
@@ -171,7 +173,8 @@ fun CreateRequestScreen(
                         val startMillis = pickerState.selectedStartDateMillis
                         val endMillis = pickerState.selectedEndDateMillis
                         val format = remember {
-                            SimpleDateFormat("dd.MM.yyyy", Locale("ru")).apply {
+
+                            SimpleDateFormat("dd.MM.yyyy", Locale.forLanguageTag("ru")).apply {
                                 timeZone = TimeZone.getTimeZone("UTC")
                             }
                         }
@@ -309,8 +312,9 @@ fun CreateRequestScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f)
                     )
+
                     Icon(
-                        imageVector = Icons.Default.KeyboardArrowRight,
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = null,
                         tint = Color.Gray,
                         modifier = Modifier.size(20.dp)
