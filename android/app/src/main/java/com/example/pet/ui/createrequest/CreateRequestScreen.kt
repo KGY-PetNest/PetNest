@@ -7,8 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,11 +21,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Pets
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.DisplayMode
@@ -71,7 +67,7 @@ import java.util.Locale
 import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateRequestScreen(
     onBack: () -> Unit,
@@ -108,14 +104,6 @@ fun CreateRequestScreen(
         }
     )
 
-    val defaultFeatures = listOf(
-        stringResource(R.string.text_5_8),
-        stringResource(R.string.text_5_9)
-    )
-    var featuresList by rememberSaveable { mutableStateOf(defaultFeatures) }
-    var selectedFeatures by rememberSaveable { mutableStateOf(emptySet<String>()) }
-    var showAddFeature by rememberSaveable { mutableStateOf(false) }
-    var newFeature by rememberSaveable { mutableStateOf("") }
     var comment by rememberSaveable { mutableStateOf("") }
 
     val start = pickerState.selectedStartDateMillis
@@ -209,38 +197,6 @@ fun CreateRequestScreen(
         }
     }
 
-    if (showAddFeature) {
-        AlertDialog(
-            onDismissRequest = { showAddFeature = false },
-            title = { Text(stringResource(R.string.text_5_7)) },
-            text = {
-                OutlinedTextField(
-                    value = newFeature,
-                    onValueChange = { newFeature = it },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (newFeature.isNotBlank()) {
-                            val trimmed = newFeature.trim()
-                            if (!featuresList.contains(trimmed)) {
-                                featuresList = featuresList + trimmed
-                            }
-                            selectedFeatures = selectedFeatures + trimmed
-                        }
-                        newFeature = ""
-                        showAddFeature = false
-                    }
-                ) {
-                    Text(stringResource(R.string.text_5_10))
-                }
-            }
-        )
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -268,6 +224,7 @@ fun CreateRequestScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             Spacer(Modifier.height(16.dp))
+
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -322,6 +279,7 @@ fun CreateRequestScreen(
 
             Spacer(Modifier.height(16.dp))
 
+
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
                 Text(
                     text = stringResource(R.string.text_5_5),
@@ -362,70 +320,6 @@ fun CreateRequestScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
-                Text(
-                    text = stringResource(R.string.text_5_7),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.Gray,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-                )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    featuresList.forEach { feature ->
-                        val isSelected = selectedFeatures.contains(feature)
-                        Text(
-                            text = feature,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(
-                                    if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                                    else Color.Transparent
-                                )
-                                .then(
-                                    if (!isSelected) Modifier.border(1.dp, Color.LightGray, RoundedCornerShape(20.dp))
-                                    else Modifier
-                                )
-                                .clickable {
-                                    selectedFeatures = if (isSelected) {
-                                        selectedFeatures - feature
-                                    } else {
-                                        selectedFeatures + feature
-                                    }
-                                }
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(20.dp))
-                            .clickable { showAddFeature = true }
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = stringResource(R.string.text_5_10),
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
 
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
                 Text(
@@ -442,7 +336,7 @@ fun CreateRequestScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(120.dp)
+                        .height(250.dp)
                 )
             }
 
