@@ -1,18 +1,20 @@
 package com.example.pet.ui.petprofile
 
-import android.R.attr.label
-import android.R.attr.singleLine
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,18 +25,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,6 +61,7 @@ import com.example.pet.ui.components.PrimaryButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PetProfileScreen(
     onBack: () -> Unit,
@@ -71,7 +74,15 @@ fun PetProfileScreen(
     var name by rememberSaveable { mutableStateOf("") }
     var animal by rememberSaveable { mutableStateOf("") }
     var age by rememberSaveable { mutableStateOf("") }
-    var features by rememberSaveable { mutableStateOf("") }
+
+    val defaultFeatures = listOf(
+        stringResource(R.string.text_5_8),
+        stringResource(R.string.text_5_9)
+    )
+    var featuresList by rememberSaveable { mutableStateOf(defaultFeatures) }
+    var selectedFeatures by rememberSaveable { mutableStateOf(emptySet<String>()) }
+    var showAddFeature by rememberSaveable { mutableStateOf(false) }
+    var newFeature by rememberSaveable { mutableStateOf("") }
 
     val photoPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
@@ -89,11 +100,44 @@ fun PetProfileScreen(
         }
     }
 
+    if (showAddFeature) {
+        AlertDialog(
+            onDismissRequest = { showAddFeature = false },
+            title = { Text(stringResource(R.string.text_5_7)) },
+            text = {
+                OutlinedTextField(
+                    value = newFeature,
+                    onValueChange = { newFeature = it },
+                    shape = RoundedCornerShape(16.dp),
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (newFeature.isNotBlank()) {
+                            val trimmed = newFeature.trim()
+                            if (!featuresList.contains(trimmed)) {
+                                featuresList = featuresList + trimmed
+                            }
+                            selectedFeatures = selectedFeatures + trimmed
+                        }
+                        newFeature = ""
+                        showAddFeature = false
+                    }
+                ) {
+                    Text(stringResource(R.string.text_5_10))
+                }
+            }
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
+
         Box(modifier = Modifier.fillMaxWidth()) {
             IconButton(
                 onClick = onBack,
@@ -107,96 +151,151 @@ fun PetProfileScreen(
                 modifier = Modifier.align(Alignment.Center)
             )
         }
-        Spacer(Modifier.height(16.dp))
 
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .size(112.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                .clickable {
-                    photoPicker.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            val bmp = avatar
-            if (bmp != null) {
-                Image(
-                    bitmap = bmp,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.Pets,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(48.dp)
-                )
-            }
-        }
-
-        Text(
-            text = stringResource(R.string.text_4_2),
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(top = 8.dp)
-                .clickable {
-                    photoPicker.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                }
-        )
-
-        Spacer(Modifier.height(20.dp))
 
         Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
         ) {
-            LabeledField(
-                label = stringResource(R.string.text_4_3),
-                value = name,
-                onValueChange = { name = it }
-            )
-            LabeledField(
-                label = stringResource(R.string.text_4_4),
-                value = animal,
-                onValueChange = { animal = it }
-            )
-            LabeledField(
-                label = stringResource(R.string.text_4_5),
-                value = age,
-                onValueChange = { age = it.filter(Char::isDigit) },
-                keyboardType = KeyboardType.Number
-            )
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).weight(1f)) {
-                Text(
-                    text = stringResource(R.string.text_4_6),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.Gray,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-                )
-                OutlinedTextField(
-                    value = features,
-                    onValueChange = { features = it },
-                    shape = RoundedCornerShape(16.dp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                    modifier = Modifier
-                        .fillMaxWidth().weight(1f)
-                )
+            Spacer(Modifier.height(16.dp))
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .size(112.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                    .clickable {
+                        photoPicker.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                val bmp = avatar
+                if (bmp != null) {
+                    Image(
+                        bitmap = bmp,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Pets,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
             }
+
+            Text(
+                text = stringResource(R.string.text_4_2),
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(top = 8.dp)
+                    .clickable {
+                        photoPicker.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    }
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                LabeledField(
+                    label = stringResource(R.string.text_4_3),
+                    value = name,
+                    onValueChange = { name = it }
+                )
+                LabeledField(
+                    label = stringResource(R.string.text_4_4),
+                    value = animal,
+                    onValueChange = { animal = it }
+                )
+                LabeledField(
+                    label = stringResource(R.string.text_4_5),
+                    value = age,
+                    onValueChange = { age = it.filter(Char::isDigit) },
+                    keyboardType = KeyboardType.Number
+                )
+
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+                    Text(
+                        text = stringResource(R.string.text_4_6),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.Gray,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        featuresList.forEach { feature ->
+                            val isSelected = selectedFeatures.contains(feature)
+                            Text(
+                                text = feature,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(
+                                        if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                                        else Color.Transparent
+                                    )
+                                    .then(
+                                        if (!isSelected) Modifier.border(1.dp, Color.LightGray, RoundedCornerShape(20.dp))
+                                        else Modifier
+                                    )
+                                    .clickable {
+                                        selectedFeatures = if (isSelected) {
+                                            selectedFeatures - feature
+                                        } else {
+                                            selectedFeatures + feature
+                                        }
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(20.dp))
+                                .clickable { showAddFeature = true }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = stringResource(R.string.text_5_10),
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
         }
 
-        Spacer(Modifier.height(24.dp))
 
         PrimaryButton(
             text = stringResource(R.string.text_4_7),
@@ -216,8 +315,7 @@ private fun LabeledField(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Text,
-    singleLine: Boolean = true,
-    fieldHeight: androidx.compose.ui.unit.Dp? = null
+    singleLine: Boolean = true
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
         Text(
@@ -233,9 +331,7 @@ private fun LabeledField(
             shape = RoundedCornerShape(16.dp),
             singleLine = singleLine,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(if (fieldHeight != null) Modifier.height(fieldHeight) else Modifier)
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }

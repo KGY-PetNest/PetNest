@@ -163,8 +163,8 @@ fun RegistrationScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             AuthFooterLink(
-                plainText = stringResource(R.string.text_2_7),
-                linkText = stringResource(R.string.text_2_8),
+                plainText = stringResource(R.string.text_3_5),
+                linkText = stringResource(R.string.text_2_6),
                 onClick = onLoginClick
             )
 

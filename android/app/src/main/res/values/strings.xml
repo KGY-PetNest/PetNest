@@ -23,4 +23,24 @@
     <string name="text_4_5">Возраст</string>
     <string name="text_4_6">Особенности</string>
     <string name="text_4_7">Сохранить</string>
+    <string name="text_5_1">Создание заявки</string>
+    <string name="text_5_2">Вован</string>
+    <string name="text_5_3">Хомяк, 4 месяца</string>
+    <string name="text_5_4">Выбрать питомца</string>
+    <string name="text_5_5">Даты передержки</string>
+    <string name="text_5_6">12 мая - 19 мая (7 дней)</string>
+    <string name="text_5_7">Особенности</string>
+    <string name="text_5_8">Таблетки утром</string>
+    <string name="text_5_9">Боится шума</string>
+    <string name="text_5_10">Добавить</string>
+    <string name="text_5_11">Комментарий</string>
+    <string name="text_5_12">Опубликовать заявку</string>
+    <string name="text_5_13">%1$s - %2$s (%3$s)</string>
+    <string name="text_5_14">Готово</string>
+    <plurals name="days_count">
+        <item quantity="one">%d день</item>
+        <item quantity="few">%d дня</item>
+        <item quantity="many">%d дней</item>
+        <item quantity="other">%d дня</item>
+    </plurals>
 </resources>

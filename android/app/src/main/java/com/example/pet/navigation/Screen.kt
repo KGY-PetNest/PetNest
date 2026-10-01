@@ -5,4 +5,5 @@ enum class Screen {
     Registration,
     Login,
     PetProfile,
+    CreateRequest,
 }

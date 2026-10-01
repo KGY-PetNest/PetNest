@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.pet.ui.createrequest.CreateRequestScreen
 import com.example.pet.ui.login.LoginScreen
 import com.example.pet.ui.petprofile.PetProfileScreen
 import com.example.pet.ui.registration.RegistrationScreen
@@ -35,7 +36,16 @@ fun NavGraph(navController: NavHostController, innerPadding: PaddingValues) {
                 composable(Screen.PetProfile.name) {
             PetProfileScreen(
                 onBack = { navController.popBackStack() },
-                onSave = { /* TODO: сохранение */ },
+                onSave = { navController.navigate(Screen.CreateRequest.name) }, // Временно пока что
+                modifier = Modifier.padding(innerPadding)
+            )
+        }
+
+        composable(Screen.CreateRequest.name) {
+            CreateRequestScreen(
+                onBack = { navController.popBackStack() },
+                onSelectPet = { /* TODO: выбор питомца */ },
+                onCreate = { /* TODO: создание заявки */ },
                 modifier = Modifier.padding(innerPadding)
             )
         }
