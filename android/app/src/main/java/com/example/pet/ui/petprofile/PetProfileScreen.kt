@@ -57,6 +57,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pet.R
+import com.example.pet.ui.components.AvatarCropDialog
 import com.example.pet.ui.components.PrimaryButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -71,6 +72,7 @@ fun PetProfileScreen(
     val context = LocalContext.current
 
     var photoUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    var pendingUri by rememberSaveable { mutableStateOf<Uri?>(null) }
     var name by rememberSaveable { mutableStateOf("") }
     var animal by rememberSaveable { mutableStateOf("") }
     var age by rememberSaveable { mutableStateOf("") }
@@ -86,7 +88,7 @@ fun PetProfileScreen(
 
     val photoPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
-    ) { uri -> if (uri != null) photoUri = uri }
+    ) { uri -> if (uri != null) pendingUri = uri }
 
     val avatar by produceState<ImageBitmap?>(initialValue = null, photoUri) {
         value = photoUri?.let { uri ->
@@ -98,6 +100,17 @@ fun PetProfileScreen(
                 }.getOrNull()
             }
         }
+    }
+
+    pendingUri?.let { uri ->
+        AvatarCropDialog(
+            uri = uri,
+            onDismiss = { pendingUri = null },
+            onCropped = { cropped ->
+                photoUri = cropped
+                pendingUri = null
+            }
+        )
     }
 
     if (showAddFeature) {
