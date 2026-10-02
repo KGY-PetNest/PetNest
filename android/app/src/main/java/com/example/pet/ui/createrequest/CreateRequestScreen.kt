@@ -6,14 +6,17 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,8 +52,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -97,7 +102,6 @@ fun CreateRequestScreen(
                     return utcTimeMillis >= todayStartUtc
                 }
 
-
                 override fun isSelectableYear(year: Int): Boolean {
                     return year >= currentYear
                 }
@@ -125,7 +129,6 @@ fun CreateRequestScreen(
     }
 
     if (showDatePicker) {
-
         val localeRu = remember { Locale.forLanguageTag("ru-RU") }
         DisposableEffect(Unit) {
             val oldLocale = Locale.getDefault()
@@ -173,7 +176,6 @@ fun CreateRequestScreen(
                         val startMillis = pickerState.selectedStartDateMillis
                         val endMillis = pickerState.selectedEndDateMillis
                         val format = remember {
-
                             SimpleDateFormat("dd.MM.yyyy", Locale.forLanguageTag("ru")).apply {
                                 timeZone = TimeZone.getTimeZone("UTC")
                             }
@@ -200,161 +202,188 @@ fun CreateRequestScreen(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
     ) {
-
-        Box(modifier = Modifier.fillMaxWidth()) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier.align(Alignment.CenterStart),
-            ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-            }
-            Text(
-                text = stringResource(R.string.text_5_1),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.align(Alignment.Center)
-            )
-        }
-
-
         Column(
             modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
+                .fillMaxHeight()
+                .widthIn(max = 640.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
         ) {
-            Spacer(Modifier.height(16.dp))
-
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .border(1.dp, Color.LightGray, RoundedCornerShape(16.dp))
-                    .clickable { onSelectPet() }
-                    .padding(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Pets,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .padding(10.dp)
+            Box(modifier = Modifier.fillMaxWidth()) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.align(Alignment.CenterStart),
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                }
+                Text(
+                    text = stringResource(R.string.text_5_1),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.align(Alignment.Center)
                 )
+            }
+
+            val scrollState = rememberScrollState()
+            val density = LocalDensity.current
+            var topContentHeightDp by remember { mutableStateOf(0.dp) }
+
+            BoxWithConstraints(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                val dynamicCommentHeight = if (topContentHeightDp > 0.dp) {
+                    (maxHeight - topContentHeightDp - 24.dp).coerceAtLeast(120.dp)
+                } else {
+                    120.dp
+                }
 
                 Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 12.dp)
+                        .fillMaxSize()
+                        .verticalScroll(
+                            state = scrollState,
+                            enabled = scrollState.maxValue > 0
+                        )
                 ) {
-                    Text(
-                        text = stringResource(R.string.text_5_2),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = stringResource(R.string.text_5_3),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
-                        color = Color.Gray
-                    )
-                }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onGloballyPositioned { coordinates ->
+                                topContentHeightDp = with(density) { coordinates.size.height.toDp() }
+                            }
+                    ) {
+                        Spacer(Modifier.height(16.dp))
 
-                OutlinedButton(
-                    onClick = onSelectPet,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.height(36.dp)
-                ) {
-                    Text(
-                        text = "Сменить",
-                        style = MaterialTheme.typography.labelMedium
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .border(1.dp, Color.LightGray, RoundedCornerShape(16.dp))
+                                .clickable { onSelectPet() }
+                                .padding(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Pets,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                    .padding(10.dp)
+                            )
+
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(horizontal = 12.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.text_5_2),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = stringResource(R.string.text_5_3),
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+                                    color = Color.Gray
+                                )
+                            }
+
+                            OutlinedButton(
+                                onClick = onSelectPet,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.height(36.dp)
+                            ) {
+                                Text(
+                                    text = "Сменить",
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+                            Text(
+                                text = stringResource(R.string.text_5_5),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Color.Gray,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
+                                    .clickable { showDatePicker = true }
+                                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DateRange,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Text(
+                                    text = datesText,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = null,
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        Text(
+                            text = stringResource(R.string.text_5_11),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color.Gray,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(start = 12.dp, bottom = 4.dp)
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = comment,
+                        onValueChange = { comment = it },
+                        shape = RoundedCornerShape(16.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                            .height(dynamicCommentHeight)
                     )
+
+                    Spacer(Modifier.height(16.dp))
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            PrimaryButton(
+                text = stringResource(R.string.text_5_12),
+                height = 56.dp,
+                fontSize = 16.sp,
+                onClick = onCreate
+            )
 
-
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
-                Text(
-                    text = stringResource(R.string.text_5_5),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.Gray,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
-                        .clickable { showDatePicker = true }
-                        .padding(horizontal = 16.dp, vertical = 16.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DateRange,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = datesText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = Color.Gray,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
-                Text(
-                    text = stringResource(R.string.text_5_11),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.Gray,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-                )
-                OutlinedTextField(
-                    value = comment,
-                    onValueChange = { comment = it },
-                    shape = RoundedCornerShape(16.dp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp)
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(32.dp))
         }
-
-
-        PrimaryButton(
-            text = stringResource(R.string.text_5_12),
-            height = 56.dp,
-            fontSize = 16.sp,
-            onClick = onCreate
-        )
-
-        Spacer(Modifier.height(32.dp))
     }
 }
