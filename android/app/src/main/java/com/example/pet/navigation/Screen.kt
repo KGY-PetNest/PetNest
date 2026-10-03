@@ -11,5 +11,6 @@ enum class Screen {
     Chat,
     Guide,
     Profile,
-    Main
+    Main,
+    MapPicker,
 }
