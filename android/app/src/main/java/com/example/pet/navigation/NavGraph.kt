@@ -1,6 +1,8 @@
 package com.example.pet.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -8,9 +10,12 @@ import androidx.navigation.compose.composable
 import com.example.pet.ui.createrequest.CreateRequestScreen
 import com.example.pet.ui.emailconfirm.EmailConfirmScreen
 import com.example.pet.ui.login.LoginScreen
+import com.example.pet.ui.mappicker.MapPickerScreen
 import com.example.pet.ui.petprofile.PetProfileScreen
 import com.example.pet.ui.registration.RegistrationScreen
 import com.example.pet.ui.welcome.WelcomeScreen
+
+private const val PICKED_ADDRESS_KEY = "picked_address"
 
 @Composable
 fun NavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
@@ -40,11 +45,26 @@ fun NavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
                 onSave = { navController.navigate(Screen.CreateRequest.name) } // Временно пока что
             )
         }
-        composable(Screen.CreateRequest.name) {
+        composable(Screen.CreateRequest.name) { backStackEntry ->
+            val pickedAddress by backStackEntry.savedStateHandle
+                .getStateFlow<String?>(PICKED_ADDRESS_KEY, null)
+                .collectAsState()
             CreateRequestScreen(
                 onBack = { navController.popBackStack() },
                 onSelectPet = { /* TODO: выбор питомца */ },
-                onCreate = { /* TODO: создание заявки */ }
+                onCreate = { /* TODO: создание заявки */ },
+                pickedAddress = pickedAddress,
+                onPickedAddressUsed = { backStackEntry.savedStateHandle[PICKED_ADDRESS_KEY] = null },
+                onPickOnMap = { navController.navigate(Screen.MapPicker.name) }
+            )
+        }
+        composable(Screen.MapPicker.name) {
+            MapPickerScreen(
+                onBack = { navController.popBackStack() },
+                onPicked = { address ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set(PICKED_ADDRESS_KEY, address)
+                    navController.popBackStack()
+                }
             )
         }
         composable(Screen.EmailConfirm.name) {

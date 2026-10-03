@@ -7,4 +7,5 @@ enum class Screen {
     PetProfile,
     CreateRequest,
     EmailConfirm,
+    MapPicker,
 }
