@@ -7,4 +7,9 @@ enum class Screen {
     PetProfile,
     CreateRequest,
     EmailConfirm,
+    Feed,
+    Chat,
+    Guide,
+    Profile,
+    Main
 }

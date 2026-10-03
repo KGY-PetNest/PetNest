@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import com.example.pet.ui.createrequest.CreateRequestScreen
 import com.example.pet.ui.emailconfirm.EmailConfirmScreen
 import com.example.pet.ui.login.LoginScreen
+import com.example.pet.ui.main.MainScreen
 import com.example.pet.ui.petprofile.PetProfileScreen
 import com.example.pet.ui.registration.RegistrationScreen
 import com.example.pet.ui.welcome.WelcomeScreen
@@ -44,7 +45,7 @@ fun NavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
             CreateRequestScreen(
                 onBack = { navController.popBackStack() },
                 onSelectPet = { /* TODO: выбор питомца */ },
-                onCreate = { /* TODO: создание заявки */ }
+                onCreate = { navController.navigate(Screen.Main.name) }
             )
         }
         composable(Screen.EmailConfirm.name) {
@@ -53,6 +54,9 @@ fun NavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
                 onSuccess = { navController.navigate(Screen.Login.name) }, // Временно пока что
                 onResend = { /* TODO: повторная отправка кода */ }
             )
+        }
+        composable(Screen.Main.name){
+            MainScreen(navController)
         }
     }
 }

@@ -52,6 +52,11 @@
     <string name="text_6_6">Не пришёл код?</string>
     <string name="text_6_7">Отправить ещё раз</string>
     <string name="text_6_8">Повторная отправка через %1$d с</string>
+    <string name="text_7_1">Профиль владельца</string>
+    <string name="text_7_2">Ваши питомцы</string>
+    <string name="text_7_3">Добавить питомца</string>
+    <string name="text_8_1">Лента ваших заявок</string>
+    <string name="text_8_2">+ Создать заявку</string>
     <plurals name="days_count">
         <item quantity="one">%d день</item>
         <item quantity="few">%d дня</item>
