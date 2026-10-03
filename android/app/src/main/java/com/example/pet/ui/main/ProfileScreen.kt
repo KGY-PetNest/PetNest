@@ -55,7 +55,7 @@ fun ProfileScreen(
     ) {
         Spacer(Modifier.height(24.dp))
 
-        ScreenHeader(title = stringResource(R.string.text_7_1), onBack = {})
+        ScreenHeader(title = stringResource(R.string.text_9_1), onBack = {})
 
         Spacer(Modifier.height(20.dp))
 
@@ -83,7 +83,7 @@ fun ProfileScreen(
         Spacer(Modifier.height(28.dp))
 
         Text(
-            text = stringResource(R.string.text_7_2),
+            text = stringResource(R.string.text_9_2),
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(start = 8.dp)
         )
@@ -116,7 +116,7 @@ fun ProfileScreen(
                 .fillMaxWidth()
                 .height(48.dp)
         ) {
-            Text(stringResource(R.string.text_7_3), style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.text_9_3), style = MaterialTheme.typography.labelLarge)
         }
 
         Spacer(Modifier.height(32.dp))
