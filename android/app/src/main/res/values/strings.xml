@@ -16,6 +16,7 @@
     <string name="text_3_3">Номер телефона</string>
     <string name="text_3_4">Зарегистрироваться</string>
     <string name="text_3_5">У вас уже есть аккаунт?</string>
+    <string name="text_3_6">Введите номер полностью</string>
     <string name="text_4_1">Анкета питомца</string>
     <string name="text_4_2">Выбрать фото</string>
     <string name="text_4_3">Имя</string>
@@ -39,6 +40,18 @@
     <string name="text_5_12">Опубликовать заявку</string>
     <string name="text_5_13">%1$s - %2$s (%3$s)</string>
     <string name="text_5_14">Готово</string>
+    <string name="text_5_15">Сменить</string>
+    <string name="text_5_16">Выберите даты передержки</string>
+    <string name="text_5_17">Отмена</string>
+    <string name="text_5_18">ДД.ММ.ГГГГ — ДД.ММ.ГГГГ</string>
+    <string name="text_6_1">Подтверждение</string>
+    <string name="text_6_2">Мы отправили код на вашу почту. Введите его ниже</string>
+    <string name="text_6_3">Код из письма</string>
+    <string name="text_6_4">Введите 6 цифр</string>
+    <string name="text_6_5">Подтвердить</string>
+    <string name="text_6_6">Не пришёл код?</string>
+    <string name="text_6_7">Отправить ещё раз</string>
+    <string name="text_6_8">Повторная отправка через %1$d с</string>
     <plurals name="days_count">
         <item quantity="one">%d день</item>
         <item quantity="few">%d дня</item>

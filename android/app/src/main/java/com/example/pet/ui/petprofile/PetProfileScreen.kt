@@ -27,10 +27,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -59,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import com.example.pet.R
 import com.example.pet.ui.components.AvatarCropDialog
 import com.example.pet.ui.components.PrimaryButton
+import com.example.pet.ui.components.ScreenHeader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -115,19 +114,7 @@ fun PetProfileScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
         ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier.align(Alignment.CenterStart),
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                }
-                Text(
-                    text = stringResource(R.string.text_4_1),
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
+            ScreenHeader(title = stringResource(R.string.text_4_1), onBack = onBack)
 
             val scrollState = rememberScrollState()
             val density = LocalDensity.current

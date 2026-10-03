@@ -23,7 +23,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Pets
@@ -32,7 +31,6 @@ import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.DisplayMode
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -65,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pet.R
 import com.example.pet.ui.components.PrimaryButton
+import com.example.pet.ui.components.ScreenHeader
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -147,7 +146,7 @@ fun CreateRequestScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Отмена")
+                    Text(stringResource(R.string.text_5_17))
                 }
             }
         ) {
@@ -167,7 +166,7 @@ fun CreateRequestScreen(
                     state = pickerState,
                     title = {
                         Text(
-                            text = "Выберите даты передержки",
+                            text = stringResource(R.string.text_5_16),
                             style = MaterialTheme.typography.labelMedium,
                             modifier = Modifier.padding(start = 24.dp, top = 16.dp, end = 24.dp)
                         )
@@ -185,7 +184,7 @@ fun CreateRequestScreen(
                                 "${format.format(Date(startMillis))} — ${format.format(Date(endMillis))}"
                             startMillis != null ->
                                 "${format.format(Date(startMillis))} — ..."
-                            else -> "ДД.ММ.ГГГГ — ДД.ММ.ГГГГ"
+                            else -> stringResource(R.string.text_5_18)
                         }
                         Text(
                             text = headlineText,
@@ -213,19 +212,7 @@ fun CreateRequestScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
         ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier.align(Alignment.CenterStart),
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                }
-                Text(
-                    text = stringResource(R.string.text_5_1),
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
+            ScreenHeader(title = stringResource(R.string.text_5_1), onBack = onBack)
 
             val scrollState = rememberScrollState()
             val density = LocalDensity.current
@@ -304,7 +291,7 @@ fun CreateRequestScreen(
                                 modifier = Modifier.height(36.dp)
                             ) {
                                 Text(
-                                    text = "Сменить",
+                                    text = stringResource(R.string.text_5_15),
                                     style = MaterialTheme.typography.labelMedium
                                 )
                             }

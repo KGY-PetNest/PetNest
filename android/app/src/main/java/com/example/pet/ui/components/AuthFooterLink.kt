@@ -12,6 +12,7 @@ import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withLink
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun AuthFooterLink(
@@ -35,7 +36,9 @@ fun AuthFooterLink(
         },
         style = MaterialTheme.typography.bodyLarge.copy(
             color = Color.Gray,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            fontSize = 16.sp,
+            letterSpacing = 0.sp
         ),
         modifier = modifier.fillMaxWidth()
     )

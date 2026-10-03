@@ -5,7 +5,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.example.pet.navigation.NavGraph
 import com.example.pet.ui.theme.PetTheme
@@ -25,7 +27,7 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
 
                 Scaffold { innerPadding ->
-                    NavGraph(navController, innerPadding)
+                    NavGraph(navController, Modifier.padding(innerPadding))
                 }
             }
         }

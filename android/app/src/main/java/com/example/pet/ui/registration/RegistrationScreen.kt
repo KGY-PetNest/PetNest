@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pet.R
 import com.example.pet.ui.components.AuthFooterLink
+import com.example.pet.ui.components.PhoneVisualTransformation
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.SegmentButton
 import com.example.pet.ui.theme.IBMPlexMono
@@ -55,6 +56,7 @@ fun RegistrationScreen(
     var selectedRole by rememberSaveable { mutableIntStateOf(0) }
     var name by rememberSaveable { mutableStateOf("") }
     var phone by rememberSaveable { mutableStateOf("") }
+    var phoneError by rememberSaveable { mutableStateOf(false) }
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
 
@@ -115,9 +117,19 @@ fun RegistrationScreen(
 
                 OutlinedTextField(
                     value = phone,
-                    onValueChange = { phone = it },
+                    onValueChange = { input ->
+                        val digits = input.filter(Char::isDigit)
+                        val local = if (digits.length > 10 && (digits.startsWith("7") || digits.startsWith("8"))) {
+                            digits.drop(1)
+                        } else digits
+                        phone = local.take(10)
+                        phoneError = false
+                    },
                     placeholder = { Text(stringResource(R.string.text_3_3)) },
                     leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
+                    visualTransformation = PhoneVisualTransformation(),
+                    isError = phoneError,
+                    supportingText = { if (phoneError) Text(stringResource(R.string.text_3_6)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -154,7 +166,7 @@ fun RegistrationScreen(
                 text = stringResource(R.string.text_3_4),
                 height = 56.dp,
                 fontSize = 16.sp,
-                onClick = onSuccess
+                onClick = { if (phone.length == 10) onSuccess() else phoneError = true }
             )
 
             Spacer(Modifier.height(16.dp))

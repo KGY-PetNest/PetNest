@@ -6,4 +6,5 @@ enum class Screen {
     Login,
     PetProfile,
     CreateRequest,
+    EmailConfirm,
 }

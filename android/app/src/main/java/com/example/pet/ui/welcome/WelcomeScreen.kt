@@ -53,7 +53,10 @@ fun WelcomeScreen(onStart: () -> Unit, modifier: Modifier = Modifier) {
 
             Text(
                 text = stringResource(R.string.text_1_2),
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = 16.sp,
+                    letterSpacing = 0.sp
+                ),
                 textAlign = TextAlign.Center
             )
 
@@ -70,7 +73,7 @@ fun WelcomeScreen(onStart: () -> Unit, modifier: Modifier = Modifier) {
             PrimaryButton(
                 text = stringResource(R.string.start_text),
                 height = 56.dp,
-                fontSize = 20.sp,
+                fontSize = 16.sp,
                 onClick = onStart
             )
 
