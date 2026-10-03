@@ -1,11 +1,12 @@
 package ru.hukm.petnest
 
 import io.ktor.server.application.*
-import ru.hukm.petnest.plugins.configureMonitoring
-import ru.hukm.petnest.plugins.configureRouting
-import ru.hukm.petnest.plugins.configureSerialization
-import ru.hukm.petnest.plugins.configureStatusPages
+import ru.hukm.petnest.plugins.logging.configureLogging
+import ru.hukm.petnest.plugins.ratelimit.configureRateLimit
+import ru.hukm.petnest.plugins.routing.configureRouting
 
 fun Application.module() {
     configureRouting()
+    configureRateLimit()
+    configureLogging()
 }
