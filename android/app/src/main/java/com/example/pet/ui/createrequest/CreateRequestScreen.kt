@@ -25,12 +25,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.DisplayMode
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -40,6 +43,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -77,6 +81,9 @@ fun CreateRequestScreen(
     onBack: () -> Unit,
     onSelectPet: () -> Unit,
     onCreate: () -> Unit,
+    pickedAddress: String?,
+    onPickedAddressUsed: () -> Unit,
+    onPickOnMap: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
@@ -108,6 +115,14 @@ fun CreateRequestScreen(
         }
     )
 
+    var address by rememberSaveable { mutableStateOf("") }
+
+    LaunchedEffect(pickedAddress) {
+        if (pickedAddress != null) {
+            address = pickedAddress
+            onPickedAddressUsed()
+        }
+    }
     var comment by rememberSaveable { mutableStateOf("") }
 
     val start = pickerState.selectedStartDateMillis
@@ -335,6 +350,43 @@ fun CreateRequestScreen(
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+                            Text(
+                                text = stringResource(R.string.text_5_7),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Color.Gray,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                            )
+                            OutlinedTextField(
+                                value = address,
+                                onValueChange = { address = it },
+                                placeholder = { Text(stringResource(R.string.text_5_8)) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.LocationOn,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                trailingIcon = {
+                                    IconButton(onClick = onPickOnMap) {
+                                        Icon(
+                                            imageVector = Icons.Default.Map,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
                         }
 
                         Spacer(Modifier.height(16.dp))
