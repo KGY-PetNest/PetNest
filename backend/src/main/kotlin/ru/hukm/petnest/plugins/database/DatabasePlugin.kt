@@ -8,8 +8,9 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import ru.hukm.petnest.modules.users.UsersTable
 
-private val tables = arrayOf<Table>()
+private val tables = arrayOf<Table>(UsersTable)
 
 fun Application.configureDatabase() {
     val config = environment.config
