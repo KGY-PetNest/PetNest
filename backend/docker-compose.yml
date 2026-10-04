@@ -6,6 +6,8 @@ services:
     container_name: petnest-backend
     restart: unless-stopped
     environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/petnest
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set in .env}
       REDIS_URL: redis://redis:6379
       METRICS_PASSWORD: ${METRICS_PASSWORD:?METRICS_PASSWORD is not set in .env}
     ports:
