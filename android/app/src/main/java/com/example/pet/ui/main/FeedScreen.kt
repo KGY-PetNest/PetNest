@@ -57,7 +57,9 @@ fun FeedScreen(
     ) {
         Spacer(Modifier.height(24.dp))
 
-        ScreenHeader(title = stringResource(R.string.text_8_1), onBack = {})
+        ScreenHeader(
+            title = stringResource(R.string.text_8_1)
+        )
 
         Spacer(Modifier.height(20.dp))
 
@@ -71,8 +73,6 @@ fun FeedScreen(
 
         PrimaryButton(
             text = stringResource(R.string.text_8_2),
-            height = 56.dp,
-            fontSize = 16.sp,
             onClick = onCreateClick
         )
 
@@ -87,7 +87,7 @@ private fun RequestCard(request: PetRequest) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .border(1.dp, Color.LightGray, RoundedCornerShape(16.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
             .padding(12.dp)
     ) {
         Icon(
@@ -117,7 +117,7 @@ private fun RequestCard(request: PetRequest) {
             Text(
                 text = request.note,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

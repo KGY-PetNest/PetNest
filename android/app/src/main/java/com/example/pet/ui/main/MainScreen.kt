@@ -1,6 +1,7 @@
 package com.example.pet.ui.main
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
@@ -29,7 +30,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.pet.navigation.Screen
-import androidx.compose.foundation.layout.WindowInsets
+import com.example.pet.ui.components.AdaptivePane
+
 @Composable
 fun MainScreen(navController: NavHostController) {
     val bottomNavController = rememberNavController()
@@ -42,17 +44,46 @@ fun MainScreen(navController: NavHostController) {
             startDestination = Screen.Feed.name,
             modifier = Modifier.weight(1f)
         ) {
-            composable(Screen.Feed.name) { FeedScreen() }
-            composable(Screen.Chat.name) { ChatScreen() }
-            composable(Screen.Guide.name) { GuideScreen() }
-            composable(Screen.Profile.name) { ProfileScreen() }
+            composable(Screen.Feed.name) {
+                AdaptivePane {
+                    FeedScreen(
+                        onCreateClick = {
+                            navController.navigate(Screen.CreateRequest.name)
+                        }
+                    )
+                }
+            }
+
+            composable(Screen.Chat.name) {
+                AdaptivePane {
+                    ChatScreen()
+                }
+            }
+
+            composable(Screen.Guide.name) {
+                AdaptivePane {
+                    GuideScreen()
+                }
+            }
+
+            composable(Screen.Profile.name) {
+                AdaptivePane {
+                    ProfileScreen(
+                        onAddPetClick = {
+                            navController.navigate(Screen.PetProfile.name)
+                        }
+                    )
+                }
+            }
         }
 
         BottomNavBar(
             currentScreen = Screen.valueOf(currentRoute ?: Screen.Feed.name),
             onItemClick = { screen ->
                 bottomNavController.navigate(screen.name) {
-                    popUpTo(bottomNavController.graph.findStartDestination().id) { saveState = true }
+                    popUpTo(bottomNavController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
                     launchSingleTop = true
                     restoreState = true
                 }
@@ -61,7 +92,11 @@ fun MainScreen(navController: NavHostController) {
     }
 }
 
-private data class BottomNavItem(val screen: Screen, val label: String, val icon: ImageVector)
+private data class BottomNavItem(
+    val screen: Screen,
+    val label: String,
+    val icon: ImageVector
+)
 
 private val bottomNavItems = listOf(
     BottomNavItem(Screen.Feed, "Заявки", Icons.Default.List),
@@ -71,11 +106,17 @@ private val bottomNavItems = listOf(
 )
 
 @Composable
-private fun BottomNavBar(currentScreen: Screen, onItemClick: (Screen) -> Unit) {
+private fun BottomNavBar(
+    currentScreen: Screen,
+    onItemClick: (Screen) -> Unit
+) {
     val primary = MaterialTheme.colorScheme.primary
 
     Column {
-        HorizontalDivider(color = primary.copy(alpha = 0.3f), thickness = 1.dp)
+        HorizontalDivider(
+            color = primary.copy(alpha = 0.3f),
+            thickness = 1.dp
+        )
 
         NavigationBar(
             containerColor = Color.White,
@@ -87,14 +128,25 @@ private fun BottomNavBar(currentScreen: Screen, onItemClick: (Screen) -> Unit) {
                 NavigationBarItem(
                     selected = currentScreen == item.screen,
                     onClick = { onItemClick(item.screen) },
-                    icon = { Icon(item.icon, contentDescription = null, modifier = Modifier.size(22.dp)) },
-                    label = { Text(item.label, style = MaterialTheme.typography.labelSmall) },
+                    icon = {
+                        Icon(
+                            imageVector = item.icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = item.label,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = primary,
                         selectedTextColor = primary,
                         indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                        unselectedIconColor = Color.Gray,
-                        unselectedTextColor = Color.Gray
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 )
             }

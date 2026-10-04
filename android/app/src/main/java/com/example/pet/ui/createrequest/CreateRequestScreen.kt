@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,7 +52,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -68,6 +66,7 @@ import androidx.compose.ui.unit.sp
 import com.example.pet.R
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.ScreenHeader
+import com.example.pet.ui.components.adaptiveContentWidth
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -223,8 +222,7 @@ fun CreateRequestScreen(
         Column(
             modifier = Modifier
                 .fillMaxHeight()
-                .widthIn(max = 640.dp)
-                .fillMaxWidth()
+                .adaptiveContentWidth()
                 .padding(horizontal = 16.dp)
         ) {
             ScreenHeader(title = stringResource(R.string.text_5_1), onBack = onBack)
@@ -267,7 +265,7 @@ fun CreateRequestScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 8.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .border(1.dp, Color.LightGray, RoundedCornerShape(16.dp))
+                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
                                 .clickable { onSelectPet() }
                                 .padding(12.dp)
                         ) {
@@ -296,7 +294,7 @@ fun CreateRequestScreen(
                                 Text(
                                     text = stringResource(R.string.text_5_3),
                                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
-                                    color = Color.Gray
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
 
@@ -318,7 +316,7 @@ fun CreateRequestScreen(
                             Text(
                                 text = stringResource(R.string.text_5_5),
                                 style = MaterialTheme.typography.labelLarge,
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
                             )
@@ -346,7 +344,7 @@ fun CreateRequestScreen(
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                     contentDescription = null,
-                                    tint = Color.Gray,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -358,7 +356,7 @@ fun CreateRequestScreen(
                             Text(
                                 text = stringResource(R.string.text_5_7),
                                 style = MaterialTheme.typography.labelLarge,
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
                             )
@@ -394,7 +392,7 @@ fun CreateRequestScreen(
                         Text(
                             text = stringResource(R.string.text_5_11),
                             style = MaterialTheme.typography.labelLarge,
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(start = 12.dp, bottom = 4.dp)
                         )
@@ -417,8 +415,6 @@ fun CreateRequestScreen(
 
             PrimaryButton(
                 text = stringResource(R.string.text_5_12),
-                height = 56.dp,
-                fontSize = 16.sp,
                 onClick = onCreate
             )
 

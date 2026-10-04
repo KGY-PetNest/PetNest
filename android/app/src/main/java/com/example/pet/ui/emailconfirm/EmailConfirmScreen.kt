@@ -38,6 +38,7 @@ import com.example.pet.R
 import com.example.pet.ui.components.AuthFooterLink
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.ScreenHeader
+import com.example.pet.ui.components.adaptiveContentWidth
 import kotlinx.coroutines.delay
 
 private const val CODE_LENGTH = 6
@@ -68,8 +69,7 @@ fun EmailConfirmScreen(
         Column(
             modifier = Modifier
                 .fillMaxHeight()
-                .widthIn(max = 640.dp)
-                .fillMaxWidth()
+                .adaptiveContentWidth()
                 .padding(horizontal = 16.dp)
         ) {
             ScreenHeader(title = stringResource(R.string.text_6_1), onBack = onBack)
@@ -83,7 +83,7 @@ fun EmailConfirmScreen(
                 Text(
                     text = stringResource(R.string.text_6_2),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -112,8 +112,6 @@ fun EmailConfirmScreen(
 
                 PrimaryButton(
                     text = stringResource(R.string.text_6_5),
-                    height = 56.dp,
-                    fontSize = 16.sp,
                     onClick = {
                         if (code.length == CODE_LENGTH) onSuccess() else isError = true
                     }
@@ -125,7 +123,7 @@ fun EmailConfirmScreen(
                     Text(
                         text = stringResource(R.string.text_6_8, secondsLeft),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )

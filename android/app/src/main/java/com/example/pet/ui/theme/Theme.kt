@@ -4,10 +4,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
-
 private val LightColorScheme = lightColorScheme(
     primary = PetPurple,
-    primaryContainer = PetPurpleLight
+    primaryContainer = PetPurpleLight,
+    background = PetWhite,
+    surface = PetWhite,
+    onSurface = PetDarkText,
+    onSurfaceVariant = PetGray,
+    outline = PetLightGray
 )
 
 @Composable

@@ -35,9 +35,8 @@ fun AuthFooterLink(
             append(suffixText)
         },
         style = MaterialTheme.typography.bodyLarge.copy(
-            color = Color.Gray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            fontSize = 16.sp,
             letterSpacing = 0.sp
         ),
         modifier = modifier.fillMaxWidth()

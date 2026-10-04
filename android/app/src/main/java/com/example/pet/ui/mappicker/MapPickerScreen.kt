@@ -1,11 +1,10 @@
 package com.example.pet.ui.mappicker
 
 import androidx.compose.foundation.border
-import kotlin.math.roundToInt
-import java.lang.ref.WeakReference
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,11 +27,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -40,6 +37,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.pet.R
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.ScreenHeader
+import com.example.pet.ui.components.adaptiveContentWidth
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.CameraListener
@@ -53,6 +51,8 @@ import com.yandex.mapkit.search.SearchType
 import com.yandex.mapkit.search.Session
 import com.yandex.mapkit.search.ToponymObjectMetadata
 import com.yandex.runtime.Error
+import java.lang.ref.WeakReference
+import kotlin.math.roundToInt
 
 private val START_POINT = Point(55.751244, 37.618423)
 private const val START_ZOOM = 14f
@@ -81,7 +81,6 @@ fun MapPickerScreen(
         }
     }
 
-    // MapKit хранит слабые ссылки на слушатели, поэтому держим их в remember
     val searchListener = remember {
         object : Session.SearchListener {
             override fun onSearchResponse(response: Response) {
@@ -98,6 +97,7 @@ fun MapPickerScreen(
             }
         }
     }
+
     val cameraListener = remember {
         CameraListener { _, position, _, finished ->
             if (finished) {
@@ -145,66 +145,73 @@ fun MapPickerScreen(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
     ) {
-        ScreenHeader(title = stringResource(R.string.text_7_1), onBack = onBack)
-
-        Spacer(Modifier.height(8.dp))
-
-        Box(
+        Column(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
+                .fillMaxHeight()
+                .adaptiveContentWidth()
+                .padding(horizontal = 16.dp)
         ) {
-            AndroidView(
-                factory = {
-                    mapView.apply {
-                        mapWindow.map.move(CameraPosition(START_POINT, START_ZOOM, 0f, 0f))
-                        mapWindow.map.addCameraListener(WeakReference(cameraListener))
-                    }
-                },
-                modifier = Modifier.fillMaxSize()
-            )
-            Icon(
-                imageVector = Icons.Default.LocationOn,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+            ScreenHeader(title = stringResource(R.string.text_7_1), onBack = onBack)
+            Spacer(Modifier.height(8.dp))
+
+            Box(
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .offset(y = (-24).dp)
-                    .size(48.dp)
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+            ) {
+                AndroidView(
+                    factory = {
+                        mapView.apply {
+                            mapWindow.map.move(CameraPosition(START_POINT, START_ZOOM, 0f, 0f))
+                            mapWindow.map.addCameraListener(WeakReference(cameraListener))
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .offset(y = (-24).dp)
+                        .size(48.dp)
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            Text(
+                text = address ?: stringResource(
+                    if (failed) R.string.text_7_3 else R.string.text_7_2
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (address != null) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
+                    .padding(16.dp)
             )
+
+            Spacer(Modifier.height(16.dp))
+
+            PrimaryButton(
+                text = stringResource(R.string.text_7_4),
+                onClick = { address?.let(onPicked) }
+            )
+
+            Spacer(Modifier.height(32.dp))
         }
-
-        Spacer(Modifier.height(16.dp))
-
-        Text(
-            text = address ?: stringResource(
-                if (failed) R.string.text_7_3 else R.string.text_7_2
-            ),
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (address != null) MaterialTheme.colorScheme.onSurface else Color.Gray,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
-                .padding(16.dp)
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        PrimaryButton(
-            text = stringResource(R.string.text_7_4),
-            height = 56.dp,
-            fontSize = 16.sp,
-            onClick = { address?.let(onPicked) }
-        )
-
-        Spacer(Modifier.height(32.dp))
     }
 }

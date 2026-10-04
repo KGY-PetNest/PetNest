@@ -55,7 +55,9 @@ fun ProfileScreen(
     ) {
         Spacer(Modifier.height(24.dp))
 
-        ScreenHeader(title = stringResource(R.string.text_9_1), onBack = {})
+        ScreenHeader(
+            title = stringResource(R.string.text_9_1)
+        )
 
         Spacer(Modifier.height(20.dp))
 
