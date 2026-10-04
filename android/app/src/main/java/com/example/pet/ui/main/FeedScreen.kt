@@ -46,6 +46,7 @@ private val mockRequests = listOf(
 
 @Composable
 fun FeedScreen(
+    onBack: (() -> Unit)? = null,
     onCreateClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -55,10 +56,10 @@ fun FeedScreen(
             .padding(horizontal = 16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Spacer(Modifier.height(24.dp))
 
         ScreenHeader(
-            title = stringResource(R.string.text_8_1)
+            title = stringResource(R.string.text_8_1),
+            onBack = onBack
         )
 
         Spacer(Modifier.height(20.dp))

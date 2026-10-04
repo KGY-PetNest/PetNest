@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.pet.ui.components.BottomInsetsPane
 import com.example.pet.ui.createrequest.CreateRequestScreen
 import com.example.pet.ui.emailconfirm.EmailConfirmScreen
 import com.example.pet.ui.login.LoginScreen
@@ -29,44 +30,82 @@ fun NavGraph(
         modifier = modifier
     ) {
         composable(Screen.Welcome.name) {
-            WelcomeScreen(
-                onStart = {
-                    navController.navigate(Screen.Login.name)
-                }
-            )
-        }
-
-        composable(Screen.Registration.name) {
-            RegistrationScreen(
-                onLoginClick = {
-                    navController.navigate(Screen.Login.name)
-                },
-                onSuccess = {
-                    navController.navigate(Screen.EmailConfirm.name)
-                }
-            )
+            BottomInsetsPane {
+                WelcomeScreen(
+                    onStart = {
+                        navController.navigate(Screen.Login.name) {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
         }
 
         composable(Screen.Login.name) {
-            LoginScreen(
-                onRegisterClick = {
-                    navController.navigate(Screen.Registration.name)
-                },
-                onSuccess = {
-                    navController.navigate(Screen.PetProfile.name)
-                }
-            )
+            BottomInsetsPane {
+                LoginScreen(
+                    onRegisterClick = {
+                        navController.navigate(Screen.Registration.name) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onSuccess = {
+                        navController.navigate(Screen.Main.name) {
+                            popUpTo(Screen.Welcome.name) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
+        }
+
+        composable(Screen.Registration.name) {
+            BottomInsetsPane {
+                RegistrationScreen(
+                    onLoginClick = {
+                        navController.popBackStack(Screen.Login.name, inclusive = false)
+                    },
+                    onSuccess = {
+                        navController.navigate(Screen.EmailConfirm.name) {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
+        }
+
+        composable(Screen.EmailConfirm.name) {
+            BottomInsetsPane {
+                EmailConfirmScreen(
+                    onBack = {
+                        navController.popBackStack()
+                    },
+                    onSuccess = {
+                        navController.popBackStack(Screen.Login.name, inclusive = false)
+                    },
+                    onResend = {
+                        /* TODO: повторная отправка кода */
+                    }
+                )
+            }
+        }
+
+        // Main без BottomInsetsPane: нижняя панель сама прижата к низу
+        composable(Screen.Main.name) {
+            MainScreen(navController)
         }
 
         composable(Screen.PetProfile.name) {
-            PetProfileScreen(
-                onBack = {
-                    navController.popBackStack()
-                },
-                onSave = {
-                    navController.navigate(Screen.CreateRequest.name)
-                }
-            )
+            BottomInsetsPane {
+                PetProfileScreen(
+                    onBack = {
+                        navController.popBackStack()
+                    },
+                    onSave = {
+                        navController.popBackStack()
+                    }
+                )
+            }
         }
 
         composable(Screen.CreateRequest.name) { backStackEntry ->
@@ -74,57 +113,45 @@ fun NavGraph(
                 .getStateFlow<String?>(PICKED_ADDRESS_KEY, null)
                 .collectAsState()
 
-            CreateRequestScreen(
-                onBack = {
-                    navController.popBackStack()
-                },
-                onSelectPet = {
-                    /* TODO: выбор питомца */
-                },
-                onCreate = {
-                    navController.navigate(Screen.Main.name)
-                },
-                pickedAddress = pickedAddress,
-                onPickedAddressUsed = {
-                    backStackEntry.savedStateHandle[PICKED_ADDRESS_KEY] = null
-                },
-                onPickOnMap = {
-                    navController.navigate(Screen.MapPicker.name)
-                }
-            )
+            BottomInsetsPane {
+                CreateRequestScreen(
+                    onBack = {
+                        navController.popBackStack()
+                    },
+                    onSelectPet = {
+                        /* TODO: выбор питомца */
+                    },
+                    onCreate = {
+                        navController.popBackStack()
+                    },
+                    pickedAddress = pickedAddress,
+                    onPickedAddressUsed = {
+                        backStackEntry.savedStateHandle[PICKED_ADDRESS_KEY] = null
+                    },
+                    onPickOnMap = {
+                        navController.navigate(Screen.MapPicker.name) {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
         }
 
         composable(Screen.MapPicker.name) {
-            MapPickerScreen(
-                onBack = {
-                    navController.popBackStack()
-                },
-                onPicked = { address ->
-                    navController.previousBackStackEntry
-                        ?.savedStateHandle
-                        ?.set(PICKED_ADDRESS_KEY, address)
+            BottomInsetsPane {
+                MapPickerScreen(
+                    onBack = {
+                        navController.popBackStack()
+                    },
+                    onPicked = { address ->
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set(PICKED_ADDRESS_KEY, address)
 
-                    navController.popBackStack()
-                }
-            )
-        }
-
-        composable(Screen.EmailConfirm.name) {
-            EmailConfirmScreen(
-                onBack = {
-                    navController.popBackStack()
-                },
-                onSuccess = {
-                    navController.navigate(Screen.Login.name)
-                },
-                onResend = {
-                    /* TODO: повторная отправка кода */
-                }
-            )
-        }
-
-        composable(Screen.Main.name) {
-            MainScreen(navController)
+                        navController.popBackStack()
+                    }
+                )
+            }
         }
     }
 }

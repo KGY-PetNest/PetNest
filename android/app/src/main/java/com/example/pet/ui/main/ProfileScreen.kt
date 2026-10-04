@@ -42,6 +42,7 @@ private val mockPets = listOf(Pet("Кот"), Pet("Кошка"), Pet("Пёс"), P
 
 @Composable
 fun ProfileScreen(
+    onBack: (() -> Unit)? = null,
     onAddPetClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -53,10 +54,10 @@ fun ProfileScreen(
             .padding(horizontal = 16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Spacer(Modifier.height(24.dp))
 
         ScreenHeader(
-            title = stringResource(R.string.text_9_1)
+            title = stringResource(R.string.text_9_1),
+            onBack = onBack
         )
 
         Spacer(Modifier.height(20.dp))
