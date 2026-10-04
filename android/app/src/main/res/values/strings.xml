@@ -65,4 +65,6 @@
         <item quantity="many">%d дней</item>
         <item quantity="other">%d дня</item>
     </plurals>
+    <string name="text_10_1">Чат</string>
+    <string name="text_11_1">Справочник</string>
 </resources>
