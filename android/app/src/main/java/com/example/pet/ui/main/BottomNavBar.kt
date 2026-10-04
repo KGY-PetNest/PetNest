@@ -3,6 +3,7 @@ package com.example.pet.ui.main
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.List
@@ -28,7 +29,7 @@ private data class BottomNavItem(
 )
 
 private val bottomNavItems = listOf(
-    BottomNavItem(Screen.Feed, "Заявки", Icons.Default.List),
+    BottomNavItem(Screen.Feed, "Заявки", Icons.AutoMirrored.Filled.List),
     BottomNavItem(Screen.Chat, "Чат", Icons.Default.ChatBubble),
     BottomNavItem(Screen.Guide, "Справочник", Icons.AutoMirrored.Filled.MenuBook),
     BottomNavItem(Screen.Profile, "Профиль", Icons.Default.Person)
