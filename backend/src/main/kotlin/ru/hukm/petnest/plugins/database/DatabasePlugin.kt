@@ -16,7 +16,7 @@ fun Application.configureDatabase() {
     val dataSource = HikariDataSource(HikariConfig().apply {
         jdbcUrl = config.property("database.url").getString()
         username = config.property("database.user").getString()
-        password = System.getenv("POSTGRES_PASSWORD") ?: error("POSTGRES_PASSWORD is not set")
+        password = System.getenv("POSTGRES_PASSWORD") ?: error("POSTGRES_PASSWORD не установлен")
         maximumPoolSize = 10
     })
 

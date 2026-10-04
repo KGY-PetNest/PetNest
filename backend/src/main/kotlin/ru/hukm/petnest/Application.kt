@@ -9,14 +9,12 @@ import ru.hukm.petnest.plugins.routing.configureRouting
 import ru.hukm.petnest.plugins.serialization.configureSerialization
 import ru.hukm.petnest.plugins.sessions.configureSessions
 import ru.hukm.petnest.plugins.statuspages.configureStatusPages
-import ru.hukm.petnest.plugins.validation.configureValidation
 
 fun Application.module() {
     configureDatabase()
     configureSessions()
     configureMetrics()
     configureSerialization()
-    configureValidation()
     configureStatusPages()
     configureRouting()
     configureRateLimit()
