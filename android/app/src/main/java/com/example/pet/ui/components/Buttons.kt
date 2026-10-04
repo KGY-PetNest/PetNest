@@ -1,6 +1,5 @@
 package com.example.pet.ui.components
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -18,11 +17,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun PrimaryButton(text: String, height: Dp, fontSize: TextUnit, onClick: () -> Unit, modifier: Modifier = Modifier){
+fun PrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    height: Dp = 56.dp
+) {
     Button(
         onClick = onClick,
         modifier = modifier
@@ -36,24 +39,39 @@ fun PrimaryButton(text: String, height: Dp, fontSize: TextUnit, onClick: () -> U
         Text(
             text = text,
             color = Color.White,
-            style = MaterialTheme.typography.labelLarge.copy(fontSize = fontSize)
+            style = MaterialTheme.typography.titleMedium
         )
     }
 }
 
 @Composable
-fun SegmentButton(text: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun SegmentButton(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
+            .background(
+                if (selected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    Color.Transparent
+                }
+            )
             .clickable { onClick() }
             .padding(vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = text,
-            color = if (selected) Color.White else MaterialTheme.colorScheme.primary,
+            color = if (selected) {
+                Color.White
+            } else {
+                MaterialTheme.colorScheme.primary
+            },
             style = MaterialTheme.typography.labelLarge
         )
     }

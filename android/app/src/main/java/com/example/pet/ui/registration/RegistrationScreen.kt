@@ -45,6 +45,7 @@ import com.example.pet.ui.components.AuthFooterLink
 import com.example.pet.ui.components.PhoneVisualTransformation
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.SegmentButton
+import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.theme.IBMPlexMono
 
 @Composable
@@ -66,16 +67,13 @@ fun RegistrationScreen(
     ) {
         Column(
             modifier = Modifier
-                .widthIn(max = 640.dp)
-                .fillMaxWidth()
+                .adaptiveContentWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
             Text(
                 text = stringResource(R.string.text_3_1),
-                fontSize = 28.sp,
-                fontFamily = IBMPlexMono,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(start = 8.dp)
             )
 
@@ -164,8 +162,6 @@ fun RegistrationScreen(
 
             PrimaryButton(
                 text = stringResource(R.string.text_3_4),
-                height = 56.dp,
-                fontSize = 16.sp,
                 onClick = { if (phone.length == 10) onSuccess() else phoneError = true }
             )
 

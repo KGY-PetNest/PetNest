@@ -58,6 +58,7 @@ import com.example.pet.R
 import com.example.pet.ui.components.AvatarCropDialog
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.ScreenHeader
+import com.example.pet.ui.components.adaptiveContentWidth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -110,8 +111,7 @@ fun PetProfileScreen(
         Column(
             modifier = Modifier
                 .fillMaxHeight()
-                .widthIn(max = 640.dp)
-                .fillMaxWidth()
+                .adaptiveContentWidth()
                 .padding(horizontal = 16.dp)
         ) {
             ScreenHeader(title = stringResource(R.string.text_4_1), onBack = onBack)
@@ -223,7 +223,7 @@ fun PetProfileScreen(
                         Text(
                             text = stringResource(R.string.text_4_6),
                             style = MaterialTheme.typography.labelLarge,
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(start = 12.dp, bottom = 4.dp)
                         )
@@ -246,8 +246,6 @@ fun PetProfileScreen(
 
             PrimaryButton(
                 text = stringResource(R.string.text_4_7),
-                height = 56.dp,
-                fontSize = 16.sp,
                 onClick = onSave
             )
 
@@ -269,7 +267,7 @@ private fun LabeledField(
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
-            color = Color.Gray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
         )

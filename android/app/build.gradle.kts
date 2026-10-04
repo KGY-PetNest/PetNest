@@ -8,8 +8,12 @@ plugins {
 val mapkitApiKey: String = providers
     .fileContents(rootProject.layout.projectDirectory.file("local.properties"))
     .asText
-    .map { text -> Properties().apply { load(text.reader()) }.getProperty("MAPKIT_API_KEY", "") }
-    .orElse("")
+    .map { text ->
+        Properties().apply { load(text.reader()) }
+            .getProperty("MAPKIT_API_KEY")
+            ?.takeIf { it.isNotBlank() }
+    }
+    .orElse("22129295-8bba-49a4-ae12-a3aef98532d1")
     .get()
 
 android {

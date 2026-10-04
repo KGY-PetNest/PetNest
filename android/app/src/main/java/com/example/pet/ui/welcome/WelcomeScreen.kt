@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pet.R
 import com.example.pet.ui.components.PrimaryButton
+import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.theme.IBMPlexMono
 
 @Composable
@@ -35,17 +36,14 @@ fun WelcomeScreen(onStart: () -> Unit, modifier: Modifier = Modifier) {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxHeight()
-                .widthIn(max = 640.dp)
-                .fillMaxWidth()
+                .adaptiveContentWidth()
                 .padding(horizontal = 24.dp)
         ) {
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
                 text = stringResource(R.string.app_name),
-                fontFamily = IBMPlexMono,
-                fontWeight = FontWeight.Bold,
-                fontSize = 40.sp,
+                style = MaterialTheme.typography.displayMedium,
                 textAlign = TextAlign.Center
             )
 
@@ -54,7 +52,6 @@ fun WelcomeScreen(onStart: () -> Unit, modifier: Modifier = Modifier) {
             Text(
                 text = stringResource(R.string.text_1_2),
                 style = MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = 16.sp,
                     letterSpacing = 0.sp
                 ),
                 textAlign = TextAlign.Center
@@ -72,8 +69,6 @@ fun WelcomeScreen(onStart: () -> Unit, modifier: Modifier = Modifier) {
 
             PrimaryButton(
                 text = stringResource(R.string.start_text),
-                height = 56.dp,
-                fontSize = 16.sp,
                 onClick = onStart
             )
 

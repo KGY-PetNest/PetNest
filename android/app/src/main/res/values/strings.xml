@@ -54,6 +54,11 @@
     <string name="text_7_2">Определяем адрес…</string>
     <string name="text_7_3">Не удалось определить адрес</string>
     <string name="text_7_4">Выбрать этот адрес</string>
+    <string name="text_8_1">Лента ваших заявок</string>
+    <string name="text_8_2">+ Создать заявку</string>
+    <string name="text_9_1">Профиль владельца</string>
+    <string name="text_9_2">Ваши питомцы</string>
+    <string name="text_9_3">Добавить питомца</string>
     <plurals name="days_count">
         <item quantity="one">%d день</item>
         <item quantity="few">%d дня</item>

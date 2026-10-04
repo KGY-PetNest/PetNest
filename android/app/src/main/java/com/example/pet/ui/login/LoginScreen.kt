@@ -42,6 +42,7 @@ import com.example.pet.R
 import com.example.pet.ui.components.AuthFooterLink
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.SegmentButton
+import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.theme.IBMPlexMono
 
 @Composable
@@ -60,16 +61,13 @@ fun LoginScreen(
     ) {
         Column(
             modifier = Modifier
-                .widthIn(max = 640.dp)
-                .fillMaxWidth()
+                .adaptiveContentWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
             Text(
                 text = stringResource(R.string.text_2_1),
-                fontSize = 28.sp,
-                fontFamily = IBMPlexMono,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(start = 8.dp)
             )
 
@@ -127,8 +125,6 @@ fun LoginScreen(
 
             PrimaryButton(
                 text = stringResource(R.string.text_2_6),
-                height = 56.dp,
-                fontSize = 16.sp,
                 onClick = onSuccess
             )
 
