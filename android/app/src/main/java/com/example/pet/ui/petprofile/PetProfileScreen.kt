@@ -126,9 +126,9 @@ fun PetProfileScreen(
                     .fillMaxWidth()
             ) {
                 val dynamicFeaturesHeight = if (topContentHeightDp > 0.dp) {
-                    (maxHeight - topContentHeightDp - 24.dp).coerceAtLeast(120.dp)
+                    (maxHeight - topContentHeightDp - 16.dp).coerceAtLeast(96.dp)
                 } else {
-                    120.dp
+                    96.dp
                 }
 
                 Column(
@@ -146,12 +146,12 @@ fun PetProfileScreen(
                                 topContentHeightDp = with(density) { coordinates.size.height.toDp() }
                             }
                     ) {
-                        Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(8.dp))
 
                         Box(
                             modifier = Modifier
                                 .align(Alignment.CenterHorizontally)
-                                .size(112.dp)
+                                .size(100.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.primaryContainer)
                                 .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
@@ -240,7 +240,7 @@ fun PetProfileScreen(
                             .height(dynamicFeaturesHeight)
                     )
 
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(8.dp))
                 }
             }
 

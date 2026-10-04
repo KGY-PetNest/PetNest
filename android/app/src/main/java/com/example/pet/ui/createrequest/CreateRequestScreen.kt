@@ -237,9 +237,9 @@ fun CreateRequestScreen(
                     .fillMaxWidth()
             ) {
                 val dynamicCommentHeight = if (topContentHeightDp > 0.dp) {
-                    (maxHeight - topContentHeightDp - 24.dp).coerceAtLeast(120.dp)
+                    (maxHeight - topContentHeightDp - 16.dp).coerceAtLeast(96.dp)
                 } else {
-                    120.dp
+                    96.dp
                 }
 
                 Column(
@@ -257,7 +257,7 @@ fun CreateRequestScreen(
                                 topContentHeightDp = with(density) { coordinates.size.height.toDp() }
                             }
                     ) {
-                        Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(8.dp))
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -409,7 +409,7 @@ fun CreateRequestScreen(
                             .height(dynamicCommentHeight)
                     )
 
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(8.dp))
                 }
             }
 
