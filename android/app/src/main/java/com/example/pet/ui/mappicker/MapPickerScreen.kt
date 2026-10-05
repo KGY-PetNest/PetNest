@@ -1,5 +1,15 @@
 package com.example.pet.ui.mappicker
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
@@ -26,9 +37,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -57,6 +72,8 @@ import kotlin.math.roundToInt
 private val START_POINT = Point(55.751244, 37.618423)
 private const val START_ZOOM = 14f
 
+private val ADDRESS_BAR_HEIGHT = 56.dp
+
 @Composable
 fun MapPickerScreen(
     onBack: () -> Unit,
@@ -69,6 +86,8 @@ fun MapPickerScreen(
 
     var address by remember { mutableStateOf<String?>(null) }
     var failed by remember { mutableStateOf(false) }
+    var isMoving by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(true) }
     var session by remember { mutableStateOf<Session?>(null) }
 
     val searchManager = remember {
@@ -89,10 +108,19 @@ fun MapPickerScreen(
                     ?.getItem(ToponymObjectMetadata::class.java)
                     ?.address?.formattedAddress
                     ?: obj?.name
-                if (text != null) address = text else failed = true
+                isLoading = false
+                if (text != null) {
+                    address = text
+                    failed = false
+                } else {
+                    address = null
+                    failed = true
+                }
             }
 
             override fun onSearchError(error: Error) {
+                isLoading = false
+                address = null
                 failed = true
             }
         }
@@ -100,17 +128,19 @@ fun MapPickerScreen(
 
     val cameraListener = remember {
         CameraListener { _, position, _, finished ->
-            if (finished) {
-                session?.cancel()
-                address = null
-                failed = false
-                session = searchManager.submit(
-                    position.target,
-                    position.zoom.roundToInt(),
-                    searchOptions,
-                    searchListener
-                )
+            if (!finished) {
+                isMoving = true
+                return@CameraListener
             }
+            isMoving = false
+            isLoading = true
+            session?.cancel()
+            session = searchManager.submit(
+                position.target,
+                position.zoom.roundToInt(),
+                searchOptions,
+                searchListener
+            )
         }
     }
 
@@ -138,12 +168,33 @@ fun MapPickerScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+            session?.cancel()
             if (started) {
                 mapView.onStop()
                 MapKitFactory.getInstance().onStop()
             }
         }
     }
+
+    val pinLift by animateDpAsState(
+        targetValue = if (isMoving) 14.dp else 0.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "pinLift"
+    )
+    val shadowScale by animateFloatAsState(
+        targetValue = if (isMoving) 0.6f else 1f,
+        label = "pinShadow"
+    )
+    val addressAlpha by animateFloatAsState(
+        targetValue = if (isMoving || isLoading) 0.45f else 1f,
+        animationSpec = tween(durationMillis = 150),
+        label = "addressAlpha"
+    )
+
+    val canPick = address != null && !isMoving && !isLoading
 
     Box(
         modifier = modifier.fillMaxSize(),
@@ -173,41 +224,71 @@ fun MapPickerScreen(
                     },
                     modifier = Modifier.fillMaxSize()
                 )
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(width = 14.dp, height = 6.dp)
+                        .graphicsLayer {
+                            scaleX = shadowScale
+                            scaleY = shadowScale
+                        }
+                        .background(Color.Black.copy(alpha = 0.25f), CircleShape)
+                )
+
                 Icon(
                     imageVector = Icons.Default.LocationOn,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .offset(y = (-24).dp)
+                        .offset(y = (-24).dp - pinLift)
                         .size(48.dp)
                 )
             }
 
             Spacer(Modifier.height(16.dp))
 
-            Text(
-                text = address ?: stringResource(
-                    if (failed) R.string.text_7_3 else R.string.text_7_2
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (address != null) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp)
+                    .height(ADDRESS_BAR_HEIGHT)
                     .clip(RoundedCornerShape(16.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
-                    .padding(16.dp)
-            )
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp)),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                val text = address ?: stringResource(
+                    if (failed) R.string.text_7_3 else R.string.text_7_2
+                )
+                AnimatedContent(
+                    targetState = text,
+                    transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(120)) },
+                    label = "address",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .alpha(addressAlpha)
+                ) { value ->
+                    Text(
+                        text = value,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (address != null) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
+            }
 
             Spacer(Modifier.height(16.dp))
 
             PrimaryButton(
                 text = stringResource(R.string.text_7_4),
+                enabled = canPick,
                 onClick = { address?.let(onPicked) }
             )
 
