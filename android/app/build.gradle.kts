@@ -32,19 +32,31 @@ android {
         buildConfigField("String", "MAPKIT_API_KEY", "\"$mapkitApiKey\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        ndk {
-            abiFilters += setOf("arm64-v8a", "x86_64")
-        }
     }
 
     buildTypes {
+        debug {
+            ndk {
+                abiFilters += setOf("arm64-v8a", "x86_64")
+            }
+        }
         release {
+            ndk {
+                abiFilters += setOf("arm64-v8a")
+            }
             optimization {
-                enable = false
+                enable = true
             }
         }
     }
+
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11

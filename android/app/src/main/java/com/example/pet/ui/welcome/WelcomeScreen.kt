@@ -1,20 +1,39 @@
 package com.example.pet.ui.welcome
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -24,55 +43,134 @@ import androidx.compose.ui.unit.sp
 import com.example.pet.R
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.adaptiveContentWidth
-import com.example.pet.ui.theme.IBMPlexMono
 
 @Composable
 fun WelcomeScreen(onStart: () -> Unit, modifier: Modifier = Modifier) {
+    var shown by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
+
+    val background = MaterialTheme.colorScheme.background
+    val photoScale by animateFloatAsState(
+        targetValue = if (shown) 1f else 1.08f,
+        animationSpec = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
+        label = "photoScale"
+    )
+
     Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        modifier = modifier
+            .fillMaxSize()
+            .clipToBounds()
     ) {
+        Image(
+            painter = painterResource(R.drawable.welcome_cat),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .appear(shown, index = 0)
+                .graphicsLayer {
+                    scaleX = photoScale
+                    scaleY = photoScale
+                }
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0f to background.copy(alpha = 0.85f),
+                        0.3f to Color.Transparent,
+                        0.7f to Color.Transparent,
+                        1f to background.copy(alpha = 0.9f)
+                    )
+                )
+        )
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxHeight()
                 .adaptiveContentWidth()
+                .align(Alignment.TopCenter)
                 .padding(horizontal = 24.dp)
         ) {
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(Modifier.height(32.dp))
 
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.displayMedium,
-                textAlign = TextAlign.Center
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.appear(shown, index = 1)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Pets,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(36.dp)
+                )
+                Text(
+                    text = stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(Modifier.height(12.dp))
 
             Text(
                 text = stringResource(R.string.text_1_2),
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    letterSpacing = 0.sp
-                ),
-                textAlign = TextAlign.Center
+                style = MaterialTheme.typography.titleMedium.copy(letterSpacing = 0.sp),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.appear(shown, index = 2)
             )
 
-            Spacer(modifier = Modifier.weight(1f))
-
-            Image(
-                painter = painterResource(R.drawable.welcome_cat),
-                contentDescription = null,
-                modifier = Modifier.weight(2.5f, fill = false)
-            )
-
-            Spacer(modifier = Modifier.weight(2.5f))
+            Spacer(Modifier.weight(1f))
 
             PrimaryButton(
-                text = stringResource(R.string.start_text),
-                onClick = onStart
+                text = stringResource(R.string.text_1_3),
+                onClick = onStart,
+                modifier = Modifier.appear(shown, index = 3)
             )
 
-            Spacer(modifier = Modifier.weight(0.5f))
+            Spacer(Modifier.height(20.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.appear(shown, index = 4)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp)
+                )
+                Text(
+                    text = stringResource(R.string.text_1_4),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(Modifier.height(24.dp))
         }
+    }
+}
+
+@Composable
+private fun Modifier.appear(shown: Boolean, index: Int): Modifier {
+    val progress by animateFloatAsState(
+        targetValue = if (shown) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = 450,
+            delayMillis = index * 90,
+            easing = FastOutSlowInEasing
+        ),
+        label = "appear$index"
+    )
+    return this.graphicsLayer {
+        alpha = progress
+        translationY = (1f - progress) * 24.dp.toPx()
     }
 }
