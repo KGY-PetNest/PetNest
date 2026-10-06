@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -135,7 +136,7 @@ fun RequestDetailsScreen(
                 }
 
                 if (request.traits.isNotEmpty() || request.features.isNotBlank()) {
-                    Spacer(Modifier.height(24.dp))
+                    SectionDivider()
                     SectionTitle(stringResource(R.string.text_4_6))
                     Spacer(Modifier.height(10.dp))
                     PetTraitChips(traits = request.traits, large = true)
@@ -146,7 +147,7 @@ fun RequestDetailsScreen(
                 }
 
                 if (request.comment.isNotBlank()) {
-                    Spacer(Modifier.height(24.dp))
+                    SectionDivider()
                     SectionTitle(stringResource(R.string.text_5_11))
                     Spacer(Modifier.height(8.dp))
                     Text(text = request.comment, style = bodyStyle)
@@ -204,4 +205,11 @@ fun RequestDetailsScreen(
             Spacer(Modifier.height(32.dp))
         }
     }
+}
+
+@Composable
+private fun SectionDivider() {
+    Spacer(Modifier.height(24.dp))
+    HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outline)
+    Spacer(Modifier.height(20.dp))
 }
