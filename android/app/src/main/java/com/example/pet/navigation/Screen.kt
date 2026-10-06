@@ -25,6 +25,7 @@ enum class Screen {
     ForgotPassword,
     ResetCode,
     ResetPassword,
+    Settings,
 }
 
 object Routes {
@@ -59,6 +60,9 @@ object Routes {
 
     val EDIT_PROFILE = "${Screen.EditProfile.name}/{$ROLE_ARG}"
     fun editProfile(role: UserRole) = "${Screen.EditProfile.name}/${role.name}"
+
+    val SETTINGS = "${Screen.Settings.name}/{$ROLE_ARG}"
+    fun settings(role: UserRole) = "${Screen.Settings.name}/${role.name}"
 
     val RESET_CODE = "${Screen.ResetCode.name}/{$TARGET_ARG}"
     fun resetCode(target: String) = "${Screen.ResetCode.name}/${Uri.encode(target)}"

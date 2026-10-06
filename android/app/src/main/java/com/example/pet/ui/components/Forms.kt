@@ -40,7 +40,7 @@ object FormRules {
     const val CODE_LENGTH = 6
     const val PET_AGE_MAX_DIGITS = 2
     const val DESCRIPTION_MIN_LENGTH = 10
-    val FULL_NAME_WORDS = 3..3
+    val FULL_NAME_WORDS = 2..3
 
     fun normalizeFullName(value: String): String =
         value.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }.joinToString(" ")

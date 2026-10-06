@@ -41,6 +41,7 @@ import com.example.pet.ui.registration.RegistrationScreen
 import com.example.pet.ui.requestdetails.RequestDetailsScreen
 import com.example.pet.ui.responses.ResponsesScreen
 import com.example.pet.ui.reviews.ReviewsScreen
+import com.example.pet.ui.settings.SettingsScreen
 import com.example.pet.ui.volunteerprofile.VolunteerProfileScreen
 import com.example.pet.ui.welcome.WelcomeScreen
 
@@ -232,9 +233,33 @@ fun NavGraph(
                 ?: UserRole.Owner
             MainScreen(
                 navController = navController,
-                role = role,
-                onLogout = { navController.logout() }
+                role = role
             )
+        }
+
+        composable(
+            route = Routes.SETTINGS,
+            arguments = listOf(navArgument(Routes.ROLE_ARG) { type = NavType.StringType })
+        ) { entry ->
+            val role = entry.stringArg(Routes.ROLE_ARG)
+                ?.let { name -> UserRole.entries.firstOrNull { it.name == name } }
+                ?: UserRole.Owner
+            BottomInsetsPane {
+                SettingsScreen(
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onEditProfile = {
+                        entry.ifResumed {
+                            navController.navigate(Routes.editProfile(role)) { launchSingleTop = true }
+                        }
+                    },
+                    onChangePassword = {
+                        entry.ifResumed {
+                            navController.navigate(Screen.ChangePassword.name) { launchSingleTop = true }
+                        }
+                    },
+                    onLogout = { entry.ifResumed { navController.logout() } }
+                )
+            }
         }
 
         composable(
