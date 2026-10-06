@@ -69,7 +69,7 @@
     <string name="text_2_15">Неверный e-mail или пароль</string>
     <string name="text_2_16">Забыли пароль?</string>
     <string name="text_3_1">Регистрация</string>
-    <string name="text_3_2">ФИО</string>
+    <string name="text_3_2">Фамилия Имя Отчество</string>
     <string name="text_3_3">Номер телефона</string>
     <string name="text_3_4">Зарегистрироваться</string>
     <string name="text_3_5">У вас уже есть аккаунт?</string>
@@ -78,6 +78,7 @@
     <string name="text_3_8">Пароли не совпадают</string>
     <string name="text_3_9">Введите ФИО</string>
     <string name="text_3_11">Повторите пароль</string>
+    <string name="text_3_12">Укажите фамилию, имя и отчество</string>
     <string name="text_4_1">Анкета питомца</string>
     <string name="text_4_2">Выбрать фото</string>
     <string name="text_4_3">Имя</string>

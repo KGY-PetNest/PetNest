@@ -40,6 +40,19 @@ object FormRules {
     const val CODE_LENGTH = 6
     const val PET_AGE_MAX_DIGITS = 2
     const val DESCRIPTION_MIN_LENGTH = 10
+    val FULL_NAME_WORDS = 3..3
+
+    fun normalizeFullName(value: String): String =
+        value.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }.joinToString(" ")
+
+    fun fullNameError(value: String): Int? {
+        val words = normalizeFullName(value).split(" ").filter { it.isNotEmpty() }
+        return when {
+            words.isEmpty() -> R.string.text_3_9
+            words.size !in FULL_NAME_WORDS -> R.string.text_3_12
+            else -> null
+        }
+    }
 
     fun descriptionError(text: String, @StringRes emptyError: Int): Int? = when {
         text.isBlank() -> emptyError

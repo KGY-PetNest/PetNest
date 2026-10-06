@@ -9,13 +9,13 @@ object MockData {
     private fun date(month: Int, day: Int, year: Int = 2027): LocalDate = LocalDate.of(year, month, day)
 
     val ownerProfile = UserProfile(
-        name = "Елена Петрова",
+        name = "Петрова Елена Сергеевна",
         phone = "9161234567",
         email = "elena@example.com"
     )
 
     val volunteerProfile = UserProfile(
-        name = "Мария Петрова",
+        name = "Петрова Мария Ивановна",
         phone = "9267654321",
         email = "maria@example.com"
     )
@@ -102,7 +102,7 @@ object MockData {
 
     val volunteers = listOf(
         Volunteer(
-            id = "u1", name = "Мария Петрова", experience = "3 года",
+            id = "u1", name = "Петрова Мария Ивановна", experience = "3 года",
             about = "Очень люблю животных. Опыт ухода за кошками и собаками. " +
                     "Есть опыт с таблетками и особым уходом.",
             homeConditions = listOf(
@@ -113,7 +113,7 @@ object MockData {
             acceptedPets = listOf(AcceptedPet.Cats, AcceptedPet.SmallDogs)
         ),
         Volunteer(
-            id = "u2", name = "Алексей Иванов", experience = "5 лет",
+            id = "u2", name = "Иванов Алексей Петрович", experience = "5 лет",
             about = "Живу в частном доме с большим двором. Гуляю с собаками дважды в день.",
             homeConditions = listOf(
                 HomeConditionType.House,
@@ -123,7 +123,7 @@ object MockData {
             acceptedPets = listOf(AcceptedPet.SmallDogs, AcceptedPet.LargeDogs, AcceptedPet.Cats)
         ),
         Volunteer(
-            id = "u3", name = "Екатерина Соколова", experience = "2 года",
+            id = "u3", name = "Соколова Екатерина Олеговна", experience = "2 года",
             about = "Спокойная квартира, есть опыт с пожилыми кошками.",
             homeConditions = listOf(
                 HomeConditionType.Apartment,

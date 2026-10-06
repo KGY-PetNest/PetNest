@@ -92,7 +92,7 @@ fun EditProfileScreen(
     var saving by remember { mutableStateOf(false) }
 
     fun submit() {
-        nameError = if (name.isBlank()) R.string.text_3_9 else null
+        nameError = FormRules.fullNameError(name)
         phoneError = if (phone.length != FormRules.PHONE_LENGTH) R.string.text_3_6 else null
         emailError = when {
             email.isBlank() -> R.string.text_2_10
@@ -113,12 +113,12 @@ fun EditProfileScreen(
             saving = true
             AppContainer.profiles.updateProfile(
                 role,
-                UserProfile(name = name.trim(), phone = phone, email = email.trim())
+                UserProfile(name = FormRules.normalizeFullName(name), phone = phone, email = email.trim())
             )
             if (volunteer != null) {
                 AppContainer.volunteers.update(
                     volunteer.copy(
-                        name = name.trim(),
+                        name = FormRules.normalizeFullName(name),
                         experience = experience.trim(),
                         about = about.trim(),
                         homeConditions = HomeConditionType.entries.filter { it in homeConditions },
