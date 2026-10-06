@@ -40,6 +40,19 @@ object FormRules {
     const val CODE_LENGTH = 6
     const val PET_AGE_MAX_DIGITS = 2
     const val DESCRIPTION_MIN_LENGTH = 10
+    val FULL_NAME_WORDS = 3..3
+
+    fun normalizeFullName(value: String): String =
+        value.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }.joinToString(" ")
+
+    fun fullNameError(value: String): Int? {
+        val words = normalizeFullName(value).split(" ").filter { it.isNotEmpty() }
+        return when {
+            words.isEmpty() -> R.string.text_3_9
+            words.size !in FULL_NAME_WORDS -> R.string.text_3_12
+            else -> null
+        }
+    }
 
     fun descriptionError(text: String, @StringRes emptyError: Int): Int? = when {
         text.isBlank() -> emptyError
@@ -120,7 +133,7 @@ fun PasswordField(
             IconButton(onClick = { visible = !visible }) {
                 Crossfade(targetState = visible, label = "passwordEye") { isVisible ->
                     Icon(
-                        imageVector = if (isVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        imageVector = if (isVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                         contentDescription = stringResource(
                             if (isVisible) R.string.text_2_14 else R.string.text_2_13
                         )
@@ -134,4 +147,9 @@ fun PasswordField(
         keyboardActions = keyboardActions,
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation()
     )
+}
+
+fun formatPhone(digits: String): String {
+    if (digits.length != FormRules.PHONE_LENGTH || !digits.all(Char::isDigit)) return digits
+    return "+7 (${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6, 8)}-${digits.substring(8, 10)}"
 }

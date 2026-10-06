@@ -17,7 +17,11 @@ import com.example.pet.navigation.Routes
 import com.example.pet.navigation.Screen
 
 @Composable
-fun MainScreen(navController: NavHostController, role: UserRole) {
+fun MainScreen(
+    navController: NavHostController,
+    role: UserRole,
+    onLogout: () -> Unit
+) {
     val bottomNavController = rememberNavController()
     val backStackEntry by bottomNavController.currentBackStackEntryAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -37,8 +41,9 @@ fun MainScreen(navController: NavHostController, role: UserRole) {
     }
     val backToFeed = { navigateToTab(Screen.Feed) }
 
+    val isResumed = { lifecycleOwner.lifecycle.currentState == Lifecycle.State.RESUMED }
     val navigateOuter: (String) -> Unit = { route ->
-        if (lifecycleOwner.lifecycle.currentState == Lifecycle.State.RESUMED) {
+        if (isResumed()) {
             navController.navigate(route) { launchSingleTop = true }
         }
     }
@@ -51,11 +56,18 @@ fun MainScreen(navController: NavHostController, role: UserRole) {
         BottomNavGraph(
             bottomNavController = bottomNavController,
             role = role,
-            onBackToFeed = backToFeed,
-            onCreateRequest = { navigateOuter(Screen.CreateRequest.name) },
-            onAddPet = { navigateOuter(Screen.PetProfile.name) },
-            onOpenResponses = { requestId -> navigateOuter(Routes.responses(requestId)) },
-            onVolunteerRequestClick = { /* TODO: экран заявки для волонтёра + «Откликнуться» */ },
+            actions = MainActions(
+                onBackToFeed = backToFeed,
+                onCreateRequest = { navigateOuter(Routes.createRequest()) },
+                onOpenResponses = { navigateOuter(Routes.responses(it)) },
+                onOpenRequestDetails = { navigateOuter(Routes.requestDetails(it)) },
+                onAddPet = { navigateOuter(Routes.petProfile()) },
+                onEditPet = { navigateOuter(Routes.petProfile(it)) },
+                onEditProfile = { navigateOuter(Routes.editProfile(role)) },
+                onChangePassword = { navigateOuter(Screen.ChangePassword.name) },
+                onOpenReviews = { navigateOuter(Routes.reviews(it)) },
+                onLogout = { if (isResumed()) onLogout() }
+            ),
             modifier = Modifier.weight(1f)
         )
 

@@ -1,5 +1,6 @@
 package com.example.pet.ui.components
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -18,10 +19,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,12 +67,13 @@ fun PrimaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     height: Dp = 56.dp,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    loading: Boolean = false
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
     Button(
-        onClick = onClick,
+        onClick = { if (!loading) onClick() },
         enabled = enabled,
         interactionSource = interactionSource,
         modifier = modifier
@@ -82,10 +86,22 @@ fun PrimaryButton(
             contentColor = Color.White
         )
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.titleMedium
-        )
+        Crossfade(targetState = loading, label = "buttonLoading") { isLoading ->
+            Box(contentAlignment = Alignment.Center) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(22.dp)
+                    )
+                } else {
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            }
+        }
     }
 }
 

@@ -46,30 +46,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pet.R
-import com.example.pet.data.PetTrait
+import com.example.pet.data.Pet
 import com.example.pet.ui.components.pressScale
 import kotlinx.coroutines.launch
-
-data class PetOption(
-    val id: String,
-    val name: String,
-    val description: String,
-    val traits: List<PetTrait> = emptyList()
-)
-
-val mockPetOptions = listOf(
-    PetOption("1", "Вован", "Хомяк, 4 месяца", listOf(PetTrait.Calm)),
-    PetOption("2", "Барсик", "Кот, 3 года", listOf(PetTrait.Pills, PetTrait.FearsNoise)),
-    PetOption("3", "Муся", "Кошка, 1 год", listOf(PetTrait.Calm, PetTrait.SpecialDiet)),
-    PetOption("4", "Рекс", "Пёс, 5 лет", listOf(PetTrait.Active, PetTrait.NeedsWalks))
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PetPickerSheet(
-    pets: List<PetOption>,
+    pets: List<Pet>,
     selectedPetId: String?,
-    onPetSelected: (PetOption) -> Unit,
+    onPetSelected: (Pet) -> Unit,
     onAddPet: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -108,7 +94,7 @@ fun PetPickerSheet(
                     .weight(1f, fill = false)
             ) {
                 items(pets, key = { it.id }) { pet ->
-                    PetOptionRow(
+                    PetRow(
                         pet = pet,
                         selected = pet.id == selectedPetId,
                         onClick = {
@@ -144,8 +130,8 @@ fun PetPickerSheet(
 }
 
 @Composable
-private fun PetOptionRow(
-    pet: PetOption,
+private fun PetRow(
+    pet: Pet,
     selected: Boolean,
     onClick: () -> Unit
 ) {
@@ -191,7 +177,7 @@ private fun PetOptionRow(
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = pet.description,
+                text = pet.info,
                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

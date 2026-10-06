@@ -66,7 +66,7 @@ fun RegistrationScreen(
     var passwordRepeatError by rememberSaveable { mutableStateOf<Int?>(null) }
 
     fun submit() {
-        nameError = if (name.isBlank()) R.string.text_3_9 else null
+        nameError = FormRules.fullNameError(name)
         phoneError = if (phone.length != FormRules.PHONE_LENGTH) R.string.text_3_6 else null
         emailError = when {
             email.isBlank() -> R.string.text_2_10

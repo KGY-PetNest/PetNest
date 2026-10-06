@@ -8,14 +8,18 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
@@ -31,13 +35,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.annotation.StringRes
-import androidx.compose.foundation.layout.FlowRow
 import com.example.pet.R
 import com.example.pet.data.PetTrait
+import com.example.pet.data.PetTraitGroup
 import com.example.pet.ui.theme.PetStar
 
 private val CardShape = RoundedCornerShape(16.dp)
@@ -59,15 +63,24 @@ fun Modifier.cardSurface(onClick: (() -> Unit)? = null): Modifier = composed {
 }
 
 @Composable
-fun TagChip(text: String, modifier: Modifier = Modifier) {
+fun TagChip(
+    text: String,
+    modifier: Modifier = Modifier,
+    large: Boolean = false,
+    containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    contentColor: Color = MaterialTheme.colorScheme.primary
+) {
     Text(
         text = text,
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.primary,
+        style = if (large) MaterialTheme.typography.labelLarge else MaterialTheme.typography.labelSmall,
+        color = contentColor,
         modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .padding(horizontal = 10.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(if (large) 12.dp else 10.dp))
+            .background(containerColor)
+            .padding(
+                horizontal = if (large) 12.dp else 10.dp,
+                vertical = if (large) 6.dp else 4.dp
+            )
     )
 }
 
@@ -130,7 +143,11 @@ fun InitialsAvatar(
         Text(
             text = initials,
             color = MaterialTheme.colorScheme.primary,
-            style = if (size >= 72.dp) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+            style = when {
+                size >= 88.dp -> MaterialTheme.typography.headlineSmall
+                size >= 64.dp -> MaterialTheme.typography.titleLarge
+                else -> MaterialTheme.typography.titleMedium
+            },
             fontWeight = FontWeight.SemiBold
         )
     }
@@ -158,18 +175,27 @@ fun PetThumbnail(
 }
 
 @Composable
-fun RatingLabel(rating: Double, reviewsCount: Int, modifier: Modifier = Modifier) {
+fun RatingLabel(
+    rating: Double,
+    reviewsCount: Int,
+    modifier: Modifier = Modifier,
+    large: Boolean = false
+) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
         Icon(
             imageVector = Icons.Default.Star,
             contentDescription = null,
             tint = PetStar,
-            modifier = Modifier.size(16.dp)
+            modifier = Modifier.size(if (large) 20.dp else 16.dp)
         )
-        Spacer(Modifier.width(2.dp))
+        Spacer(Modifier.width(4.dp))
         Text(
-            text = stringResource(R.string.text_13_8, rating, reviewsCount),
-            style = MaterialTheme.typography.bodySmall,
+            text = if (reviewsCount > 0) {
+                stringResource(R.string.text_13_8, rating, reviewsCount)
+            } else {
+                stringResource(R.string.text_13_9)
+            },
+            style = if (large) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
@@ -180,7 +206,9 @@ fun IconLine(
     icon: ImageVector,
     text: String,
     modifier: Modifier = Modifier,
-    iconSize: Dp = 16.dp
+    iconSize: Dp = 16.dp,
+    textStyle: TextStyle = MaterialTheme.typography.bodySmall,
+    textColor: Color = MaterialTheme.colorScheme.onSurfaceVariant
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
         Icon(
@@ -189,37 +217,97 @@ fun IconLine(
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(iconSize)
         )
-        Spacer(Modifier.width(6.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Spacer(Modifier.width(8.dp))
+        Text(text = text, style = textStyle, color = textColor)
     }
 }
 
-@get:StringRes
-val PetTrait.label: Int
-    get() = when (this) {
-        PetTrait.Pills -> R.string.common_trait_pills
-        PetTrait.SpecialCare -> R.string.common_trait_special_care
-        PetTrait.FearsNoise -> R.string.common_trait_fears_noise
-        PetTrait.Calm -> R.string.common_trait_calm
-        PetTrait.Active -> R.string.common_trait_active
-        PetTrait.NeedsWalks -> R.string.common_trait_needs_walks
-        PetTrait.NotFriendlyWithAnimals -> R.string.common_trait_not_friendly
-        PetTrait.SpecialDiet -> R.string.common_trait_special_diet
-    }
+@Composable
+fun SectionTitle(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.SemiBold,
+        modifier = modifier
+    )
+}
 
 @Composable
-fun PetTraitChips(traits: List<PetTrait>, modifier: Modifier = Modifier) {
+fun SettingsRow(
+    icon: ImageVector,
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    danger: Boolean = false
+) {
+    val color = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .cardSurface(onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (danger) color else MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            color = color,
+            modifier = Modifier.weight(1f)
+        )
+        if (!danger) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun PetTraitChips(
+    traits: List<PetTrait>,
+    modifier: Modifier = Modifier,
+    large: Boolean = false
+) {
     if (traits.isEmpty()) return
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = modifier
     ) {
-        traits.forEach { TagChip(stringResource(it.label)) }
+        traits.forEach { TagChip(stringResource(it.label), large = large) }
+    }
+}
+
+@Composable
+fun <T> SelectableChips(
+    items: List<T>,
+    selected: Set<T>,
+    label: @Composable (T) -> String,
+    onToggle: (T) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier
+    ) {
+        items.forEach { item ->
+            FilterPill(
+                text = label(item),
+                selected = item in selected,
+                onClick = { onToggle(item) }
+            )
+        }
     }
 }
 
@@ -229,17 +317,24 @@ fun PetTraitSelector(
     onToggle: (PetTrait) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier
     ) {
-        PetTrait.entries.forEach { trait ->
-            FilterPill(
-                text = stringResource(trait.label),
-                selected = trait in selected,
-                onClick = { onToggle(trait) }
-            )
+        PetTraitGroup.entries.forEach { group ->
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = stringResource(group.label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                SelectableChips(
+                    items = PetTrait.entries.filter { it.group == group },
+                    selected = selected,
+                    label = { stringResource(it.label) },
+                    onToggle = onToggle
+                )
+            }
         }
     }
 }

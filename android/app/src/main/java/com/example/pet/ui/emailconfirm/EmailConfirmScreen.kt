@@ -51,7 +51,8 @@ fun EmailConfirmScreen(
     onBack: () -> Unit,
     onSuccess: () -> Unit,
     onResend: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    message: String? = null
 ) {
     val focusManager = LocalFocusManager.current
 
@@ -96,7 +97,7 @@ fun EmailConfirmScreen(
                     .padding(vertical = 24.dp)
             ) {
                 Text(
-                    text = stringResource(R.string.text_6_2),
+                    text = message ?: stringResource(R.string.text_6_2),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

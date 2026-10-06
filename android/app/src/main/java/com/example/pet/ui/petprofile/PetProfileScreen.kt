@@ -61,6 +61,15 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.example.pet.R
+import kotlinx.coroutines.launch
+import java.util.UUID
+import com.example.pet.data.Pet
+import com.example.pet.data.AppContainer
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Delete
 import com.example.pet.data.PetTrait
 import com.example.pet.ui.components.AvatarCropDialog
 import com.example.pet.ui.components.FormRules
@@ -76,20 +85,28 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun PetProfileScreen(
+    petId: String?,
     onBack: () -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
 
-    var photoUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    val existing = remember(petId) {
+        petId?.let { id -> AppContainer.pets.pets.value.firstOrNull { it.id == id } }
+    }
+
+    var photoUri by rememberSaveable { mutableStateOf(existing?.photoUri?.let(Uri::parse)) }
     var pendingUri by rememberSaveable { mutableStateOf<Uri?>(null) }
-    var name by rememberSaveable { mutableStateOf("") }
-    var animal by rememberSaveable { mutableStateOf("") }
-    var age by rememberSaveable { mutableStateOf("") }
-    var features by rememberSaveable { mutableStateOf("") }
-    var traits by rememberSaveable { mutableStateOf(emptySet<PetTrait>()) }
+    var name by rememberSaveable { mutableStateOf(existing?.name.orEmpty()) }
+    var animal by rememberSaveable { mutableStateOf(existing?.animal.orEmpty()) }
+    var age by rememberSaveable { mutableStateOf(existing?.age?.toString().orEmpty()) }
+    var features by rememberSaveable { mutableStateOf(existing?.features.orEmpty()) }
+    var traits by rememberSaveable { mutableStateOf(existing?.traits?.toSet() ?: emptySet()) }
+    var saving by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
 
     var nameError by rememberSaveable { mutableStateOf(false) }
     var animalError by rememberSaveable { mutableStateOf(false) }
@@ -103,7 +120,21 @@ fun PetProfileScreen(
         featuresError = FormRules.descriptionError(features, R.string.text_4_13)
         if (!nameError && !animalError && !ageError && featuresError == null) {
             focusManager.clearFocus()
-            onSave()
+            val pet = Pet(
+                id = existing?.id ?: UUID.randomUUID().toString(),
+                name = name.trim(),
+                animal = animal.trim(),
+                age = age.toIntOrNull() ?: 0,
+                traits = PetTrait.entries.filter { it in traits },
+                features = features.trim(),
+                photoUri = photoUri?.toString()
+            )
+            scope.launch {
+                saving = true
+                AppContainer.pets.save(pet)
+                saving = false
+                onSave()
+            }
         }
     }
 
@@ -138,6 +169,33 @@ fun PetProfileScreen(
         )
     }
 
+    if (confirmDelete && existing != null) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text(stringResource(R.string.text_4_16)) },
+            text = { Text(stringResource(R.string.text_4_17, existing.name)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmDelete = false
+                    scope.launch {
+                        AppContainer.pets.delete(existing.id)
+                        onSave()
+                    }
+                }) {
+                    Text(
+                        text = stringResource(R.string.common_delete),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        )
+    }
+
     val nextField = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
 
     Box(
@@ -152,7 +210,23 @@ fun PetProfileScreen(
                 .adaptiveContentWidth()
                 .padding(horizontal = 16.dp)
         ) {
-            ScreenHeader(title = stringResource(R.string.text_4_1), onBack = onBack)
+            ScreenHeader(
+                title = stringResource(if (existing != null) R.string.text_4_15 else R.string.text_4_1),
+                onBack = onBack,
+                actions = if (existing != null) {
+                    {
+                        IconButton(onClick = { confirmDelete = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = stringResource(R.string.text_4_16),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                } else {
+                    null
+                }
+            )
 
             PinnedBottomBarLayout(
                 modifier = Modifier
@@ -161,6 +235,7 @@ fun PetProfileScreen(
                 bottomBar = {
                     PrimaryButton(
                         text = stringResource(R.string.text_4_7),
+                        loading = saving,
                         onClick = { submit() }
                     )
                     Spacer(Modifier.height(32.dp))
