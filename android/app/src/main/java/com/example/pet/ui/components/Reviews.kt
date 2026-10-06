@@ -144,7 +144,7 @@ fun ReviewSummary(reviews: List<Review>, modifier: Modifier = Modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = stringResource(R.string.text_15_2, average),
-                style = MaterialTheme.typography.displaySmall,
+                style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold
             )
             StarRow(rating = average.roundToInt())

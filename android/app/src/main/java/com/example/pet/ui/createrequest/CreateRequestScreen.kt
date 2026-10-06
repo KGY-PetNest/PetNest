@@ -8,7 +8,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -25,7 +24,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -35,7 +33,6 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -71,6 +68,7 @@ import com.example.pet.ui.components.toUtcMillis
 import com.example.pet.ui.components.utcMillisToLocalDate
 import com.example.pet.data.UserRole
 import com.example.pet.data.RequestStatus
+import com.example.pet.data.GeoPoint
 import com.example.pet.data.PetRequest
 import com.example.pet.data.Pet
 import com.example.pet.data.AppContainer
@@ -78,6 +76,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.rememberCoroutineScope
 import com.example.pet.ui.components.DateRangeDialog
 import com.example.pet.ui.components.FormRules
+import com.example.pet.ui.components.PetThumbnail
 import com.example.pet.ui.components.PetTraitChips
 import com.example.pet.ui.components.PinnedBottomBarLayout
 import com.example.pet.ui.components.PrimaryButton
@@ -100,7 +99,10 @@ fun CreateRequestScreen(
     onAddPet: () -> Unit,
     onCreate: () -> Unit,
     pickedAddress: String?,
+    pickedPoint: GeoPoint?,
     onPickedAddressUsed: () -> Unit,
+    addedPetId: String?,
+    onAddedPetUsed: () -> Unit,
     onPickOnMap: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -113,6 +115,7 @@ fun CreateRequestScreen(
     var saving by remember { mutableStateOf(false) }
 
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
+    var datesBeforeOpen by remember { mutableStateOf<Pair<Long?, Long?>>(null to null) }
     var showPetPicker by rememberSaveable { mutableStateOf(false) }
 
     val pets by AppContainer.pets.pets.collectAsStateWithLifecycle()
@@ -134,10 +137,21 @@ fun CreateRequestScreen(
     }
 
     var address by rememberSaveable { mutableStateOf(existing?.address.orEmpty()) }
+    var location by rememberSaveable { mutableStateOf(existing?.location) }
+
+    LaunchedEffect(addedPetId, pets) {
+        if (addedPetId != null && pets.any { it.id == addedPetId }) {
+            selectedPetId = addedPetId
+            petError = false
+            showPetPicker = false
+            onAddedPetUsed()
+        }
+    }
 
     LaunchedEffect(pickedAddress) {
         if (pickedAddress != null) {
             address = pickedAddress
+            location = pickedPoint
             addressError = false
             onPickedAddressUsed()
         }
@@ -179,12 +193,15 @@ fun CreateRequestScreen(
                 end = utcMillisToLocalDate(end),
                 district = existing?.district.orEmpty(),
                 address = address.trim(),
+                location = location,
                 comment = comment.trim(),
                 traits = selectedPet.traits,
                 features = selectedPet.features,
+                petPhotoUri = selectedPet.photoUri,
                 status = existing?.status ?: RequestStatus.Open,
                 chosenVolunteerId = existing?.chosenVolunteerId,
-                ownerName = AppContainer.profiles.profile(UserRole.Owner).value.name
+                ownerName = AppContainer.profiles.profile(UserRole.Owner).value.name,
+                ownerPhone = AppContainer.profiles.profile(UserRole.Owner).value.phone
             )
             scope.launch {
                 saving = true
@@ -216,7 +233,10 @@ fun CreateRequestScreen(
                 showDatePicker = false
                 datesError = false
             },
-            onDismiss = { showDatePicker = false }
+            onDismiss = {
+                pickerState.setSelection(datesBeforeOpen.first, datesBeforeOpen.second)
+                showDatePicker = false
+            }
         )
     }
 
@@ -313,6 +333,7 @@ fun CreateRequestScreen(
                                         .border(1.dp, datesBorder, RoundedCornerShape(16.dp))
                                         .clickable(interactionSource = datesInteraction, indication = null) {
                                             focusManager.clearFocus()
+                                            datesBeforeOpen = start to end
                                             showDatePicker = true
                                         }
                                         .padding(horizontal = 16.dp, vertical = 16.dp)
@@ -355,6 +376,7 @@ fun CreateRequestScreen(
                                     value = address,
                                     onValueChange = {
                                         address = it
+                                        location = null
                                         addressError = false
                                     },
                                     placeholder = { Text(stringResource(R.string.text_5_8)) },
@@ -457,16 +479,7 @@ private fun PetCard(
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .padding(12.dp)
     ) {
-        Icon(
-            imageVector = Icons.Default.Pets,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .size(52.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .padding(10.dp)
-        )
+        PetThumbnail(photoUri = pet?.photoUri, size = 52.dp)
 
         AnimatedContent(
             targetState = pet,

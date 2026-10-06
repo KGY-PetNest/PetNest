@@ -24,6 +24,8 @@ import com.example.pet.navigation.NavGraph
 import com.example.pet.ui.theme.PetTheme
 import com.yandex.mapkit.MapKitFactory
 
+private const val LIGHT_BARS_FALLBACK_SCRIM = 0x801B1B1B.toInt()
+
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,7 +51,7 @@ class MainActivity : ComponentActivity() {
                 val barStyle = if (darkTheme) {
                     SystemBarStyle.dark(Color.TRANSPARENT)
                 } else {
-                    SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+                    SystemBarStyle.light(Color.TRANSPARENT, LIGHT_BARS_FALLBACK_SCRIM)
                 }
                 enableEdgeToEdge(statusBarStyle = barStyle, navigationBarStyle = barStyle)
                 onDispose { }

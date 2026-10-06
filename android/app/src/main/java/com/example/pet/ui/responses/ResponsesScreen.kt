@@ -31,16 +31,19 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -55,6 +58,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pet.R
@@ -64,8 +68,10 @@ import com.example.pet.data.Review
 import com.example.pet.data.UserRole
 import com.example.pet.data.Volunteer
 import com.example.pet.data.averageRating
+import com.example.pet.data.shortPersonName
 import com.example.pet.ui.components.IconLine
 import com.example.pet.ui.components.InitialsAvatar
+import com.example.pet.ui.components.NotFoundScreen
 import com.example.pet.ui.components.PetThumbnail
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.RatingLabel
@@ -76,9 +82,9 @@ import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.cardSurface
 import com.example.pet.ui.components.pressScale
 import com.example.pet.ui.main.StatusChip
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.util.UUID
+import kotlinx.coroutines.launch
 
 @Composable
 fun ResponsesScreen(
@@ -91,21 +97,58 @@ fun ResponsesScreen(
     val scope = rememberCoroutineScope()
     val requests by AppContainer.requests.ownerRequests.collectAsStateWithLifecycle()
     val allReviews by AppContainer.reviews.reviews.collectAsStateWithLifecycle()
-    AppContainer.volunteers.volunteers.collectAsStateWithLifecycle()
-
-    val request = requests.firstOrNull { it.id == requestId } ?: return
-    val responses = AppContainer.volunteers.responsesFor(requestId)
-    val chosen = responses.firstOrNull { it.id == request.chosenVolunteerId }
+    val volunteers by AppContainer.volunteers.volunteers.collectAsStateWithLifecycle()
+    val pets by AppContainer.pets.pets.collectAsStateWithLifecycle()
 
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var favorites by rememberSaveable { mutableStateOf(emptySet<String>()) }
     var completing by remember { mutableStateOf(false) }
     var showReview by rememberSaveable { mutableStateOf(false) }
+    var confirmComplete by rememberSaveable { mutableStateOf(false) }
+    val responses = remember(volunteers, requestId) { AppContainer.volunteers.responsesFor(requestId) }
+
+    val request = requests.firstOrNull { it.id == requestId }
+    if (request == null) {
+        NotFoundScreen(title = stringResource(R.string.text_14_1), onBack = onBack, modifier = modifier)
+        return
+    }
+    val petPhotoUri = pets.firstOrNull { it.id == request.petId }?.photoUri ?: request.petPhotoUri
+    val chosen = responses.firstOrNull { it.id == request.chosenVolunteerId }
 
     val shown = when {
         request.status == RequestStatus.Completed -> listOfNotNull(chosen)
         tab == 0 -> responses
         else -> responses.filter { it.id in favorites }
+    }
+
+    val reviewed = allReviews.any { it.requestId == request.id }
+
+    if (confirmComplete) {
+        AlertDialog(
+            onDismissRequest = { confirmComplete = false },
+            title = { Text(stringResource(R.string.text_15_11)) },
+            text = { Text(stringResource(R.string.text_15_12)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmComplete = false
+                        scope.launch {
+                            completing = true
+                            AppContainer.requests.complete(request.id)
+                            completing = false
+                            showReview = true
+                        }
+                    }
+                ) {
+                    Text(stringResource(R.string.text_15_13))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmComplete = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        )
     }
 
     if (showReview && chosen != null) {
@@ -117,7 +160,7 @@ fun ResponsesScreen(
                         id = UUID.randomUUID().toString(),
                         volunteerId = chosen.id,
                         requestId = request.id,
-                        authorName = AppContainer.profiles.profile(UserRole.Owner).value.name,
+                        authorName = shortPersonName(AppContainer.profiles.profile(UserRole.Owner).value.name),
                         rating = rating,
                         text = text,
                         date = LocalDate.now()
@@ -159,32 +202,39 @@ fun ResponsesScreen(
             Spacer(Modifier.height(8.dp))
 
             Row(
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
                 modifier = Modifier
                     .fillMaxWidth()
                     .cardSurface()
                     .padding(12.dp)
             ) {
-                PetThumbnail(size = 56.dp)
+                PetThumbnail(photoUri = petPhotoUri, size = 56.dp)
                 Column(
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                     modifier = Modifier
                         .weight(1f)
                         .padding(start = 12.dp)
                 ) {
-                    Text(
-                        text = request.title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = request.title,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 8.dp)
+                        )
+                        StatusChip(request.status)
+                    }
                     Text(
                         text = request.petInfo,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    IconLine(icon = Icons.Default.DateRange, text = request.dates)
+                    IconLine(icon = Icons.Default.DateRange, text = request.dates, maxLines = 1)
                 }
-                StatusChip(request.status)
             }
 
             Spacer(Modifier.height(16.dp))
@@ -262,15 +312,32 @@ fun ResponsesScreen(
                     PrimaryButton(
                         text = stringResource(R.string.text_14_10),
                         loading = completing,
-                        onClick = {
-                            scope.launch {
-                                completing = true
-                                AppContainer.requests.complete(request.id)
-                                completing = false
-                                showReview = true
-                            }
-                        }
+                        onClick = { confirmComplete = true }
                     )
+                    Spacer(Modifier.height(32.dp))
+                }
+            }
+
+            AnimatedVisibility(
+                visible = request.status == RequestStatus.Completed,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    if (reviewed) {
+                        IconLine(
+                            icon = Icons.Default.CheckCircle,
+                            text = stringResource(R.string.text_15_10),
+                            iconSize = 20.dp,
+                            textStyle = MaterialTheme.typography.bodyLarge,
+                            textColor = MaterialTheme.colorScheme.primary
+                        )
+                    } else if (chosen != null) {
+                        PrimaryButton(
+                            text = stringResource(R.string.text_15_4),
+                            onClick = { showReview = true }
+                        )
+                    }
                     Spacer(Modifier.height(32.dp))
                 }
             }

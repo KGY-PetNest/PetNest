@@ -14,6 +14,7 @@ import com.example.pet.data.AcceptedPet
 import com.example.pet.data.HomeConditionType
 import com.example.pet.data.PetTrait
 import com.example.pet.data.PetTraitGroup
+import com.example.pet.data.MyResponseStatus
 import com.example.pet.data.RequestStatus
 
 @get:StringRes
@@ -82,4 +83,13 @@ val RequestStatus.label: Int
         RequestStatus.Open -> R.string.common_status_open
         RequestStatus.VolunteerChosen -> R.string.common_status_chosen
         RequestStatus.Completed -> R.string.common_status_completed
+    }
+
+@get:StringRes
+val MyResponseStatus.label: Int
+    get() = when (this) {
+        MyResponseStatus.Pending -> R.string.text_12_38
+        MyResponseStatus.Chosen -> R.string.text_12_39
+        MyResponseStatus.NotChosen -> R.string.text_12_40
+        MyResponseStatus.Completed -> R.string.text_12_41
     }

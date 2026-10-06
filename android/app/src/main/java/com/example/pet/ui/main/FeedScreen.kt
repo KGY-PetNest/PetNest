@@ -1,6 +1,7 @@
 package com.example.pet.ui.main
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,18 +14,23 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -32,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pet.R
@@ -40,9 +47,9 @@ import com.example.pet.data.PetRequest
 import com.example.pet.data.RequestStatus
 import com.example.pet.data.Review
 import com.example.pet.data.UserRole
+import com.example.pet.data.shortPersonName
 import com.example.pet.ui.components.IconLine
 import com.example.pet.ui.components.PetThumbnail
-import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.ReviewSheet
 import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.TagChip
@@ -51,6 +58,9 @@ import com.example.pet.ui.components.label
 import com.example.pet.ui.theme.extraColors
 import java.time.LocalDate
 import java.util.UUID
+
+private const val FAB_COLLAPSE_SCROLL_PX = 48
+private val FAB_CLEARANCE = 88.dp
 
 @Composable
 fun FeedScreen(
@@ -62,6 +72,7 @@ fun FeedScreen(
     val requests by AppContainer.requests.ownerRequests.collectAsStateWithLifecycle()
     val reviews by AppContainer.reviews.reviews.collectAsStateWithLifecycle()
     val volunteers by AppContainer.volunteers.volunteers.collectAsStateWithLifecycle()
+    val pets by AppContainer.pets.pets.collectAsStateWithLifecycle()
     val reviewedRequestIds = reviews.mapNotNull { it.requestId }.toSet()
 
     var reviewRequestId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -77,7 +88,7 @@ fun FeedScreen(
                         id = UUID.randomUUID().toString(),
                         volunteerId = reviewVolunteer.id,
                         requestId = reviewRequest.id,
-                        authorName = AppContainer.profiles.profile(UserRole.Owner).value.name,
+                        authorName = shortPersonName(AppContainer.profiles.profile(UserRole.Owner).value.name),
                         rating = rating,
                         text = text,
                         date = LocalDate.now()
@@ -88,51 +99,68 @@ fun FeedScreen(
         )
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
-    ) {
-        ScreenHeader(
-            title = stringResource(R.string.text_8_1),
-            onBack = onBack
-        )
+    val scrollState = rememberScrollState()
+    val fabExpanded by remember { derivedStateOf { scrollState.value < FAB_COLLAPSE_SCROLL_PX } }
 
+    Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
         ) {
-            Spacer(Modifier.height(20.dp))
-
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                requests.forEach { request ->
-                    RequestCard(
-                        request = request,
-                        responsesCount = AppContainer.volunteers.responsesFor(request.id).size,
-                        reviewed = request.id in reviewedRequestIds,
-                        onClick = { onRequestClick(request.id) },
-                        onLeaveReview = { reviewRequestId = request.id }
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            PrimaryButton(
-                text = stringResource(R.string.text_8_2),
-                onClick = onCreateClick
+            ScreenHeader(
+                title = stringResource(R.string.text_8_1),
+                onBack = onBack
             )
 
-            Spacer(Modifier.height(32.dp))
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(scrollState)
+            ) {
+                Spacer(Modifier.height(20.dp))
+
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    requests.forEach { request ->
+                        RequestCard(
+                            request = request,
+                            photoUri = pets.firstOrNull { it.id == request.petId }?.photoUri ?: request.petPhotoUri,
+                            responsesCount = AppContainer.volunteers.responsesFor(request.id).size,
+                            reviewed = request.id in reviewedRequestIds,
+                            onClick = { onRequestClick(request.id) },
+                            onLeaveReview = { reviewRequestId = request.id }
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(FAB_CLEARANCE))
+            }
         }
+
+        ExtendedFloatingActionButton(
+            text = {
+                Text(
+                    text = stringResource(R.string.text_8_2),
+                    style = MaterialTheme.typography.labelLarge
+                )
+            },
+            icon = { Icon(Icons.Default.Add, contentDescription = null) },
+            expanded = fabExpanded,
+            onClick = onCreateClick,
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        )
     }
 }
 
 @Composable
 private fun RequestCard(
     request: PetRequest,
+    photoUri: String?,
     responsesCount: Int,
     reviewed: Boolean,
     onClick: () -> Unit,
@@ -144,36 +172,44 @@ private fun RequestCard(
             .cardSurface(onClick)
             .padding(12.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            PetThumbnail(size = 56.dp)
+        Row(verticalAlignment = Alignment.Top) {
+            PetThumbnail(photoUri = photoUri, size = 56.dp)
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 12.dp)
+                    .padding(start = 12.dp)
             ) {
-                Text(
-                    text = request.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                IconLine(icon = Icons.Default.DateRange, text = request.dates)
-                IconLine(icon = Icons.Default.LocationOn, text = request.place)
-            }
-
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                StatusChip(request.status)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = request.title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp)
+                    )
+                    StatusChip(request.status)
+                }
+                IconLine(icon = Icons.Default.DateRange, text = request.dates, maxLines = 1)
+                IconLine(icon = Icons.Default.LocationOn, text = request.place, maxLines = 1)
                 if (request.status == RequestStatus.Open) {
-                    TagChip(
+                    IconLine(
+                        icon = Icons.Default.Groups,
                         text = if (responsesCount > 0) {
                             pluralStringResource(R.plurals.responses_count, responsesCount, responsesCount)
                         } else {
                             stringResource(R.string.text_8_3)
-                        }
+                        },
+                        textColor = if (responsesCount > 0) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        maxLines = 1
                     )
                 }
             }

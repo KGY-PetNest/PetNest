@@ -1,9 +1,16 @@
 package com.example.pet.data
 
+import java.io.Serializable
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
+import kotlin.math.asin
+import kotlin.math.cos
+import kotlin.math.pow
+import kotlin.math.roundToInt
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 enum class UserRole { Owner, Volunteer }
 
@@ -31,6 +38,12 @@ enum class PetTrait(val group: PetTraitGroup) {
 }
 
 enum class RequestStatus { Open, VolunteerChosen, Completed }
+
+enum class MyResponseStatus { Pending, Chosen, NotChosen, Completed }
+
+data class GeoPoint(val lat: Double, val lon: Double) : Serializable
+
+data class SavedLocation(val point: GeoPoint, val label: String)
 
 enum class HomeConditionType { Apartment, House, Yard, NoOtherPets, HasOtherPets, SomeoneHome, NoKids }
 
@@ -71,9 +84,12 @@ data class PetRequest(
     val comment: String,
     val traits: List<PetTrait> = emptyList(),
     val features: String = "",
+    val petPhotoUri: String? = null,
+    val location: GeoPoint? = null,
     val status: RequestStatus = RequestStatus.Open,
     val chosenVolunteerId: String? = null,
-    val ownerName: String = ""
+    val ownerName: String = "",
+    val ownerPhone: String = ""
 ) {
     val days: Int
         get() = ChronoUnit.DAYS.between(start, end).toInt().coerceAtLeast(1)
@@ -83,6 +99,17 @@ data class PetRequest(
 
     val place: String
         get() = district.ifBlank { address }
+
+    val publicPlace: String
+        get() = district.ifBlank { approximateAddress(address) }
+
+    fun statusFor(volunteerId: String, respondedIds: Set<String>): MyResponseStatus? = when {
+        chosenVolunteerId == volunteerId && status == RequestStatus.Completed -> MyResponseStatus.Completed
+        chosenVolunteerId == volunteerId -> MyResponseStatus.Chosen
+        id !in respondedIds -> null
+        chosenVolunteerId != null -> MyResponseStatus.NotChosen
+        else -> MyResponseStatus.Pending
+    }
 }
 
 data class Volunteer(
@@ -128,5 +155,35 @@ fun yearsText(years: Int): String {
     return "$years $word"
 }
 
+fun shortPersonName(fullName: String): String {
+    val words = fullName.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+    return if (words.size >= 2) "${words[1]} ${words[0].first()}." else fullName.trim()
+}
+
 fun List<Review>.averageRating(): Double =
     if (isEmpty()) 0.0 else sumOf { it.rating }.toDouble() / size
+
+fun approximateAddress(address: String): String {
+    val parts = address.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        .filterNot { it.equals("Россия", ignoreCase = true) }
+    val firstWithNumber = parts.indexOfFirst { part -> part.any(Char::isDigit) }
+    val kept = if (firstWithNumber > 0) parts.take(firstWithNumber) else parts.take(1)
+    return kept.joinToString(", ").ifBlank { address.trim() }
+}
+
+fun GeoPoint.distanceKmTo(other: GeoPoint): Double {
+    val earthRadiusKm = 6371.0
+    val dLat = Math.toRadians(other.lat - lat)
+    val dLon = Math.toRadians(other.lon - lon)
+    val a = sin(dLat / 2).pow(2) +
+            cos(Math.toRadians(lat)) * cos(Math.toRadians(other.lat)) * sin(dLon / 2).pow(2)
+    return 2 * earthRadiusKm * asin(sqrt(a))
+}
+
+fun formatDistanceKm(km: Double): String = when {
+    km < 1.0 -> "< 1 км"
+    km < 10.0 -> String.format(Locale.forLanguageTag("ru"), "%.1f км", km)
+    else -> "${km.roundToInt()} км"
+}
+
+fun phoneForDial(phone: String): String = "+7" + phone.filter(Char::isDigit).takeLast(10)

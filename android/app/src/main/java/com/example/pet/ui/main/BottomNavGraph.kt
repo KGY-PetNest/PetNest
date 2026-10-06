@@ -21,6 +21,7 @@ class MainActions(
     val onCreateRequest: () -> Unit,
     val onOpenResponses: (String) -> Unit,
     val onOpenRequestDetails: (String) -> Unit,
+    val onPickVolunteerLocation: () -> Unit,
     val onAddPet: () -> Unit,
     val onEditPet: (String) -> Unit,
     val onOpenSettings: () -> Unit,
@@ -51,7 +52,8 @@ fun BottomNavGraph(
                         onRequestClick = actions.onOpenResponses
                     )
                     UserRole.Volunteer -> VolunteerFeedScreen(
-                        onRequestClick = actions.onOpenRequestDetails
+                        onRequestClick = actions.onOpenRequestDetails,
+                        onPickLocationOnMap = actions.onPickVolunteerLocation
                     )
                 }
             }

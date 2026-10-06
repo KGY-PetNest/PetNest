@@ -97,7 +97,7 @@ class InMemoryPetRepository : PetRepository {
 class InMemoryRequestRepository : RequestRepository {
     private val owner = MutableStateFlow(MockData.ownerRequests)
     private val feedState = MutableStateFlow(MockData.volunteerFeed)
-    private val responded = MutableStateFlow(emptySet<String>())
+    private val responded = MutableStateFlow(MockData.respondedIds)
 
     override val ownerRequests: StateFlow<List<PetRequest>> = owner.asStateFlow()
     override val feed: StateFlow<List<PetRequest>> = feedState.asStateFlow()

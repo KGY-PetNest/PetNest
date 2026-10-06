@@ -60,6 +60,7 @@ fun MainScreen(
                 onCreateRequest = { navigateOuter(Routes.createRequest()) },
                 onOpenResponses = { navigateOuter(Routes.responses(it)) },
                 onOpenRequestDetails = { navigateOuter(Routes.requestDetails(it)) },
+                onPickVolunteerLocation = { navigateOuter(Routes.mapPicker(forVolunteer = true)) },
                 onAddPet = { navigateOuter(Routes.petProfile()) },
                 onEditPet = { navigateOuter(Routes.petProfile(it)) },
                 onOpenSettings = { navigateOuter(Routes.settings(role)) },
