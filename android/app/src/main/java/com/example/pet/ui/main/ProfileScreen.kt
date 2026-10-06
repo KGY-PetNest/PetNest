@@ -62,7 +62,6 @@ fun ProfileScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
-            .verticalScroll(rememberScrollState())
     ) {
         ScreenHeader(
             title = stringResource(R.string.text_9_1),
@@ -78,67 +77,74 @@ fun ProfileScreen(
             }
         )
 
-        Spacer(Modifier.height(16.dp))
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 8.dp)
-        ) {
-            InitialsAvatar(name = profile.name, size = 80.dp)
-            Column(
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.padding(start = 16.dp)
-            ) {
-                Text(
-                    text = profile.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                IconLine(
-                    icon = Icons.Default.Phone,
-                    text = formatPhone(profile.phone),
-                    textStyle = MaterialTheme.typography.bodyMedium
-                )
-                IconLine(
-                    icon = Icons.Default.Email,
-                    text = profile.email,
-                    textStyle = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
-
-        Spacer(Modifier.height(28.dp))
-
-        SectionTitle(
-            text = stringResource(R.string.text_9_2),
-            modifier = Modifier.padding(start = 8.dp)
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            pets.forEach { pet ->
-                PetRow(pet = pet, onClick = { onPetClick(pet.id) })
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        OutlinedButton(
-            onClick = onAddPetClick,
-            shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, primary),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = primary),
+        Column(
             modifier = Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .height(48.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.size(8.dp))
-            Text(stringResource(R.string.text_9_3), style = MaterialTheme.typography.labelLarge)
-        }
+            Spacer(Modifier.height(16.dp))
 
-        Spacer(Modifier.height(32.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            ) {
+                InitialsAvatar(name = profile.name, size = 80.dp)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(start = 16.dp)
+                ) {
+                    Text(
+                        text = profile.name,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconLine(
+                        icon = Icons.Default.Phone,
+                        text = formatPhone(profile.phone),
+                        textStyle = MaterialTheme.typography.bodyMedium
+                    )
+                    IconLine(
+                        icon = Icons.Default.Email,
+                        text = profile.email,
+                        textStyle = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(28.dp))
+
+            SectionTitle(
+                text = stringResource(R.string.text_9_2),
+                modifier = Modifier.padding(start = 8.dp)
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                pets.forEach { pet ->
+                    PetRow(pet = pet, onClick = { onPetClick(pet.id) })
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            OutlinedButton(
+                onClick = onAddPetClick,
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, primary),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = primary),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.size(8.dp))
+                Text(stringResource(R.string.text_9_3), style = MaterialTheme.typography.labelLarge)
+            }
+
+            Spacer(Modifier.height(32.dp))
+        }
     }
 }
 
