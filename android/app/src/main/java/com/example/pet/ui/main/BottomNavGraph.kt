@@ -23,10 +23,8 @@ class MainActions(
     val onOpenRequestDetails: (String) -> Unit,
     val onAddPet: () -> Unit,
     val onEditPet: (String) -> Unit,
-    val onEditProfile: () -> Unit,
-    val onChangePassword: () -> Unit,
-    val onOpenReviews: (String) -> Unit,
-    val onLogout: () -> Unit
+    val onOpenSettings: () -> Unit,
+    val onOpenReviews: (String) -> Unit
 )
 
 @Composable
@@ -76,9 +74,7 @@ fun BottomNavGraph(
                 when (role) {
                     UserRole.Owner -> ProfileScreen(
                         onBack = actions.onBackToFeed,
-                        onEditProfile = actions.onEditProfile,
-                        onChangePassword = actions.onChangePassword,
-                        onLogout = actions.onLogout,
+                        onOpenSettings = actions.onOpenSettings,
                         onAddPetClick = actions.onAddPet,
                         onPetClick = actions.onEditPet
                     )
@@ -86,9 +82,7 @@ fun BottomNavGraph(
                         volunteerId = MockData.CURRENT_VOLUNTEER_ID,
                         onBack = actions.onBackToFeed,
                         onAllReviews = actions.onOpenReviews,
-                        onEditProfile = actions.onEditProfile,
-                        onChangePassword = actions.onChangePassword,
-                        onLogout = actions.onLogout
+                        onOpenSettings = actions.onOpenSettings
                     )
                 }
             }

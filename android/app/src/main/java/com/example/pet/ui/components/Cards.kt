@@ -98,7 +98,7 @@ fun FilterPill(
         label = "pillContainer"
     )
     val content by animateColorAsState(
-        targetValue = if (selected) Color.White else MaterialTheme.colorScheme.primary,
+        targetValue = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
         animationSpec = tween(200),
         label = "pillContent"
     )

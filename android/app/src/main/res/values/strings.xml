@@ -76,9 +76,8 @@
     <string name="text_3_6">Введите номер полностью</string>
     <string name="text_3_7">Повторите пароль</string>
     <string name="text_3_8">Пароли не совпадают</string>
-    <string name="text_3_9">Введите ФИО</string>
     <string name="text_3_11">Повторите пароль</string>
-    <string name="text_3_12">Укажите фамилию, имя и отчество</string>
+    <string name="text_3_12">Укажите фамилию и имя (отчество по желанию)</string>
     <string name="text_4_1">Анкета питомца</string>
     <string name="text_4_2">Выбрать фото</string>
     <string name="text_4_3">Имя</string>
@@ -219,4 +218,12 @@
     <string name="text_21_3">Откликнуться</string>
     <string name="text_21_4">Вы откликнулись</string>
     <string name="text_21_5">Отменить отклик</string>
+    <string name="text_22_1">Аккаунт</string>
+    <string name="text_22_2">Выйти из аккаунта?</string>
+    <string name="text_22_3">Чтобы снова пользоваться приложением, нужно будет войти заново</string>
+    <string name="text_22_4">Выйти</string>
+    <string name="text_22_5">Оформление</string>
+    <string name="text_22_6">Система</string>
+    <string name="text_22_7">Светлая</string>
+    <string name="text_22_8">Тёмная</string>
 </resources>

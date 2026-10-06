@@ -31,6 +31,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.pet.R
 
@@ -40,18 +41,14 @@ object FormRules {
     const val CODE_LENGTH = 6
     const val PET_AGE_MAX_DIGITS = 2
     const val DESCRIPTION_MIN_LENGTH = 10
-    val FULL_NAME_WORDS = 3..3
+    val FULL_NAME_WORDS = 2..3
 
     fun normalizeFullName(value: String): String =
         value.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }.joinToString(" ")
 
     fun fullNameError(value: String): Int? {
         val words = normalizeFullName(value).split(" ").filter { it.isNotEmpty() }
-        return when {
-            words.isEmpty() -> R.string.text_3_9
-            words.size !in FULL_NAME_WORDS -> R.string.text_3_12
-            else -> null
-        }
+        return if (words.size in FULL_NAME_WORDS) null else R.string.text_3_12
     }
 
     fun descriptionError(text: String, @StringRes emptyError: Int): Int? = when {
@@ -89,7 +86,13 @@ fun AppTextField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        placeholder = { Text(placeholder) },
+        placeholder = {
+            Text(
+                text = placeholder,
+                maxLines = if (singleLine) 1 else Int.MAX_VALUE,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
         leadingIcon = if (leadingIcon != null) {
             { Icon(leadingIcon, contentDescription = null) }
         } else {

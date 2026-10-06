@@ -14,9 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,7 +37,6 @@ import com.example.pet.ui.components.RatingLabel
 import com.example.pet.ui.components.ReviewCard
 import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.SectionTitle
-import com.example.pet.ui.components.SettingsRow
 import com.example.pet.ui.components.TagChip
 import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.icon
@@ -53,9 +50,7 @@ fun VolunteerProfileScreen(
     onAllReviews: (String) -> Unit,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
-    onEditProfile: (() -> Unit)? = null,
-    onChangePassword: (() -> Unit)? = null,
-    onLogout: (() -> Unit)? = null
+    onOpenSettings: (() -> Unit)? = null
 ) {
     val volunteers by AppContainer.volunteers.volunteers.collectAsStateWithLifecycle()
     val allReviews by AppContainer.reviews.reviews.collectAsStateWithLifecycle()
@@ -77,12 +72,12 @@ fun VolunteerProfileScreen(
             ScreenHeader(
                 title = stringResource(R.string.text_13_1),
                 onBack = onBack,
-                actions = if (onEditProfile != null) {
+                actions = if (onOpenSettings != null) {
                     {
-                        IconButton(onClick = onEditProfile) {
+                        IconButton(onClick = onOpenSettings) {
                             Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = stringResource(R.string.text_16_1),
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = stringResource(R.string.text_16_2),
                                 tint = primary
                             )
                         }
@@ -167,35 +162,6 @@ fun VolunteerProfileScreen(
                                 Text(
                                     text = stringResource(R.string.text_15_9, reviews.size),
                                     style = MaterialTheme.typography.labelLarge
-                                )
-                            }
-                        }
-                    }
-                }
-
-                if (onChangePassword != null || onLogout != null) {
-                    Section(title = stringResource(R.string.text_16_2)) {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            if (onEditProfile != null) {
-                                SettingsRow(
-                                    icon = Icons.Default.Edit,
-                                    text = stringResource(R.string.text_16_1),
-                                    onClick = onEditProfile
-                                )
-                            }
-                            if (onChangePassword != null) {
-                                SettingsRow(
-                                    icon = Icons.Default.Lock,
-                                    text = stringResource(R.string.text_16_3),
-                                    onClick = onChangePassword
-                                )
-                            }
-                            if (onLogout != null) {
-                                SettingsRow(
-                                    icon = Icons.AutoMirrored.Filled.Logout,
-                                    text = stringResource(R.string.text_16_4),
-                                    onClick = onLogout,
-                                    danger = true
                                 )
                             }
                         }

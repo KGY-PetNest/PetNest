@@ -19,8 +19,7 @@ import com.example.pet.navigation.Screen
 @Composable
 fun MainScreen(
     navController: NavHostController,
-    role: UserRole,
-    onLogout: () -> Unit
+    role: UserRole
 ) {
     val bottomNavController = rememberNavController()
     val backStackEntry by bottomNavController.currentBackStackEntryAsState()
@@ -63,10 +62,8 @@ fun MainScreen(
                 onOpenRequestDetails = { navigateOuter(Routes.requestDetails(it)) },
                 onAddPet = { navigateOuter(Routes.petProfile()) },
                 onEditPet = { navigateOuter(Routes.petProfile(it)) },
-                onEditProfile = { navigateOuter(Routes.editProfile(role)) },
-                onChangePassword = { navigateOuter(Screen.ChangePassword.name) },
-                onOpenReviews = { navigateOuter(Routes.reviews(it)) },
-                onLogout = { if (isResumed()) onLogout() }
+                onOpenSettings = { navigateOuter(Routes.settings(role)) },
+                onOpenReviews = { navigateOuter(Routes.reviews(it)) }
             ),
             modifier = Modifier.weight(1f)
         )

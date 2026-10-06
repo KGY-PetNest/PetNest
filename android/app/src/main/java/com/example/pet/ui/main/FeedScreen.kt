@@ -48,10 +48,7 @@ import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.TagChip
 import com.example.pet.ui.components.cardSurface
 import com.example.pet.ui.components.label
-import com.example.pet.ui.theme.PetGreen
-import com.example.pet.ui.theme.PetGreenLight
-import com.example.pet.ui.theme.PetOrange
-import com.example.pet.ui.theme.PetOrangeLight
+import com.example.pet.ui.theme.extraColors
 import java.time.LocalDate
 import java.util.UUID
 
@@ -209,8 +206,8 @@ private fun RequestCard(
 fun StatusChip(status: RequestStatus) {
     val (container, content) = when (status) {
         RequestStatus.Open -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.primary
-        RequestStatus.VolunteerChosen -> PetOrangeLight to PetOrange
-        RequestStatus.Completed -> PetGreenLight to PetGreen
+        RequestStatus.VolunteerChosen -> MaterialTheme.extraColors.warningContainer to MaterialTheme.extraColors.warning
+        RequestStatus.Completed -> MaterialTheme.extraColors.successContainer to MaterialTheme.extraColors.success
     }
     TagChip(
         text = stringResource(status.label),

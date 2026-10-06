@@ -51,7 +51,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -361,7 +360,7 @@ private fun SelectButton(isSelected: Boolean, onClick: () -> Unit) {
         label = "selectContainer"
     )
     val content by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.White,
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
         label = "selectContent"
     )
     val interaction = remember { MutableInteractionSource() }

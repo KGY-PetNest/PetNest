@@ -3,6 +3,7 @@ package com.example.pet.data.repository
 import com.example.pet.data.Pet
 import com.example.pet.data.PetRequest
 import com.example.pet.data.Review
+import com.example.pet.data.ThemeMode
 import com.example.pet.data.UserProfile
 import com.example.pet.data.UserRole
 import com.example.pet.data.Volunteer
@@ -49,4 +50,9 @@ interface VolunteerRepository {
 interface ReviewRepository {
     val reviews: StateFlow<List<Review>>
     suspend fun add(review: Review): Result<Unit>
+}
+
+interface SettingsRepository {
+    val themeMode: StateFlow<ThemeMode>
+    fun setThemeMode(mode: ThemeMode)
 }

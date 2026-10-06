@@ -14,12 +14,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,15 +43,12 @@ import com.example.pet.ui.components.PetThumbnail
 import com.example.pet.ui.components.PetTraitChips
 import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.SectionTitle
-import com.example.pet.ui.components.SettingsRow
 import com.example.pet.ui.components.cardSurface
 import com.example.pet.ui.components.formatPhone
 
 @Composable
 fun ProfileScreen(
-    onEditProfile: () -> Unit,
-    onChangePassword: () -> Unit,
-    onLogout: () -> Unit,
+    onOpenSettings: () -> Unit,
     onAddPetClick: () -> Unit,
     onPetClick: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -72,10 +68,10 @@ fun ProfileScreen(
             title = stringResource(R.string.text_9_1),
             onBack = onBack,
             actions = {
-                IconButton(onClick = onEditProfile) {
+                IconButton(onClick = onOpenSettings) {
                     Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = stringResource(R.string.text_16_1),
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = stringResource(R.string.text_16_2),
                         tint = primary
                     )
                 }
@@ -140,34 +136,6 @@ fun ProfileScreen(
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.size(8.dp))
             Text(stringResource(R.string.text_9_3), style = MaterialTheme.typography.labelLarge)
-        }
-
-        Spacer(Modifier.height(28.dp))
-
-        SectionTitle(
-            text = stringResource(R.string.text_16_2),
-            modifier = Modifier.padding(start = 8.dp)
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            SettingsRow(
-                icon = Icons.Default.Edit,
-                text = stringResource(R.string.text_16_1),
-                onClick = onEditProfile
-            )
-            SettingsRow(
-                icon = Icons.Default.Lock,
-                text = stringResource(R.string.text_16_3),
-                onClick = onChangePassword
-            )
-            SettingsRow(
-                icon = Icons.AutoMirrored.Filled.Logout,
-                text = stringResource(R.string.text_16_4),
-                onClick = onLogout,
-                danger = true
-            )
         }
 
         Spacer(Modifier.height(32.dp))

@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -44,12 +45,15 @@ import com.example.pet.R
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.adaptiveContentWidth
 
+private const val DARK_PHOTO_DIM = 0.35f
+
 @Composable
 fun WelcomeScreen(onStart: () -> Unit, modifier: Modifier = Modifier) {
     var shown by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) { shown = true }
 
     val background = MaterialTheme.colorScheme.background
+    val isDark = background.luminance() < 0.5f
     val photoScale by animateFloatAsState(
         targetValue = if (shown) 1f else 1.08f,
         animationSpec = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
@@ -73,6 +77,14 @@ fun WelcomeScreen(onStart: () -> Unit, modifier: Modifier = Modifier) {
                     scaleY = photoScale
                 }
         )
+
+        if (isDark) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = DARK_PHOTO_DIM))
+            )
+        }
 
         Box(
             modifier = Modifier
