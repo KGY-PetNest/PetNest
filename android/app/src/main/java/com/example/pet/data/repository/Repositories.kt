@@ -3,6 +3,7 @@ package com.example.pet.data.repository
 import com.example.pet.data.Pet
 import com.example.pet.data.PetRequest
 import com.example.pet.data.Review
+import com.example.pet.data.SavedLocation
 import com.example.pet.data.ThemeMode
 import com.example.pet.data.UserProfile
 import com.example.pet.data.UserRole
@@ -55,4 +56,6 @@ interface ReviewRepository {
 interface SettingsRepository {
     val themeMode: StateFlow<ThemeMode>
     fun setThemeMode(mode: ThemeMode)
+    val volunteerLocation: StateFlow<SavedLocation?>
+    fun setVolunteerLocation(location: SavedLocation)
 }

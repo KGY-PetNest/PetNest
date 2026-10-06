@@ -34,6 +34,7 @@ object Routes {
     const val VOLUNTEER_ID_ARG = "volunteerId"
     const val PET_ID_ARG = "petId"
     const val TARGET_ARG = "target"
+    const val FOR_VOLUNTEER_ARG = "forVolunteer"
 
     val MAIN = "${Screen.Main.name}/{$ROLE_ARG}"
     fun main(role: UserRole) = "${Screen.Main.name}/${role.name}"
@@ -63,6 +64,10 @@ object Routes {
 
     val SETTINGS = "${Screen.Settings.name}/{$ROLE_ARG}"
     fun settings(role: UserRole) = "${Screen.Settings.name}/${role.name}"
+
+    val MAP_PICKER = "${Screen.MapPicker.name}?$FOR_VOLUNTEER_ARG={$FOR_VOLUNTEER_ARG}"
+    fun mapPicker(forVolunteer: Boolean = false) =
+        if (forVolunteer) "${Screen.MapPicker.name}?$FOR_VOLUNTEER_ARG=true" else Screen.MapPicker.name
 
     val RESET_CODE = "${Screen.ResetCode.name}/{$TARGET_ARG}"
     fun resetCode(target: String) = "${Screen.ResetCode.name}/${Uri.encode(target)}"

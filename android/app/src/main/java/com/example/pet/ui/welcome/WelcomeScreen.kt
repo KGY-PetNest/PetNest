@@ -45,6 +45,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.withResumed
 import com.example.pet.R
 import com.example.pet.ui.components.adaptiveContentWidth
 import kotlinx.coroutines.delay
@@ -57,10 +59,12 @@ fun WelcomeScreen(onStart: () -> Unit, modifier: Modifier = Modifier) {
     var shown by rememberSaveable { mutableStateOf(false) }
     val currentOnStart by rememberUpdatedState(onStart)
 
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+
     LaunchedEffect(Unit) {
         shown = true
         delay(WELCOME_DURATION_MS)
-        currentOnStart()
+        lifecycle.withResumed { currentOnStart() }
     }
 
     val background = MaterialTheme.colorScheme.background

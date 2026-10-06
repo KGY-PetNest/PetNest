@@ -87,7 +87,7 @@ import kotlinx.coroutines.withContext
 fun PetProfileScreen(
     petId: String?,
     onBack: () -> Unit,
-    onSave: () -> Unit,
+    onSave: (String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -133,7 +133,7 @@ fun PetProfileScreen(
                 saving = true
                 AppContainer.pets.save(pet)
                 saving = false
-                onSave()
+                onSave(pet.id)
             }
         }
     }
@@ -179,7 +179,7 @@ fun PetProfileScreen(
                     confirmDelete = false
                     scope.launch {
                         AppContainer.pets.delete(existing.id)
-                        onSave()
+                        onSave(null)
                     }
                 }) {
                     Text(

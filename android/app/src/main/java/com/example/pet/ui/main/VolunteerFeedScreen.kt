@@ -1,10 +1,18 @@
 package com.example.pet.ui.main
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,67 +20,86 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.NearMe
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pet.R
 import com.example.pet.data.AppContainer
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.filled.CheckCircle
 import com.example.pet.data.DayMonthFormat
 import com.example.pet.data.MockData
+import com.example.pet.data.MyResponseStatus
 import com.example.pet.data.PetKind
 import com.example.pet.data.PetRequest
+import com.example.pet.data.PetTrait
+import com.example.pet.data.RequestStatus
+import com.example.pet.data.SavedLocation
+import com.example.pet.data.distanceKmTo
+import com.example.pet.data.formatDistanceKm
+import com.example.pet.ui.components.DateRangeDialog
 import com.example.pet.ui.components.FilterPill
 import com.example.pet.ui.components.IconLine
+import com.example.pet.ui.components.MyResponseStatusChip
 import com.example.pet.ui.components.PetThumbnail
-import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.PetTraitChips
-import com.example.pet.ui.components.DateRangeDialog
-import com.example.pet.ui.components.cardSurface
-import com.example.pet.ui.components.rememberFutureDateRangePickerState
-import com.example.pet.ui.components.toUtcMillis
-import com.example.pet.ui.components.utcMillisToLocalDate
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.rememberCoroutineScope
-import com.example.pet.data.PetTrait
 import com.example.pet.ui.components.PetTraitSelector
 import com.example.pet.ui.components.PrimaryButton
+import com.example.pet.ui.components.ScreenHeader
+import com.example.pet.ui.components.SegmentedToggle
+import com.example.pet.ui.components.cardSurface
+import com.example.pet.ui.components.rememberFutureDateRangePickerState
+import com.example.pet.ui.components.requestCurrentLocation
+import com.example.pet.ui.components.toUtcMillis
+import com.example.pet.ui.components.utcMillisToLocalDate
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 private enum class FeedSort(@param:StringRes val label: Int) {
-    Nearest(R.string.text_12_14),
+    Soonest(R.string.text_12_14),
+    Closest(R.string.text_12_36),
     Shortest(R.string.text_12_15),
     Longest(R.string.text_12_16)
 }
@@ -83,59 +110,122 @@ private val KindFilters = listOf(
     PetKind.Other to R.string.text_12_9
 )
 
+private val RadiusOptionsKm = listOf(1, 3, 5, 10, 20)
+private const val DEFAULT_RADIUS_KM = 5
+
+private val MyResponsesOrder = listOf(
+    MyResponseStatus.Chosen,
+    MyResponseStatus.Pending,
+    MyResponseStatus.Completed,
+    MyResponseStatus.NotChosen
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VolunteerFeedScreen(
     onRequestClick: (String) -> Unit,
+    onPickLocationOnMap: () -> Unit,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null
 ) {
     val feed by AppContainer.requests.feed.collectAsStateWithLifecycle()
     val responded by AppContainer.requests.respondedIds.collectAsStateWithLifecycle()
+    val myLocation by AppContainer.settings.volunteerLocation.collectAsStateWithLifecycle()
+
+    var tab by rememberSaveable { mutableIntStateOf(0) }
     var kinds by rememberSaveable { mutableStateOf(emptySet<PetKind>()) }
-    var district by rememberSaveable { mutableStateOf<String?>(null) }
+    var radiusKm by rememberSaveable { mutableStateOf<Int?>(null) }
     var freeFrom by rememberSaveable { mutableStateOf<LocalDate?>(null) }
     var freeTo by rememberSaveable { mutableStateOf<LocalDate?>(null) }
-    var sort by rememberSaveable { mutableStateOf(FeedSort.Nearest) }
+    var sort by rememberSaveable { mutableStateOf(FeedSort.Soonest) }
+    var mustHave by rememberSaveable { mutableStateOf(emptySet<PetTrait>()) }
+    var exclude by rememberSaveable { mutableStateOf(emptySet<PetTrait>()) }
 
-    var districtMenuOpen by remember { mutableStateOf(false) }
     var sortMenuOpen by remember { mutableStateOf(false) }
     var datesDialogOpen by remember { mutableStateOf(false) }
     var traitsSheetOpen by remember { mutableStateOf(false) }
-    var mustHave by rememberSaveable { mutableStateOf(emptySet<PetTrait>()) }
-    var exclude by rememberSaveable { mutableStateOf(emptySet<PetTrait>()) }
+    var locationSheetOpen by rememberSaveable { mutableStateOf(false) }
+    val feedListState = rememberLazyListState()
+    val myListState = rememberLazyListState()
+    val locationKey = myLocation?.point?.let { "${it.lat},${it.lon}" }
+    var knownLocationKey by rememberSaveable { mutableStateOf(locationKey) }
+
+    LaunchedEffect(locationKey) {
+        if (locationKey != null && locationKey != knownLocationKey && radiusKm == null) {
+            radiusKm = DEFAULT_RADIUS_KM
+            sort = FeedSort.Closest
+        }
+        knownLocationKey = locationKey
+    }
     val datesState = rememberFutureDateRangePickerState()
 
-    val requests = remember(feed, kinds, district, freeFrom, freeTo, sort, mustHave, exclude) {
+    val origin = myLocation?.point
+    val distances = remember(feed, origin) {
+        if (origin == null) {
+            emptyMap()
+        } else {
+            feed.mapNotNull { request -> request.location?.let { request.id to origin.distanceKmTo(it) } }.toMap()
+        }
+    }
+
+    val requests = remember(feed, kinds, radiusKm, distances, freeFrom, freeTo, sort, mustHave, exclude) {
         feed
+            .filter { it.status == RequestStatus.Open && it.chosenVolunteerId == null }
             .filter { request ->
                 val kindOk = kinds.isEmpty() || request.kind in kinds
-                val districtOk = district == null || request.district == district
+                val radius = radiusKm
+                val distance = distances[request.id]
+                val radiusOk = radius == null || origin == null || distance == null || distance <= radius
                 val from = freeFrom
                 val to = freeTo
                 val datesOk = from == null || to == null ||
                         (!request.start.isBefore(from) && !request.end.isAfter(to))
                 val traitsOk = request.traits.containsAll(mustHave) &&
                         request.traits.none { it in exclude }
-                kindOk && districtOk && datesOk && traitsOk
+                kindOk && radiusOk && datesOk && traitsOk
             }
             .let { list ->
                 when (sort) {
-                    FeedSort.Nearest -> list.sortedBy { it.start }
+                    FeedSort.Soonest -> list.sortedBy { it.start }
+                    FeedSort.Closest -> list.sortedBy { distances[it.id] ?: Double.MAX_VALUE }
                     FeedSort.Shortest -> list.sortedBy { it.days }
                     FeedSort.Longest -> list.sortedByDescending { it.days }
                 }
             }
     }
 
+    val myResponses = remember(feed, responded) {
+        feed
+            .mapNotNull { request ->
+                request.statusFor(MockData.CURRENT_VOLUNTEER_ID, responded)?.let { request to it }
+            }
+            .sortedWith(compareBy({ MyResponsesOrder.indexOf(it.second) }, { it.first.start }))
+    }
+
     fun resetFilters() {
         kinds = emptySet()
-        district = null
+        radiusKm = null
         freeFrom = null
         freeTo = null
         datesState.setSelection(null, null)
         mustHave = emptySet()
         exclude = emptySet()
+    }
+
+    if (locationSheetOpen) {
+        LocationFilterSheet(
+            location = myLocation,
+            radiusKm = radiusKm,
+            onRadiusChange = { radiusKm = it },
+            onPickOnMap = {
+                locationSheetOpen = false
+                onPickLocationOnMap()
+            },
+            onDismiss = {
+                locationSheetOpen = false
+                if (myLocation == null && sort == FeedSort.Closest) sort = FeedSort.Soonest
+            }
+        )
     }
 
     if (traitsSheetOpen) {
@@ -193,146 +283,117 @@ fun VolunteerFeedScreen(
 
         Spacer(Modifier.height(8.dp))
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-        ) {
-            FilterPill(
-                text = stringResource(R.string.text_12_2),
-                selected = kinds.isEmpty(),
-                onClick = { kinds = emptySet() }
-            )
-            KindFilters.forEach { (kind, label) ->
-                FilterPill(
-                    text = stringResource(label),
-                    selected = kind in kinds,
-                    onClick = {
-                        val updated = if (kind in kinds) kinds - kind else kinds + kind
-                        kinds = if (updated.size == PetKind.entries.size) emptySet() else updated
-                    }
-                )
-            }
-
-            val from = freeFrom
-            val to = freeTo
-            FilterPill(
-                text = if (from != null && to != null) {
-                    stringResource(R.string.text_12_18, from.format(DayMonthFormat), to.format(DayMonthFormat))
-                } else {
-                    stringResource(R.string.text_12_10)
-                },
-                selected = from != null && to != null,
-                leadingIcon = Icons.Default.DateRange,
-                onClick = { datesDialogOpen = true }
-            )
-
-            val traitsCount = mustHave.size + exclude.size
-            FilterPill(
-                text = if (traitsCount > 0) {
-                    stringResource(R.string.text_12_20, traitsCount)
-                } else {
-                    stringResource(R.string.text_12_19)
-                },
-                selected = traitsCount > 0,
-                leadingIcon = Icons.Default.Tune,
-                onClick = { traitsSheetOpen = true }
-            )
-
-            Box {
-                FilterPill(
-                    text = district ?: stringResource(R.string.text_12_5),
-                    selected = district != null,
-                    leadingIcon = Icons.Default.LocationOn,
-                    onClick = { districtMenuOpen = true }
-                )
-                DropdownMenu(
-                    expanded = districtMenuOpen,
-                    onDismissRequest = { districtMenuOpen = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.text_12_6)) },
-                        onClick = {
-                            district = null
-                            districtMenuOpen = false
-                        }
-                    )
-                    MockData.districts.forEach { item ->
-                        DropdownMenuItem(
-                            text = { Text(item) },
-                            onClick = {
-                                district = item
-                                districtMenuOpen = false
-                            }
-                        )
-                    }
-                }
-            }
-
-            Box {
-                FilterPill(
-                    text = stringResource(sort.label),
-                    selected = sort != FeedSort.Nearest,
-                    leadingIcon = Icons.AutoMirrored.Filled.Sort,
-                    onClick = { sortMenuOpen = true }
-                )
-                DropdownMenu(
-                    expanded = sortMenuOpen,
-                    onDismissRequest = { sortMenuOpen = false }
-                ) {
-                    FeedSort.entries.forEach { option ->
-                        DropdownMenuItem(
-                            text = { Text(stringResource(option.label)) },
-                            leadingIcon = if (option == sort) {
-                                { Icon(Icons.Default.Check, contentDescription = null) }
-                            } else {
-                                null
-                            },
-                            onClick = {
-                                sort = option
-                                sortMenuOpen = false
-                            }
-                        )
-                    }
-                }
-            }
-        }
+        SegmentedToggle(
+            options = listOf(
+                stringResource(R.string.text_12_23),
+                stringResource(R.string.text_12_24)
+            ),
+            selectedIndex = tab,
+            onSelect = { tab = it }
+        )
 
         Spacer(Modifier.height(12.dp))
 
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(bottom = 16.dp),
+        AnimatedContent(
+            targetState = tab,
+            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            label = "volunteerTab",
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-        ) {
-            items(requests, key = { it.id }) { request ->
-                VolunteerRequestCard(
-                    request = request,
-                    responded = request.id in responded,
-                    onClick = { onRequestClick(request.id) },
-                    modifier = Modifier.animateItem()
-                )
-            }
-            if (requests.isEmpty()) {
-                item(key = "empty") {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
+        ) { currentTab ->
+            if (currentTab == 0) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    FeedFilters(
+                        kinds = kinds,
+                        onKindsChange = { kinds = it },
+                        radiusKm = radiusKm,
+                        hasLocation = myLocation != null,
+                        onLocationClick = { locationSheetOpen = true },
+                        freeFrom = freeFrom,
+                        freeTo = freeTo,
+                        onDatesClick = { datesDialogOpen = true },
+                        traitsCount = mustHave.size + exclude.size,
+                        onTraitsClick = { traitsSheetOpen = true },
+                        sort = sort,
+                        sortMenuOpen = sortMenuOpen,
+                        onSortMenuOpenChange = { sortMenuOpen = it },
+                        onSortChange = { option ->
+                            sort = option
+                            if (option == FeedSort.Closest && myLocation == null) locationSheetOpen = true
+                        }
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    LazyColumn(
+                        state = feedListState,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(bottom = 16.dp),
                         modifier = Modifier
+                            .weight(1f)
                             .fillMaxWidth()
-                            .padding(top = 32.dp)
-                            .animateItem()
                     ) {
-                        Text(
-                            text = stringResource(R.string.text_12_7),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
+                        items(requests, key = { it.id }) { request ->
+                            VolunteerRequestCard(
+                                request = request,
+                                distanceKm = distances[request.id],
+                                responded = request.id in responded,
+                                onClick = { onRequestClick(request.id) },
+                                modifier = Modifier.animateItem()
+                            )
+                        }
+                        if (requests.isEmpty()) {
+                            item(key = "empty") {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 32.dp)
+                                        .animateItem()
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.text_12_7),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    TextButton(onClick = { resetFilters() }) {
+                                        Text(stringResource(R.string.text_12_17))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                LazyColumn(
+                    state = myListState,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = 16.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(myResponses, key = { it.first.id }) { (request, status) ->
+                        VolunteerRequestCard(
+                            request = request,
+                            distanceKm = distances[request.id],
+                            status = status,
+                            onClick = { onRequestClick(request.id) },
+                            modifier = Modifier.animateItem()
                         )
-                        TextButton(onClick = { resetFilters() }) {
-                            Text(stringResource(R.string.text_12_17))
+                    }
+                    if (myResponses.isEmpty()) {
+                        item(key = "empty") {
+                            Text(
+                                text = stringResource(R.string.text_12_37),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 32.dp)
+                                    .animateItem()
+                            )
                         }
                     }
                 }
@@ -342,11 +403,115 @@ fun VolunteerFeedScreen(
 }
 
 @Composable
+private fun FeedFilters(
+    kinds: Set<PetKind>,
+    onKindsChange: (Set<PetKind>) -> Unit,
+    radiusKm: Int?,
+    hasLocation: Boolean,
+    onLocationClick: () -> Unit,
+    freeFrom: LocalDate?,
+    freeTo: LocalDate?,
+    onDatesClick: () -> Unit,
+    traitsCount: Int,
+    onTraitsClick: () -> Unit,
+    sort: FeedSort,
+    sortMenuOpen: Boolean,
+    onSortMenuOpenChange: (Boolean) -> Unit,
+    onSortChange: (FeedSort) -> Unit
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+    ) {
+        FilterPill(
+            text = if (radiusKm != null && hasLocation) {
+                stringResource(R.string.text_12_26, radiusKm)
+            } else {
+                stringResource(R.string.text_12_25)
+            },
+            selected = radiusKm != null && hasLocation,
+            leadingIcon = Icons.Default.NearMe,
+            onClick = onLocationClick
+        )
+
+        FilterPill(
+            text = stringResource(R.string.text_12_2),
+            selected = kinds.isEmpty(),
+            onClick = { onKindsChange(emptySet()) }
+        )
+        KindFilters.forEach { (kind, label) ->
+            FilterPill(
+                text = stringResource(label),
+                selected = kind in kinds,
+                onClick = {
+                    val updated = if (kind in kinds) kinds - kind else kinds + kind
+                    onKindsChange(if (updated.size == PetKind.entries.size) emptySet() else updated)
+                }
+            )
+        }
+
+        FilterPill(
+            text = if (freeFrom != null && freeTo != null) {
+                stringResource(R.string.text_12_18, freeFrom.format(DayMonthFormat), freeTo.format(DayMonthFormat))
+            } else {
+                stringResource(R.string.text_12_10)
+            },
+            selected = freeFrom != null && freeTo != null,
+            leadingIcon = Icons.Default.DateRange,
+            onClick = onDatesClick
+        )
+
+        FilterPill(
+            text = if (traitsCount > 0) {
+                stringResource(R.string.text_12_20, traitsCount)
+            } else {
+                stringResource(R.string.text_12_19)
+            },
+            selected = traitsCount > 0,
+            leadingIcon = Icons.Default.Tune,
+            onClick = onTraitsClick
+        )
+
+        Box {
+            FilterPill(
+                text = stringResource(sort.label),
+                selected = sort != FeedSort.Soonest,
+                leadingIcon = Icons.AutoMirrored.Filled.Sort,
+                onClick = { onSortMenuOpenChange(true) }
+            )
+            DropdownMenu(
+                expanded = sortMenuOpen,
+                onDismissRequest = { onSortMenuOpenChange(false) }
+            ) {
+                FeedSort.entries.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(stringResource(option.label)) },
+                        leadingIcon = if (option == sort) {
+                            { Icon(Icons.Default.Check, contentDescription = null) }
+                        } else {
+                            null
+                        },
+                        onClick = {
+                            onSortChange(option)
+                            onSortMenuOpenChange(false)
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun VolunteerRequestCard(
     request: PetRequest,
-    responded: Boolean,
+    distanceKm: Double?,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    responded: Boolean = false,
+    status: MyResponseStatus? = null
 ) {
     Row(
         verticalAlignment = Alignment.Top,
@@ -355,7 +520,7 @@ private fun VolunteerRequestCard(
             .cardSurface(onClick)
             .padding(12.dp)
     ) {
-        PetThumbnail(size = 72.dp)
+        PetThumbnail(photoUri = request.petPhotoUri, size = 72.dp)
 
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -368,9 +533,15 @@ private fun VolunteerRequestCard(
                     text = request.title,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp)
                 )
-                if (responded) {
+                if (status != null) {
+                    MyResponseStatusChip(status)
+                } else if (responded) {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = stringResource(R.string.text_21_4),
@@ -385,13 +556,198 @@ private fun VolunteerRequestCard(
                     R.string.text_12_8,
                     pluralStringResource(R.plurals.common_days_count, request.days, request.days),
                     request.dates
+                ),
+                maxLines = 1
+            )
+            IconLine(
+                icon = Icons.Default.LocationOn,
+                text = if (distanceKm != null) {
+                    stringResource(R.string.text_12_35, formatDistanceKm(distanceKm), request.publicPlace)
+                } else {
+                    request.publicPlace
+                },
+                maxLines = 1
+            )
+            if (status == null) {
+                PetTraitChips(
+                    traits = request.traits,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LocationFilterSheet(
+    location: SavedLocation?,
+    radiusKm: Int?,
+    onRadiusChange: (Int?) -> Unit,
+    onPickOnMap: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    var locating by remember { mutableStateOf(false) }
+    var locateFailed by remember { mutableStateOf(false) }
+    val myLocationLabel = stringResource(R.string.text_12_34)
+
+    fun close() {
+        scope.launch { sheetState.hide() }.invokeOnCompletion {
+            if (!sheetState.isVisible) onDismiss()
+        }
+    }
+
+    fun locate() {
+        locating = true
+        locateFailed = false
+        requestCurrentLocation(context) { point ->
+            locating = false
+            if (point != null) {
+                AppContainer.settings.setVolunteerLocation(SavedLocation(point, myLocationLabel))
+            } else {
+                locateFailed = true
+            }
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        if (result.values.any { it }) locate() else locateFailed = true
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.background,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.text_12_25),
+                style = MaterialTheme.typography.titleLarge
             )
-            IconLine(icon = Icons.Default.LocationOn, text = request.place)
-            PetTraitChips(
-                traits = request.traits,
-                modifier = Modifier.padding(top = 4.dp)
+
+            Spacer(Modifier.height(16.dp))
+
+            Text(
+                text = stringResource(R.string.text_12_28),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold
             )
+            Spacer(Modifier.height(8.dp))
+            IconLine(
+                icon = Icons.Default.LocationOn,
+                text = location?.label?.ifBlank { null } ?: stringResource(R.string.text_12_29),
+                iconSize = 20.dp,
+                textStyle = MaterialTheme.typography.bodyLarge,
+                textColor = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = {
+                        permissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_COARSE_LOCATION,
+                                Manifest.permission.ACCESS_FINE_LOCATION
+                            )
+                        )
+                    },
+                    enabled = !locating,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    if (locating) {
+                        CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
+                    } else {
+                        Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(Modifier.size(6.dp))
+                    Text(
+                        text = stringResource(if (locating) R.string.text_12_42 else R.string.text_12_30),
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 2
+                    )
+                }
+                OutlinedButton(
+                    onClick = onPickOnMap,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.size(6.dp))
+                    Text(
+                        text = stringResource(R.string.text_12_31),
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 2
+                    )
+                }
+            }
+
+            if (locateFailed) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.text_12_33),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            Text(
+                text = stringResource(R.string.text_12_43),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(8.dp))
+            if (location == null) {
+                Text(
+                    text = stringResource(R.string.text_12_32),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterPill(
+                        text = stringResource(R.string.text_12_27),
+                        selected = radiusKm == null,
+                        onClick = { onRadiusChange(null) }
+                    )
+                    RadiusOptionsKm.forEach { km ->
+                        FilterPill(
+                            text = stringResource(R.string.text_12_26, km),
+                            selected = radiusKm == km,
+                            onClick = { onRadiusChange(km) }
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            PrimaryButton(
+                text = stringResource(R.string.common_done),
+                onClick = { close() },
+                height = 48.dp
+            )
+
+            Spacer(Modifier.height(24.dp))
         }
     }
 }

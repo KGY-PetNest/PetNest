@@ -41,6 +41,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,6 +51,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.pet.R
+import com.example.pet.data.GeoPoint
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.adaptiveContentWidth
@@ -77,9 +79,14 @@ private val ADDRESS_BAR_HEIGHT = 56.dp
 @Composable
 fun MapPickerScreen(
     onBack: () -> Unit,
-    onPicked: (String) -> Unit,
-    modifier: Modifier = Modifier
+    onPicked: (String, GeoPoint) -> Unit,
+    modifier: Modifier = Modifier,
+    forVolunteerLocation: Boolean = false,
+    startPoint: GeoPoint? = null
 ) {
+    val initialPoint = remember(startPoint) {
+        startPoint?.let { Point(it.lat, it.lon) } ?: START_POINT
+    }
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val mapView = remember { MapView(context) }
@@ -89,6 +96,7 @@ fun MapPickerScreen(
     var isMoving by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }
     var session by remember { mutableStateOf<Session?>(null) }
+    var pickedPoint by remember { mutableStateOf(initialPoint) }
 
     val searchManager = remember {
         SearchFactory.getInstance().createSearchManager(SearchManagerType.COMBINED)
@@ -134,6 +142,7 @@ fun MapPickerScreen(
             }
             isMoving = false
             isLoading = true
+            pickedPoint = position.target
             session?.cancel()
             session = searchManager.submit(
                 position.target,
@@ -145,7 +154,7 @@ fun MapPickerScreen(
     }
 
     LaunchedEffect(Unit) {
-        session = searchManager.submit(START_POINT, START_ZOOM.roundToInt(), searchOptions, searchListener)
+        session = searchManager.submit(initialPoint, START_ZOOM.roundToInt(), searchOptions, searchListener)
     }
 
     DisposableEffect(lifecycleOwner) {
@@ -194,7 +203,9 @@ fun MapPickerScreen(
         label = "addressAlpha"
     )
 
-    val canPick = address != null && !isMoving && !isLoading
+    val canPick = !isMoving && !isLoading && (address != null || forVolunteerLocation)
+    val fallbackLabel = stringResource(R.string.text_12_34)
+    val isDarkMap = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
     Box(
         modifier = modifier.fillMaxSize(),
@@ -206,7 +217,10 @@ fun MapPickerScreen(
                 .adaptiveContentWidth()
                 .padding(horizontal = 16.dp)
         ) {
-            ScreenHeader(title = stringResource(R.string.text_7_1), onBack = onBack)
+            ScreenHeader(
+                title = stringResource(if (forVolunteerLocation) R.string.text_7_5 else R.string.text_7_1),
+                onBack = onBack
+            )
             Spacer(Modifier.height(8.dp))
 
             Box(
@@ -218,10 +232,11 @@ fun MapPickerScreen(
                 AndroidView(
                     factory = {
                         mapView.apply {
-                            mapWindow.map.move(CameraPosition(START_POINT, START_ZOOM, 0f, 0f))
+                            mapWindow.map.move(CameraPosition(initialPoint, START_ZOOM, 0f, 0f))
                             mapWindow.map.addCameraListener(WeakReference(cameraListener))
                         }
                     },
+                    update = { it.mapWindow.map.isNightModeEnabled = isDarkMap },
                     modifier = Modifier.fillMaxSize()
                 )
 
@@ -287,9 +302,12 @@ fun MapPickerScreen(
             Spacer(Modifier.height(16.dp))
 
             PrimaryButton(
-                text = stringResource(R.string.text_7_4),
+                text = stringResource(if (forVolunteerLocation) R.string.text_7_6 else R.string.text_7_4),
                 enabled = canPick,
-                onClick = { address?.let(onPicked) }
+                onClick = {
+                    val label = address ?: if (forVolunteerLocation) fallbackLabel else null
+                    label?.let { onPicked(it, GeoPoint(pickedPoint.latitude, pickedPoint.longitude)) }
+                }
             )
 
             Spacer(Modifier.height(32.dp))

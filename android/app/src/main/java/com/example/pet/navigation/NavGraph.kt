@@ -25,6 +25,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.pet.R
+import com.example.pet.data.AppContainer
+import com.example.pet.data.GeoPoint
+import com.example.pet.data.SavedLocation
 import com.example.pet.data.UserRole
 import com.example.pet.ui.components.BottomInsetsPane
 import com.example.pet.ui.createrequest.CreateRequestScreen
@@ -46,6 +49,8 @@ import com.example.pet.ui.volunteerprofile.VolunteerProfileScreen
 import com.example.pet.ui.welcome.WelcomeScreen
 
 private const val PICKED_ADDRESS_KEY = "picked_address"
+private const val ADDED_PET_KEY = "added_pet"
+private const val PICKED_POINT_KEY = "picked_point"
 
 
 private const val NAV_DURATION = 320
@@ -382,11 +387,19 @@ fun NavGraph(
                 }
             )
         ) { entry ->
+            val petId = entry.stringArg(Routes.PET_ID_ARG)
             BottomInsetsPane(includeIme = false) {
                 PetProfileScreen(
-                    petId = entry.stringArg(Routes.PET_ID_ARG),
+                    petId = petId,
                     onBack = { entry.ifResumed { navController.popBackStack() } },
-                    onSave = { entry.ifResumed { navController.popBackStack() } }
+                    onSave = { savedId ->
+                        entry.ifResumed {
+                            if (petId == null && savedId != null) {
+                                navController.previousBackStackEntry?.savedStateHandle?.set(ADDED_PET_KEY, savedId)
+                            }
+                            navController.popBackStack()
+                        }
+                    }
                 )
             }
         }
@@ -401,14 +414,14 @@ fun NavGraph(
                 }
             ),
             exitTransition = {
-                if (targetState.destination.route == Screen.MapPicker.name) {
+                if (targetState.destination.route == Routes.MAP_PICKER) {
                     fadeOut(tween(NAV_DURATION))
                 } else {
                     defaultExit(this)
                 }
             },
             popEnterTransition = {
-                if (initialState.destination.route == Screen.MapPicker.name) {
+                if (initialState.destination.route == Routes.MAP_PICKER) {
                     fadeIn(tween(NAV_DURATION))
                 } else {
                     defaultPopEnter(this)
@@ -417,6 +430,12 @@ fun NavGraph(
         ) { entry ->
             val pickedAddress by entry.savedStateHandle
                 .getStateFlow<String?>(PICKED_ADDRESS_KEY, null)
+                .collectAsState()
+            val addedPetId by entry.savedStateHandle
+                .getStateFlow<String?>(ADDED_PET_KEY, null)
+                .collectAsState()
+            val pickedPoint by entry.savedStateHandle
+                .getStateFlow<DoubleArray?>(PICKED_POINT_KEY, null)
                 .collectAsState()
 
             BottomInsetsPane(includeIme = false) {
@@ -430,12 +449,18 @@ fun NavGraph(
                     },
                     onCreate = { entry.ifResumed { navController.popBackStack() } },
                     pickedAddress = pickedAddress,
+                    pickedPoint = pickedPoint?.let { GeoPoint(it[0], it[1]) },
                     onPickedAddressUsed = {
                         entry.savedStateHandle[PICKED_ADDRESS_KEY] = null
+                        entry.savedStateHandle[PICKED_POINT_KEY] = null
+                    },
+                    addedPetId = addedPetId,
+                    onAddedPetUsed = {
+                        entry.savedStateHandle[ADDED_PET_KEY] = null
                     },
                     onPickOnMap = {
                         entry.ifResumed {
-                            navController.navigate(Screen.MapPicker.name) { launchSingleTop = true }
+                            navController.navigate(Routes.mapPicker()) { launchSingleTop = true }
                         }
                     }
                 )
@@ -443,18 +468,33 @@ fun NavGraph(
         }
 
         composable(
-            route = Screen.MapPicker.name,
+            route = Routes.MAP_PICKER,
+            arguments = listOf(
+                navArgument(Routes.FOR_VOLUNTEER_ARG) {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            ),
             enterTransition = sheetEnter,
             popExitTransition = sheetPopExit
         ) { entry ->
+            val forVolunteer = entry.arguments?.getBoolean(Routes.FOR_VOLUNTEER_ARG) ?: false
+            val savedLocation = AppContainer.settings.volunteerLocation.collectAsState().value
             BottomInsetsPane {
                 MapPickerScreen(
+                    forVolunteerLocation = forVolunteer,
+                    startPoint = if (forVolunteer) savedLocation?.point else null,
                     onBack = { entry.ifResumed { navController.popBackStack() } },
-                    onPicked = { address ->
+                    onPicked = { address, point ->
                         entry.ifResumed {
-                            navController.previousBackStackEntry
-                                ?.savedStateHandle
-                                ?.set(PICKED_ADDRESS_KEY, address)
+                            if (forVolunteer) {
+                                AppContainer.settings.setVolunteerLocation(SavedLocation(point, address))
+                            } else {
+                                navController.previousBackStackEntry?.savedStateHandle?.let { handle ->
+                                    handle[PICKED_ADDRESS_KEY] = address
+                                    handle[PICKED_POINT_KEY] = doubleArrayOf(point.lat, point.lon)
+                                }
+                            }
                             navController.popBackStack()
                         }
                     }

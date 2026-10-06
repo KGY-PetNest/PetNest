@@ -86,7 +86,6 @@ fun BottomInsetsPane(
     }
 }
 
-
 @Composable
 fun PinnedBottomBarLayout(
     modifier: Modifier = Modifier,

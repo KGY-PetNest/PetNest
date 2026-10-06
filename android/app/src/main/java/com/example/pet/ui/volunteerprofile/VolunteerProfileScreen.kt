@@ -34,6 +34,7 @@ import com.example.pet.data.AppContainer
 import com.example.pet.data.averageRating
 import com.example.pet.ui.components.IconLine
 import com.example.pet.ui.components.InitialsAvatar
+import com.example.pet.ui.components.NotFoundScreen
 import com.example.pet.ui.components.RatingLabel
 import com.example.pet.ui.components.ReviewCard
 import com.example.pet.ui.components.ScreenHeader
@@ -55,10 +56,14 @@ fun VolunteerProfileScreen(
 ) {
     val volunteers by AppContainer.volunteers.volunteers.collectAsStateWithLifecycle()
     val allReviews by AppContainer.reviews.reviews.collectAsStateWithLifecycle()
-    val volunteer = volunteers.firstOrNull { it.id == volunteerId } ?: volunteers.first()
-    val reviews = allReviews.filter { it.volunteerId == volunteer.id }
     val primary = MaterialTheme.colorScheme.primary
     val bodyStyle = MaterialTheme.typography.bodyLarge
+    val volunteer = volunteers.firstOrNull { it.id == volunteerId }
+    if (volunteer == null) {
+        NotFoundScreen(title = stringResource(R.string.text_13_1), onBack = onBack, modifier = modifier)
+        return
+    }
+    val reviews = allReviews.filter { it.volunteerId == volunteer.id }
 
     Box(
         modifier = modifier.fillMaxSize(),
