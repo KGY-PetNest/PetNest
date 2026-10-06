@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,7 +50,6 @@ fun VolunteerProfileScreen(
     onAllReviews: (String) -> Unit,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
-    onEditProfile: (() -> Unit)? = null,
     onOpenSettings: (() -> Unit)? = null
 ) {
     val volunteers by AppContainer.volunteers.volunteers.collectAsStateWithLifecycle()
@@ -74,25 +72,14 @@ fun VolunteerProfileScreen(
             ScreenHeader(
                 title = stringResource(R.string.text_13_1),
                 onBack = onBack,
-                actions = if (onEditProfile != null || onOpenSettings != null) {
+                actions = if (onOpenSettings != null) {
                     {
-                        if (onEditProfile != null) {
-                            IconButton(onClick = onEditProfile) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = stringResource(R.string.text_16_1),
-                                    tint = primary
-                                )
-                            }
-                        }
-                        if (onOpenSettings != null) {
-                            IconButton(onClick = onOpenSettings) {
-                                Icon(
-                                    imageVector = Icons.Default.Settings,
-                                    contentDescription = stringResource(R.string.text_16_2),
-                                    tint = primary
-                                )
-                            }
+                        IconButton(onClick = onOpenSettings) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = stringResource(R.string.text_16_2),
+                                tint = primary
+                            )
                         }
                     }
                 } else {

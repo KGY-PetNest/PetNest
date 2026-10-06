@@ -48,7 +48,6 @@ import com.example.pet.ui.components.formatPhone
 
 @Composable
 fun ProfileScreen(
-    onEditProfile: () -> Unit,
     onOpenSettings: () -> Unit,
     onAddPetClick: () -> Unit,
     onPetClick: (String) -> Unit,
@@ -69,13 +68,6 @@ fun ProfileScreen(
             title = stringResource(R.string.text_9_1),
             onBack = onBack,
             actions = {
-                IconButton(onClick = onEditProfile) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = stringResource(R.string.text_16_1),
-                        tint = primary
-                    )
-                }
                 IconButton(onClick = onOpenSettings) {
                     Icon(
                         imageVector = Icons.Default.Settings,

@@ -23,7 +23,6 @@ class MainActions(
     val onOpenRequestDetails: (String) -> Unit,
     val onAddPet: () -> Unit,
     val onEditPet: (String) -> Unit,
-    val onEditProfile: () -> Unit,
     val onOpenSettings: () -> Unit,
     val onOpenReviews: (String) -> Unit
 )
@@ -75,7 +74,6 @@ fun BottomNavGraph(
                 when (role) {
                     UserRole.Owner -> ProfileScreen(
                         onBack = actions.onBackToFeed,
-                        onEditProfile = actions.onEditProfile,
                         onOpenSettings = actions.onOpenSettings,
                         onAddPetClick = actions.onAddPet,
                         onPetClick = actions.onEditPet
@@ -84,7 +82,6 @@ fun BottomNavGraph(
                         volunteerId = MockData.CURRENT_VOLUNTEER_ID,
                         onBack = actions.onBackToFeed,
                         onAllReviews = actions.onOpenReviews,
-                        onEditProfile = actions.onEditProfile,
                         onOpenSettings = actions.onOpenSettings
                     )
                 }

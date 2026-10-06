@@ -62,7 +62,6 @@ fun MainScreen(
                 onOpenRequestDetails = { navigateOuter(Routes.requestDetails(it)) },
                 onAddPet = { navigateOuter(Routes.petProfile()) },
                 onEditPet = { navigateOuter(Routes.petProfile(it)) },
-                onEditProfile = { navigateOuter(Routes.editProfile(role)) },
                 onOpenSettings = { navigateOuter(Routes.settings(role)) },
                 onOpenReviews = { navigateOuter(Routes.reviews(it)) }
             ),
