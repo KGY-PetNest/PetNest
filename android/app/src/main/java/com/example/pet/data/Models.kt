@@ -68,6 +68,7 @@ data class PetRequest(
     val address: String,
     val comment: String,
     val traits: List<PetTrait> = emptyList(),
+    val features: String = "",
     val status: RequestStatus = RequestStatus.Open,
     val chosenVolunteerId: String? = null,
     val ownerName: String = ""

@@ -183,6 +183,7 @@ fun CreateRequestScreen(
                 address = address.trim(),
                 comment = comment.trim(),
                 traits = pet.traits,
+                features = pet.features,
                 status = existing?.status ?: RequestStatus.Open,
                 chosenVolunteerId = existing?.chosenVolunteerId,
                 ownerName = AppContainer.profiles.profile(UserRole.Owner).value.name

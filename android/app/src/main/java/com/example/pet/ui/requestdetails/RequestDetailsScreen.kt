@@ -134,11 +134,15 @@ fun RequestDetailsScreen(
                     }
                 }
 
-                if (request.traits.isNotEmpty()) {
+                if (request.traits.isNotEmpty() || request.features.isNotBlank()) {
                     Spacer(Modifier.height(24.dp))
                     SectionTitle(stringResource(R.string.text_4_6))
                     Spacer(Modifier.height(10.dp))
                     PetTraitChips(traits = request.traits, large = true)
+                    if (request.features.isNotBlank()) {
+                        Spacer(Modifier.height(12.dp))
+                        Text(text = request.features, style = bodyStyle)
+                    }
                 }
 
                 if (request.comment.isNotBlank()) {

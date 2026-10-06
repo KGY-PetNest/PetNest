@@ -43,13 +43,15 @@ object MockData {
             id = "o1", petId = "p1", title = "Барсик", petInfo = "Кот, 3 года", kind = PetKind.Cat,
             start = date(5, 12), end = date(5, 19), district = "Центральный район",
             address = "Москва, ул. Пушкина, 48", comment = "Ключи у соседки из 12 квартиры",
-            traits = listOf(PetTrait.Medication, PetTrait.FearsNoise)
+            traits = listOf(PetTrait.Medication, PetTrait.FearsNoise),
+            features = "Таблетка утром вместе с едой, боится пылесоса"
         ),
         PetRequest(
             id = "o2", petId = "p2", title = "Муся", petInfo = "Кошка, 1 год", kind = PetKind.Cat,
             start = date(6, 16), end = date(7, 5), district = "Северный район",
             address = "Москва, ул. Горького, 37", comment = "Кормить два раза в день",
             traits = listOf(PetTrait.Calm, PetTrait.SpecialDiet),
+            features = "Ест только влажный корм, очень ласковая",
             status = RequestStatus.VolunteerChosen, chosenVolunteerId = "u3"
         ),
         PetRequest(
@@ -57,6 +59,7 @@ object MockData {
             start = date(3, 1, 2026), end = date(3, 6, 2026), district = "Южный район",
             address = "Москва, ул. Ленина, 5", comment = "Гулять утром и вечером",
             traits = listOf(PetTrait.Active, PetTrait.NeedsWalks),
+            features = "Гулять два раза в день, тянет поводок",
             status = RequestStatus.Completed, chosenVolunteerId = "u2"
         )
     )
@@ -66,37 +69,43 @@ object MockData {
             id = "v1", petId = "x1", title = "Нужна передержка для кота", petInfo = "Кот, 3 года",
             kind = PetKind.Cat, start = date(5, 12), end = date(5, 19), district = "Центральный район",
             address = "Москва, ул. Тверская, 10", comment = "Кот спокойный, нужен корм по расписанию",
-            traits = listOf(PetTrait.Medication, PetTrait.FearsNoise), ownerName = "Анна"
+            traits = listOf(PetTrait.Medication, PetTrait.FearsNoise),
+            features = "Таблетка от давления утром, прячется при громких звуках", ownerName = "Анна"
         ),
         PetRequest(
             id = "v2", petId = "x2", title = "Собака, 5 лет", petInfo = "Собака, 5 лет",
             kind = PetKind.Dog, start = date(5, 10), end = date(5, 15), district = "Северный район",
             address = "Москва, ул. Лесная, 3", comment = "Очень любит долгие прогулки",
-            traits = listOf(PetTrait.Active, PetTrait.NeedsWalks), ownerName = "Игорь"
+            traits = listOf(PetTrait.Active, PetTrait.NeedsWalks),
+            features = "Очень энергичный, нужно минимум два часа прогулок в день", ownerName = "Игорь"
         ),
         PetRequest(
             id = "v3", petId = "x3", title = "Кошка, 2 года", petInfo = "Кошка, 2 года",
             kind = PetKind.Cat, start = date(5, 8), end = date(5, 11), district = "Западный район",
             address = "Москва, ул. Мира, 21", comment = "Не любит, когда берут на руки",
-            traits = listOf(PetTrait.Calm), ownerName = "Ольга"
+            traits = listOf(PetTrait.Calm),
+            features = "Спокойная, любит сидеть на подоконнике, не берите на руки", ownerName = "Ольга"
         ),
         PetRequest(
             id = "v4", petId = "x4", title = "Кот, 4 года", petInfo = "Кот, 4 года",
             kind = PetKind.Cat, start = date(5, 15), end = date(5, 25), district = "Южный район",
             address = "Москва, ул. Садовая, 7", comment = "Нужно давать лекарство вечером",
-            traits = listOf(PetTrait.Medication, PetTrait.Senior), ownerName = "Дмитрий"
+            traits = listOf(PetTrait.Medication, PetTrait.Senior),
+            features = "Пожилой, лекарство вечером в паштете, мало двигается", ownerName = "Дмитрий"
         ),
         PetRequest(
             id = "v5", petId = "x5", title = "Хомяк, 1 год", petInfo = "Хомяк, 1 год",
             kind = PetKind.Other, start = date(5, 20), end = date(5, 27), district = "Центральный район",
             address = "Москва, ул. Арбат, 15", comment = "Клетку привезу сам",
-            traits = listOf(PetTrait.Calm, PetTrait.SpecialDiet), ownerName = "Света"
+            traits = listOf(PetTrait.Calm, PetTrait.SpecialDiet),
+            features = "Корм только специальный, зерновую смесь не давать", ownerName = "Света"
         ),
         PetRequest(
             id = "v6", petId = "x6", title = "Пёс, 7 лет", petInfo = "Пёс, 7 лет",
             kind = PetKind.Dog, start = date(6, 1), end = date(6, 4), district = "Западный район",
             address = "Москва, ул. Кутузовская, 2", comment = "Не ладит с другими собаками",
-            traits = listOf(PetTrait.NotFriendlyWithAnimals, PetTrait.NeedsWalks), ownerName = "Павел"
+            traits = listOf(PetTrait.NotFriendlyWithAnimals, PetTrait.NeedsWalks),
+            features = "Агрессивно реагирует на других собак, гулять на коротком поводке", ownerName = "Павел"
         )
     )
 
