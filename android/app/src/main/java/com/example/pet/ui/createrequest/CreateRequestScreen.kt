@@ -67,7 +67,6 @@ import androidx.compose.ui.unit.sp
 import com.example.pet.R
 import kotlinx.coroutines.launch
 import java.util.UUID
-import java.time.LocalDate
 import com.example.pet.ui.components.toUtcMillis
 import com.example.pet.ui.components.utcMillisToLocalDate
 import com.example.pet.data.UserRole
@@ -168,22 +167,21 @@ fun CreateRequestScreen(
         datesError = !hasDates
         addressError = address.isBlank()
         commentError = FormRules.descriptionError(comment, R.string.text_5_24)
-        val pet = selectedPet
-        if (!petError && !datesError && !addressError && commentError == null && pet != null && start != null && end != null) {
+        if (!petError && !datesError && !addressError && commentError == null && selectedPet != null && start != null && end != null) {
             focusManager.clearFocus()
             val request = PetRequest(
                 id = existing?.id ?: UUID.randomUUID().toString(),
-                petId = pet.id,
-                title = pet.name,
-                petInfo = pet.info,
-                kind = pet.kind,
+                petId = selectedPet.id,
+                title = selectedPet.name,
+                petInfo = selectedPet.info,
+                kind = selectedPet.kind,
                 start = utcMillisToLocalDate(start),
                 end = utcMillisToLocalDate(end),
                 district = existing?.district.orEmpty(),
                 address = address.trim(),
                 comment = comment.trim(),
-                traits = pet.traits,
-                features = pet.features,
+                traits = selectedPet.traits,
+                features = selectedPet.features,
                 status = existing?.status ?: RequestStatus.Open,
                 chosenVolunteerId = existing?.chosenVolunteerId,
                 ownerName = AppContainer.profiles.profile(UserRole.Owner).value.name
@@ -400,7 +398,7 @@ fun CreateRequestScreen(
 
                             SectionLabel(
                                 text = stringResource(R.string.text_5_11),
-                                modifier = Modifier.padding(start = 12.dp, bottom = 4.dp)
+                                startPadding = 12.dp
                             )
                         }
 
@@ -515,14 +513,15 @@ private fun PetCard(
 @Composable
 private fun SectionLabel(
     text: String,
-    modifier: Modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+    modifier: Modifier = Modifier,
+    startPadding: Dp = 4.dp
 ) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontWeight = FontWeight.SemiBold,
-        modifier = modifier
+        modifier = modifier.padding(start = startPadding, bottom = 4.dp)
     )
 }
 
