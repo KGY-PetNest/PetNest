@@ -7,9 +7,11 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +32,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Button
@@ -43,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -53,35 +57,77 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pet.R
-import com.example.pet.data.MockData
+import com.example.pet.data.AppContainer
+import com.example.pet.data.RequestStatus
+import com.example.pet.data.Review
+import com.example.pet.data.UserRole
 import com.example.pet.data.Volunteer
+import com.example.pet.data.averageRating
 import com.example.pet.ui.components.IconLine
 import com.example.pet.ui.components.InitialsAvatar
 import com.example.pet.ui.components.PetThumbnail
+import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.RatingLabel
+import com.example.pet.ui.components.ReviewSheet
 import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.SegmentedToggle
 import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.cardSurface
 import com.example.pet.ui.components.pressScale
+import com.example.pet.ui.main.StatusChip
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.util.UUID
 
 @Composable
 fun ResponsesScreen(
     requestId: String,
     onBack: () -> Unit,
     onVolunteerClick: (String) -> Unit,
+    onEditRequest: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val request = MockData.request(requestId) ?: MockData.ownerRequests.first()
-    val responses = remember(requestId) { MockData.responsesFor(requestId) }
+    val scope = rememberCoroutineScope()
+    val requests by AppContainer.requests.ownerRequests.collectAsStateWithLifecycle()
+    val allReviews by AppContainer.reviews.reviews.collectAsStateWithLifecycle()
+    AppContainer.volunteers.volunteers.collectAsStateWithLifecycle()
+
+    val request = requests.firstOrNull { it.id == requestId } ?: return
+    val responses = AppContainer.volunteers.responsesFor(requestId)
+    val chosen = responses.firstOrNull { it.id == request.chosenVolunteerId }
 
     var tab by rememberSaveable { mutableIntStateOf(0) }
-    // TODO: хранить избранное и выбор на сервере
     var favorites by rememberSaveable { mutableStateOf(emptySet<String>()) }
-    var selectedVolunteerId by rememberSaveable { mutableStateOf<String?>(null) }
+    var completing by remember { mutableStateOf(false) }
+    var showReview by rememberSaveable { mutableStateOf(false) }
 
-    val shown = if (tab == 0) responses else responses.filter { it.id in favorites }
+    val shown = when {
+        request.status == RequestStatus.Completed -> listOfNotNull(chosen)
+        tab == 0 -> responses
+        else -> responses.filter { it.id in favorites }
+    }
+
+    if (showReview && chosen != null) {
+        ReviewSheet(
+            volunteerName = chosen.name,
+            onSubmit = { rating, text ->
+                AppContainer.reviews.add(
+                    Review(
+                        id = UUID.randomUUID().toString(),
+                        volunteerId = chosen.id,
+                        requestId = request.id,
+                        authorName = AppContainer.profiles.profile(UserRole.Owner).value.name,
+                        rating = rating,
+                        text = text,
+                        date = LocalDate.now()
+                    )
+                )
+            },
+            onDismiss = { showReview = false }
+        )
+    }
 
     Box(
         modifier = modifier.fillMaxSize(),
@@ -93,7 +139,23 @@ fun ResponsesScreen(
                 .adaptiveContentWidth()
                 .padding(horizontal = 16.dp)
         ) {
-            ScreenHeader(title = stringResource(R.string.text_14_1), onBack = onBack)
+            ScreenHeader(
+                title = stringResource(R.string.text_14_1),
+                onBack = onBack,
+                actions = if (request.status == RequestStatus.Open) {
+                    {
+                        IconButton(onClick = { onEditRequest(request.id) }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = stringResource(R.string.text_5_26),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                } else {
+                    null
+                }
+            )
 
             Spacer(Modifier.height(8.dp))
 
@@ -107,7 +169,9 @@ fun ResponsesScreen(
                 PetThumbnail(size = 56.dp)
                 Column(
                     verticalArrangement = Arrangement.spacedBy(2.dp),
-                    modifier = Modifier.padding(start = 12.dp)
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 12.dp)
                 ) {
                     Text(
                         text = request.title,
@@ -121,20 +185,28 @@ fun ResponsesScreen(
                     )
                     IconLine(icon = Icons.Default.DateRange, text = request.dates)
                 }
+                StatusChip(request.status)
             }
 
             Spacer(Modifier.height(16.dp))
 
-            SegmentedToggle(
-                options = listOf(
-                    stringResource(R.string.text_14_2),
-                    stringResource(R.string.text_14_3)
-                ),
-                selectedIndex = tab,
-                onSelect = { tab = it }
-            )
-
-            Spacer(Modifier.height(12.dp))
+            AnimatedVisibility(
+                visible = request.status != RequestStatus.Completed,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Column {
+                    SegmentedToggle(
+                        options = listOf(
+                            stringResource(R.string.text_14_2),
+                            stringResource(R.string.text_14_3)
+                        ),
+                        selectedIndex = tab,
+                        onSelect = { tab = it }
+                    )
+                    Spacer(Modifier.height(12.dp))
+                }
+            }
 
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -146,18 +218,21 @@ fun ResponsesScreen(
                 items(shown, key = { it.id }) { volunteer ->
                     ResponseCard(
                         volunteer = volunteer,
+                        rating = allReviews.filter { it.volunteerId == volunteer.id }.averageRating(),
+                        reviewsCount = allReviews.count { it.volunteerId == volunteer.id },
                         isFavorite = volunteer.id in favorites,
-                        isSelected = volunteer.id == selectedVolunteerId,
+                        isSelected = volunteer.id == request.chosenVolunteerId,
+                        selectable = request.status != RequestStatus.Completed,
                         onFavoriteToggle = {
-                            favorites = if (volunteer.id in favorites) {
-                                favorites - volunteer.id
-                            } else {
-                                favorites + volunteer.id
-                            }
+                            favorites = if (volunteer.id in favorites) favorites - volunteer.id else favorites + volunteer.id
                         },
                         onSelect = {
-                            selectedVolunteerId =
-                                if (selectedVolunteerId == volunteer.id) null else volunteer.id
+                            scope.launch {
+                                AppContainer.requests.chooseVolunteer(
+                                    request.id,
+                                    if (request.chosenVolunteerId == volunteer.id) null else volunteer.id
+                                )
+                            }
                         },
                         onClick = { onVolunteerClick(volunteer.id) },
                         modifier = Modifier.animateItem()
@@ -166,9 +241,7 @@ fun ResponsesScreen(
                 if (shown.isEmpty()) {
                     item(key = "empty") {
                         Text(
-                            text = stringResource(
-                                if (tab == 0) R.string.text_14_9 else R.string.text_14_6
-                            ),
+                            text = stringResource(if (tab == 0) R.string.text_14_9 else R.string.text_14_6),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -180,6 +253,28 @@ fun ResponsesScreen(
                     }
                 }
             }
+
+            AnimatedVisibility(
+                visible = request.status == RequestStatus.VolunteerChosen,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Column {
+                    PrimaryButton(
+                        text = stringResource(R.string.text_14_10),
+                        loading = completing,
+                        onClick = {
+                            scope.launch {
+                                completing = true
+                                AppContainer.requests.complete(request.id)
+                                completing = false
+                                showReview = true
+                            }
+                        }
+                    )
+                    Spacer(Modifier.height(32.dp))
+                }
+            }
         }
     }
 }
@@ -187,8 +282,11 @@ fun ResponsesScreen(
 @Composable
 private fun ResponseCard(
     volunteer: Volunteer,
+    rating: Double,
+    reviewsCount: Int,
     isFavorite: Boolean,
     isSelected: Boolean,
+    selectable: Boolean,
     onFavoriteToggle: () -> Unit,
     onSelect: () -> Unit,
     onClick: () -> Unit,
@@ -201,38 +299,36 @@ private fun ResponseCard(
             .padding(12.dp)
     ) {
         Row(verticalAlignment = Alignment.Top) {
-            InitialsAvatar(name = volunteer.name)
+            InitialsAvatar(name = volunteer.name, size = 56.dp)
 
             Column(
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 12.dp)
             ) {
                 Text(
                     text = volunteer.name,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                RatingLabel(rating = volunteer.rating, reviewsCount = volunteer.reviewsCount)
+                RatingLabel(rating = rating, reviewsCount = reviewsCount)
                 Text(
                     text = stringResource(R.string.text_13_2, volunteer.experience),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = stringResource(R.string.text_13_3, volunteer.homeShort),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            FavoriteButton(isFavorite = isFavorite, onToggle = onFavoriteToggle)
+            if (selectable) {
+                FavoriteButton(isFavorite = isFavorite, onToggle = onFavoriteToggle)
+            }
         }
 
-        Spacer(Modifier.height(10.dp))
-
-        SelectButton(isSelected = isSelected, onClick = onSelect)
+        if (selectable) {
+            Spacer(Modifier.height(10.dp))
+            SelectButton(isSelected = isSelected, onClick = onSelect)
+        }
     }
 }
 
@@ -277,7 +373,7 @@ private fun SelectButton(isSelected: Boolean, onClick: () -> Unit) {
         colors = ButtonDefaults.buttonColors(containerColor = container, contentColor = content),
         modifier = Modifier
             .fillMaxWidth()
-            .height(40.dp)
+            .height(42.dp)
             .pressScale(interaction)
     ) {
         AnimatedVisibility(

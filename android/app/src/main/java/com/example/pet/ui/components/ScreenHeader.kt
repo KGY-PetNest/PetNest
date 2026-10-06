@@ -1,6 +1,8 @@
 package com.example.pet.ui.components
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -20,8 +22,11 @@ import androidx.compose.ui.unit.dp
 fun ScreenHeader(
     title: String,
     onBack: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    actions: (@Composable RowScope.() -> Unit)? = null
 ) {
+    val sidePadding = if (onBack != null || actions != null) 48.dp else 0.dp
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -46,10 +51,15 @@ fun ScreenHeader(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .align(Alignment.Center)
-                .padding(
-                    start = if (onBack != null) 48.dp else 0.dp,
-                    end = if (onBack != null) 48.dp else 0.dp
-                )
+                .padding(horizontal = sidePadding)
         )
+
+        if (actions != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.align(Alignment.CenterEnd),
+                content = actions
+            )
+        }
     }
 }

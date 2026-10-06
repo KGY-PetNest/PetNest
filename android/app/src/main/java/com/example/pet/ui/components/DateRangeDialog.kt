@@ -26,9 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.pet.R
 import java.text.SimpleDateFormat
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneOffset
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
@@ -61,8 +59,12 @@ fun rememberFutureDateRangePickerState(): DateRangePickerState {
     )
 }
 
+private const val MILLIS_IN_DAY = 86_400_000L
+
 fun utcMillisToLocalDate(millis: Long): LocalDate =
-    Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
+    LocalDate.ofEpochDay(Math.floorDiv(millis, MILLIS_IN_DAY))
+
+fun LocalDate.toUtcMillis(): Long = toEpochDay() * MILLIS_IN_DAY
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

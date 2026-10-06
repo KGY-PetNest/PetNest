@@ -65,6 +65,18 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pet.R
+import kotlinx.coroutines.launch
+import java.util.UUID
+import java.time.LocalDate
+import com.example.pet.ui.components.toUtcMillis
+import com.example.pet.ui.components.utcMillisToLocalDate
+import com.example.pet.data.UserRole
+import com.example.pet.data.RequestStatus
+import com.example.pet.data.PetRequest
+import com.example.pet.data.Pet
+import com.example.pet.data.AppContainer
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.rememberCoroutineScope
 import com.example.pet.ui.components.DateRangeDialog
 import com.example.pet.ui.components.FormRules
 import com.example.pet.ui.components.PetTraitChips
@@ -84,6 +96,7 @@ import java.util.concurrent.TimeUnit
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateRequestScreen(
+    requestId: String?,
     onBack: () -> Unit,
     onAddPet: () -> Unit,
     onCreate: () -> Unit,
@@ -93,12 +106,18 @@ fun CreateRequestScreen(
     modifier: Modifier = Modifier
 ) {
     val focusManager = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
+
+    val existing = remember(requestId) {
+        requestId?.let { id -> AppContainer.requests.ownerRequests.value.firstOrNull { it.id == id } }
+    }
+    var saving by remember { mutableStateOf(false) }
 
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
     var showPetPicker by rememberSaveable { mutableStateOf(false) }
 
-    val pets = mockPetOptions
-    var selectedPetId by rememberSaveable { mutableStateOf<String?>(null) }
+    val pets by AppContainer.pets.pets.collectAsStateWithLifecycle()
+    var selectedPetId by rememberSaveable { mutableStateOf(existing?.petId) }
     val selectedPet = pets.firstOrNull { it.id == selectedPetId }
 
     var petError by rememberSaveable { mutableStateOf(false) }
@@ -107,8 +126,15 @@ fun CreateRequestScreen(
     var commentError by rememberSaveable { mutableStateOf<Int?>(null) }
 
     val pickerState = rememberFutureDateRangePickerState()
+    var datesPrefilled by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(existing) {
+        if (existing != null && !datesPrefilled) {
+            pickerState.setSelection(existing.start.toUtcMillis(), existing.end.toUtcMillis())
+            datesPrefilled = true
+        }
+    }
 
-    var address by rememberSaveable { mutableStateOf("") }
+    var address by rememberSaveable { mutableStateOf(existing?.address.orEmpty()) }
 
     LaunchedEffect(pickedAddress) {
         if (pickedAddress != null) {
@@ -117,7 +143,7 @@ fun CreateRequestScreen(
             onPickedAddressUsed()
         }
     }
-    var comment by rememberSaveable { mutableStateOf("") }
+    var comment by rememberSaveable { mutableStateOf(existing?.comment.orEmpty()) }
 
     val start = pickerState.selectedStartDateMillis
     val end = pickerState.selectedEndDateMillis
@@ -142,9 +168,31 @@ fun CreateRequestScreen(
         datesError = !hasDates
         addressError = address.isBlank()
         commentError = FormRules.descriptionError(comment, R.string.text_5_24)
-        if (!petError && !datesError && !addressError && commentError == null) {
+        val pet = selectedPet
+        if (!petError && !datesError && !addressError && commentError == null && pet != null && start != null && end != null) {
             focusManager.clearFocus()
-            onCreate()
+            val request = PetRequest(
+                id = existing?.id ?: UUID.randomUUID().toString(),
+                petId = pet.id,
+                title = pet.name,
+                petInfo = pet.info,
+                kind = pet.kind,
+                start = utcMillisToLocalDate(start),
+                end = utcMillisToLocalDate(end),
+                district = existing?.district.orEmpty(),
+                address = address.trim(),
+                comment = comment.trim(),
+                traits = pet.traits,
+                status = existing?.status ?: RequestStatus.Open,
+                chosenVolunteerId = existing?.chosenVolunteerId,
+                ownerName = AppContainer.profiles.profile(UserRole.Owner).value.name
+            )
+            scope.launch {
+                saving = true
+                AppContainer.requests.save(request)
+                saving = false
+                onCreate()
+            }
         }
     }
 
@@ -185,7 +233,10 @@ fun CreateRequestScreen(
                 .adaptiveContentWidth()
                 .padding(horizontal = 16.dp)
         ) {
-            ScreenHeader(title = stringResource(R.string.text_5_1), onBack = onBack)
+            ScreenHeader(
+                title = stringResource(if (existing != null) R.string.text_5_26 else R.string.text_5_1),
+                onBack = onBack
+            )
 
             PinnedBottomBarLayout(
                 modifier = Modifier
@@ -193,7 +244,8 @@ fun CreateRequestScreen(
                     .fillMaxWidth(),
                 bottomBar = {
                     PrimaryButton(
-                        text = stringResource(R.string.text_5_12),
+                        text = stringResource(if (existing != null) R.string.text_4_7 else R.string.text_5_12),
+                        loading = saving,
                         onClick = { submit() }
                     )
                     Spacer(Modifier.height(32.dp))
@@ -385,7 +437,7 @@ fun CreateRequestScreen(
 
 @Composable
 private fun PetCard(
-    pet: PetOption?,
+    pet: Pet?,
     isError: Boolean,
     onClick: () -> Unit
 ) {
@@ -433,7 +485,7 @@ private fun PetCard(
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = current?.description ?: stringResource(R.string.text_5_22),
+                    text = current?.info ?: stringResource(R.string.text_5_22),
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

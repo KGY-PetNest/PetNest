@@ -16,15 +16,24 @@ import com.example.pet.ui.volunteerprofile.VolunteerProfileScreen
 
 private const val TAB_FADE_MS = 200
 
+class MainActions(
+    val onBackToFeed: () -> Unit,
+    val onCreateRequest: () -> Unit,
+    val onOpenResponses: (String) -> Unit,
+    val onOpenRequestDetails: (String) -> Unit,
+    val onAddPet: () -> Unit,
+    val onEditPet: (String) -> Unit,
+    val onEditProfile: () -> Unit,
+    val onChangePassword: () -> Unit,
+    val onOpenReviews: (String) -> Unit,
+    val onLogout: () -> Unit
+)
+
 @Composable
 fun BottomNavGraph(
     bottomNavController: NavHostController,
     role: UserRole,
-    onBackToFeed: () -> Unit,
-    onCreateRequest: () -> Unit,
-    onAddPet: () -> Unit,
-    onOpenResponses: (String) -> Unit,
-    onVolunteerRequestClick: (String) -> Unit,
+    actions: MainActions,
     modifier: Modifier = Modifier
 ) {
     NavHost(
@@ -40,11 +49,11 @@ fun BottomNavGraph(
             AdaptivePane {
                 when (role) {
                     UserRole.Owner -> FeedScreen(
-                        onCreateClick = onCreateRequest,
-                        onRequestClick = onOpenResponses
+                        onCreateClick = actions.onCreateRequest,
+                        onRequestClick = actions.onOpenResponses
                     )
                     UserRole.Volunteer -> VolunteerFeedScreen(
-                        onRequestClick = onVolunteerRequestClick
+                        onRequestClick = actions.onOpenRequestDetails
                     )
                 }
             }
@@ -52,13 +61,13 @@ fun BottomNavGraph(
 
         composable(Screen.Chat.name) {
             AdaptivePane {
-                ChatScreen(onBack = onBackToFeed)
+                ChatScreen(onBack = actions.onBackToFeed)
             }
         }
 
         composable(Screen.Guide.name) {
             AdaptivePane {
-                GuideScreen(onBack = onBackToFeed)
+                GuideScreen(onBack = actions.onBackToFeed)
             }
         }
 
@@ -66,13 +75,20 @@ fun BottomNavGraph(
             AdaptivePane {
                 when (role) {
                     UserRole.Owner -> ProfileScreen(
-                        onBack = onBackToFeed,
-                        onAddPetClick = onAddPet
+                        onBack = actions.onBackToFeed,
+                        onEditProfile = actions.onEditProfile,
+                        onChangePassword = actions.onChangePassword,
+                        onLogout = actions.onLogout,
+                        onAddPetClick = actions.onAddPet,
+                        onPetClick = actions.onEditPet
                     )
                     UserRole.Volunteer -> VolunteerProfileScreen(
-                        // TODO: реальный профиль текущего пользователя
-                        volunteer = MockData.currentVolunteer,
-                        onBack = onBackToFeed
+                        volunteerId = MockData.CURRENT_VOLUNTEER_ID,
+                        onBack = actions.onBackToFeed,
+                        onAllReviews = actions.onOpenReviews,
+                        onEditProfile = actions.onEditProfile,
+                        onChangePassword = actions.onChangePassword,
+                        onLogout = actions.onLogout
                     )
                 }
             }

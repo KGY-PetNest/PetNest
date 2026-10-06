@@ -16,25 +16,32 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
-import androidx.navigation.navArgument
-import com.example.pet.data.MockData
-import com.example.pet.data.UserRole
-import com.example.pet.ui.responses.ResponsesScreen
-import com.example.pet.ui.volunteerprofile.VolunteerProfileScreen
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import com.example.pet.R
+import com.example.pet.data.UserRole
 import com.example.pet.ui.components.BottomInsetsPane
 import com.example.pet.ui.createrequest.CreateRequestScreen
+import com.example.pet.ui.editprofile.EditProfileScreen
 import com.example.pet.ui.emailconfirm.EmailConfirmScreen
 import com.example.pet.ui.login.LoginScreen
 import com.example.pet.ui.main.MainScreen
 import com.example.pet.ui.mappicker.MapPickerScreen
+import com.example.pet.ui.password.ChangePasswordScreen
+import com.example.pet.ui.password.ForgotPasswordScreen
+import com.example.pet.ui.password.ResetPasswordScreen
 import com.example.pet.ui.petprofile.PetProfileScreen
 import com.example.pet.ui.registration.RegistrationScreen
+import com.example.pet.ui.requestdetails.RequestDetailsScreen
+import com.example.pet.ui.responses.ResponsesScreen
+import com.example.pet.ui.reviews.ReviewsScreen
+import com.example.pet.ui.volunteerprofile.VolunteerProfileScreen
 import com.example.pet.ui.welcome.WelcomeScreen
 
 private const val PICKED_ADDRESS_KEY = "picked_address"
@@ -64,7 +71,6 @@ private val defaultPopExit: AnimatedContentTransitionScope<NavBackStackEntry>.()
             fadeOut(tween(NAV_DURATION / 2))
 }
 
-
 private val sheetEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
     slideInVertically(tween(NAV_DURATION, easing = LinearOutSlowInEasing)) { it / 3 } +
             fadeIn(tween(NAV_DURATION))
@@ -80,6 +86,15 @@ private val mainEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> E
 
 private fun NavBackStackEntry.ifResumed(action: () -> Unit) {
     if (lifecycle.currentState == Lifecycle.State.RESUMED) action()
+}
+
+private fun NavBackStackEntry.stringArg(name: String): String? = arguments?.getString(name)
+
+private fun NavHostController.logout() {
+    navigate(Screen.Login.name) {
+        popUpTo(graph.id) { inclusive = true }
+        launchSingleTop = true
+    }
 }
 
 @Composable
@@ -101,9 +116,7 @@ fun NavGraph(
                 WelcomeScreen(
                     onStart = {
                         entry.ifResumed {
-                            navController.navigate(Screen.Login.name) {
-                                launchSingleTop = true
-                            }
+                            navController.navigate(Screen.Login.name) { launchSingleTop = true }
                         }
                     }
                 )
@@ -115,15 +128,18 @@ fun NavGraph(
                 LoginScreen(
                     onRegisterClick = {
                         entry.ifResumed {
-                            navController.navigate(Screen.Registration.name) {
-                                launchSingleTop = true
-                            }
+                            navController.navigate(Screen.Registration.name) { launchSingleTop = true }
+                        }
+                    },
+                    onForgotPassword = {
+                        entry.ifResumed {
+                            navController.navigate(Screen.ForgotPassword.name) { launchSingleTop = true }
                         }
                     },
                     onSuccess = { role ->
                         entry.ifResumed {
                             navController.navigate(Routes.main(role)) {
-                                popUpTo(Screen.Welcome.name) { inclusive = true }
+                                popUpTo(navController.graph.id) { inclusive = true }
                                 launchSingleTop = true
                             }
                         }
@@ -136,15 +152,11 @@ fun NavGraph(
             BottomInsetsPane {
                 RegistrationScreen(
                     onLoginClick = {
-                        entry.ifResumed {
-                            navController.popBackStack(Screen.Login.name, inclusive = false)
-                        }
+                        entry.ifResumed { navController.popBackStack(Screen.Login.name, inclusive = false) }
                     },
                     onSuccess = {
                         entry.ifResumed {
-                            navController.navigate(Screen.EmailConfirm.name) {
-                                launchSingleTop = true
-                            }
+                            navController.navigate(Screen.EmailConfirm.name) { launchSingleTop = true }
                         }
                     }
                 )
@@ -154,16 +166,57 @@ fun NavGraph(
         composable(Screen.EmailConfirm.name) { entry ->
             BottomInsetsPane {
                 EmailConfirmScreen(
-                    onBack = {
-                        entry.ifResumed { navController.popBackStack() }
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onSuccess = {
+                        entry.ifResumed { navController.popBackStack(Screen.Login.name, inclusive = false) }
                     },
+                    onResend = { }
+                )
+            }
+        }
+
+        composable(Screen.ForgotPassword.name) { entry ->
+            BottomInsetsPane {
+                ForgotPasswordScreen(
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onCodeSent = { target ->
+                        entry.ifResumed {
+                            navController.navigate(Routes.resetCode(target)) { launchSingleTop = true }
+                        }
+                    }
+                )
+            }
+        }
+
+        composable(
+            route = Routes.RESET_CODE,
+            arguments = listOf(navArgument(Routes.TARGET_ARG) { type = NavType.StringType })
+        ) { entry ->
+            val target = entry.stringArg(Routes.TARGET_ARG).orEmpty()
+            BottomInsetsPane {
+                EmailConfirmScreen(
+                    message = stringResource(R.string.text_19_6, target),
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
                     onSuccess = {
                         entry.ifResumed {
-                            navController.popBackStack(Screen.Login.name, inclusive = false)
+                            navController.navigate(Screen.ResetPassword.name) { launchSingleTop = true }
                         }
                     },
-                    onResend = {
-                        /* TODO: повторная отправка кода */
+                    onResend = { }
+                )
+            }
+        }
+
+        composable(Screen.ResetPassword.name) { entry ->
+            BottomInsetsPane {
+                ResetPasswordScreen(
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onDone = {
+                        entry.ifResumed {
+                            if (!navController.popBackStack(Screen.Login.name, inclusive = false)) {
+                                navController.popBackStack(Screen.ChangePassword.name, inclusive = true)
+                            }
+                        }
                     }
                 )
             }
@@ -174,28 +227,63 @@ fun NavGraph(
             arguments = listOf(navArgument(Routes.ROLE_ARG) { type = NavType.StringType }),
             enterTransition = mainEnter
         ) { entry ->
-            val role = entry.arguments?.getString(Routes.ROLE_ARG)
+            val role = entry.stringArg(Routes.ROLE_ARG)
                 ?.let { name -> UserRole.entries.firstOrNull { it.name == name } }
                 ?: UserRole.Owner
-            MainScreen(navController, role)
+            MainScreen(
+                navController = navController,
+                role = role,
+                onLogout = { navController.logout() }
+            )
+        }
+
+        composable(
+            route = Routes.EDIT_PROFILE,
+            arguments = listOf(navArgument(Routes.ROLE_ARG) { type = NavType.StringType })
+        ) { entry ->
+            val role = entry.stringArg(Routes.ROLE_ARG)
+                ?.let { name -> UserRole.entries.firstOrNull { it.name == name } }
+                ?: UserRole.Owner
+            BottomInsetsPane(includeIme = false) {
+                EditProfileScreen(
+                    role = role,
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onSaved = { entry.ifResumed { navController.popBackStack() } }
+                )
+            }
+        }
+
+        composable(Screen.ChangePassword.name) { entry ->
+            BottomInsetsPane {
+                ChangePasswordScreen(
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onForgotPassword = {
+                        entry.ifResumed {
+                            navController.navigate(Screen.ForgotPassword.name) { launchSingleTop = true }
+                        }
+                    },
+                    onChanged = { entry.ifResumed { navController.popBackStack() } }
+                )
+            }
         }
 
         composable(
             route = Routes.RESPONSES,
             arguments = listOf(navArgument(Routes.REQUEST_ID_ARG) { type = NavType.StringType })
         ) { entry ->
-            val requestId = entry.arguments?.getString(Routes.REQUEST_ID_ARG).orEmpty()
+            val requestId = entry.stringArg(Routes.REQUEST_ID_ARG).orEmpty()
             BottomInsetsPane {
                 ResponsesScreen(
                     requestId = requestId,
-                    onBack = {
-                        entry.ifResumed { navController.popBackStack() }
-                    },
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
                     onVolunteerClick = { volunteerId ->
                         entry.ifResumed {
-                            navController.navigate(Routes.volunteerProfile(volunteerId)) {
-                                launchSingleTop = true
-                            }
+                            navController.navigate(Routes.volunteerProfile(volunteerId)) { launchSingleTop = true }
+                        }
+                    },
+                    onEditRequest = { id ->
+                        entry.ifResumed {
+                            navController.navigate(Routes.createRequest(id)) { launchSingleTop = true }
                         }
                     }
                 )
@@ -206,37 +294,72 @@ fun NavGraph(
             route = Routes.VOLUNTEER_PROFILE,
             arguments = listOf(navArgument(Routes.VOLUNTEER_ID_ARG) { type = NavType.StringType })
         ) { entry ->
-            val volunteer = entry.arguments?.getString(Routes.VOLUNTEER_ID_ARG)
-                ?.let(MockData::volunteer)
-                ?: MockData.volunteers.first()
+            val volunteerId = entry.stringArg(Routes.VOLUNTEER_ID_ARG).orEmpty()
             BottomInsetsPane {
                 VolunteerProfileScreen(
-                    volunteer = volunteer,
-                    onBack = {
-                        entry.ifResumed { navController.popBackStack() }
-                    },
-                    onWrite = {
-                        /* TODO: открыть чат с волонтёром */
-                    }
-                )
-            }
-        }
-
-        composable(Screen.PetProfile.name) { entry ->
-            BottomInsetsPane(includeIme = false) {
-                PetProfileScreen(
-                    onBack = {
-                        entry.ifResumed { navController.popBackStack() }
-                    },
-                    onSave = {
-                        entry.ifResumed { navController.popBackStack() }
+                    volunteerId = volunteerId,
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onAllReviews = { id ->
+                        entry.ifResumed {
+                            navController.navigate(Routes.reviews(id)) { launchSingleTop = true }
+                        }
                     }
                 )
             }
         }
 
         composable(
-            route = Screen.CreateRequest.name,
+            route = Routes.REVIEWS,
+            arguments = listOf(navArgument(Routes.VOLUNTEER_ID_ARG) { type = NavType.StringType })
+        ) { entry ->
+            BottomInsetsPane {
+                ReviewsScreen(
+                    volunteerId = entry.stringArg(Routes.VOLUNTEER_ID_ARG).orEmpty(),
+                    onBack = { entry.ifResumed { navController.popBackStack() } }
+                )
+            }
+        }
+
+        composable(
+            route = Routes.REQUEST_DETAILS,
+            arguments = listOf(navArgument(Routes.REQUEST_ID_ARG) { type = NavType.StringType })
+        ) { entry ->
+            BottomInsetsPane {
+                RequestDetailsScreen(
+                    requestId = entry.stringArg(Routes.REQUEST_ID_ARG).orEmpty(),
+                    onBack = { entry.ifResumed { navController.popBackStack() } }
+                )
+            }
+        }
+
+        composable(
+            route = Routes.PET_PROFILE,
+            arguments = listOf(
+                navArgument(Routes.PET_ID_ARG) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { entry ->
+            BottomInsetsPane(includeIme = false) {
+                PetProfileScreen(
+                    petId = entry.stringArg(Routes.PET_ID_ARG),
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onSave = { entry.ifResumed { navController.popBackStack() } }
+                )
+            }
+        }
+
+        composable(
+            route = Routes.CREATE_REQUEST,
+            arguments = listOf(
+                navArgument(Routes.REQUEST_ID_ARG) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            ),
             exitTransition = {
                 if (targetState.destination.route == Screen.MapPicker.name) {
                     fadeOut(tween(NAV_DURATION))
@@ -258,28 +381,21 @@ fun NavGraph(
 
             BottomInsetsPane(includeIme = false) {
                 CreateRequestScreen(
-                    onBack = {
-                        entry.ifResumed { navController.popBackStack() }
-                    },
+                    requestId = entry.stringArg(Routes.REQUEST_ID_ARG),
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
                     onAddPet = {
                         entry.ifResumed {
-                            navController.navigate(Screen.PetProfile.name) {
-                                launchSingleTop = true
-                            }
+                            navController.navigate(Routes.petProfile()) { launchSingleTop = true }
                         }
                     },
-                    onCreate = {
-                        entry.ifResumed { navController.popBackStack() }
-                    },
+                    onCreate = { entry.ifResumed { navController.popBackStack() } },
                     pickedAddress = pickedAddress,
                     onPickedAddressUsed = {
                         entry.savedStateHandle[PICKED_ADDRESS_KEY] = null
                     },
                     onPickOnMap = {
                         entry.ifResumed {
-                            navController.navigate(Screen.MapPicker.name) {
-                                launchSingleTop = true
-                            }
+                            navController.navigate(Screen.MapPicker.name) { launchSingleTop = true }
                         }
                     }
                 )
@@ -293,15 +409,12 @@ fun NavGraph(
         ) { entry ->
             BottomInsetsPane {
                 MapPickerScreen(
-                    onBack = {
-                        entry.ifResumed { navController.popBackStack() }
-                    },
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
                     onPicked = { address ->
                         entry.ifResumed {
                             navController.previousBackStackEntry
                                 ?.savedStateHandle
                                 ?.set(PICKED_ADDRESS_KEY, address)
-
                             navController.popBackStack()
                         }
                     }

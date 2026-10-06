@@ -41,6 +41,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.pet.R
+import com.example.pet.data.AppContainer
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.filled.CheckCircle
 import com.example.pet.data.DayMonthFormat
 import com.example.pet.data.MockData
 import com.example.pet.data.PetKind
@@ -53,6 +57,7 @@ import com.example.pet.ui.components.PetTraitChips
 import com.example.pet.ui.components.DateRangeDialog
 import com.example.pet.ui.components.cardSurface
 import com.example.pet.ui.components.rememberFutureDateRangePickerState
+import com.example.pet.ui.components.toUtcMillis
 import com.example.pet.ui.components.utcMillisToLocalDate
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -65,9 +70,8 @@ import com.example.pet.ui.components.PetTraitSelector
 import com.example.pet.ui.components.PrimaryButton
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.ZoneOffset
 
-private enum class FeedSort(@StringRes val label: Int) {
+private enum class FeedSort(@param:StringRes val label: Int) {
     Nearest(R.string.text_12_14),
     Shortest(R.string.text_12_15),
     Longest(R.string.text_12_16)
@@ -86,6 +90,8 @@ fun VolunteerFeedScreen(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null
 ) {
+    val feed by AppContainer.requests.feed.collectAsStateWithLifecycle()
+    val responded by AppContainer.requests.respondedIds.collectAsStateWithLifecycle()
     var kinds by rememberSaveable { mutableStateOf(emptySet<PetKind>()) }
     var district by rememberSaveable { mutableStateOf<String?>(null) }
     var freeFrom by rememberSaveable { mutableStateOf<LocalDate?>(null) }
@@ -100,8 +106,8 @@ fun VolunteerFeedScreen(
     var exclude by rememberSaveable { mutableStateOf(emptySet<PetTrait>()) }
     val datesState = rememberFutureDateRangePickerState()
 
-    val requests = remember(kinds, district, freeFrom, freeTo, sort, mustHave, exclude) {
-        MockData.volunteerFeed
+    val requests = remember(feed, kinds, district, freeFrom, freeTo, sort, mustHave, exclude) {
+        feed
             .filter { request ->
                 val kindOk = kinds.isEmpty() || request.kind in kinds
                 val districtOk = district == null || request.district == district
@@ -305,6 +311,7 @@ fun VolunteerFeedScreen(
             items(requests, key = { it.id }) { request ->
                 VolunteerRequestCard(
                     request = request,
+                    responded = request.id in responded,
                     onClick = { onRequestClick(request.id) },
                     modifier = Modifier.animateItem()
                 )
@@ -337,6 +344,7 @@ fun VolunteerFeedScreen(
 @Composable
 private fun VolunteerRequestCard(
     request: PetRequest,
+    responded: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -355,11 +363,22 @@ private fun VolunteerRequestCard(
                 .weight(1f)
                 .padding(start = 12.dp)
         ) {
-            Text(
-                text = request.title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = request.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
+                if (responded) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = stringResource(R.string.text_21_4),
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
             IconLine(
                 icon = Icons.Default.DateRange,
                 text = stringResource(
@@ -368,7 +387,7 @@ private fun VolunteerRequestCard(
                     request.dates
                 )
             )
-            IconLine(icon = Icons.Default.LocationOn, text = request.district)
+            IconLine(icon = Icons.Default.LocationOn, text = request.place)
             PetTraitChips(
                 traits = request.traits,
                 modifier = Modifier.padding(top = 4.dp)
@@ -457,6 +476,3 @@ private fun TraitsFilterSheet(
         }
     }
 }
-
-private fun LocalDate.toUtcMillis(): Long =
-    atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()

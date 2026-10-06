@@ -32,6 +32,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.pet.R
+import kotlinx.coroutines.launch
+import com.example.pet.data.AppContainer
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
+import androidx.compose.material3.TextButton
 import com.example.pet.data.UserRole
 import com.example.pet.ui.components.AppTextField
 import com.example.pet.ui.components.AuthFooterLink
@@ -46,9 +51,12 @@ import com.example.pet.ui.components.clearFocusOnTap
 fun LoginScreen(
     onRegisterClick: () -> Unit,
     onSuccess: (UserRole) -> Unit,
+    onForgotPassword: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val focusManager = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
+    var loading by remember { mutableStateOf(false) }
 
     var selectedRole by rememberSaveable { mutableIntStateOf(0) }
     var email by rememberSaveable { mutableStateOf("") }
@@ -67,10 +75,19 @@ fun LoginScreen(
 
         if (emailError == null && passwordError == null) {
             focusManager.clearFocus()
-            onSuccess(if (selectedRole == 1) UserRole.Volunteer else UserRole.Owner)
+            val role = if (selectedRole == 1) UserRole.Volunteer else UserRole.Owner
+            scope.launch {
+                loading = true
+                val result = AppContainer.auth.login(email.trim(), password, role)
+                loading = false
+                if (result.isSuccess) {
+                    onSuccess(role)
+                } else {
+                    passwordError = R.string.text_2_15
+                }
+            }
         }
     }
-
 
     Box(
         modifier = modifier
@@ -136,10 +153,18 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(Modifier.height(24.dp))
+            TextButton(
+                onClick = onForgotPassword,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text(stringResource(R.string.text_2_16))
+            }
+
+            Spacer(Modifier.height(8.dp))
 
             PrimaryButton(
                 text = stringResource(R.string.text_2_6),
+                loading = loading,
                 onClick = { submit() }
             )
 
@@ -160,7 +185,7 @@ fun LoginScreen(
                 Text(
                     text = stringResource(R.string.text_2_9),
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { /* TODO */ },
+                    modifier = Modifier.clickable { },
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
