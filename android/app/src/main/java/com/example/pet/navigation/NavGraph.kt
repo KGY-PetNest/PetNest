@@ -112,19 +112,34 @@ fun NavGraph(
         popEnterTransition = defaultPopEnter,
         popExitTransition = defaultPopExit
     ) {
-        composable(Screen.Welcome.name) { entry ->
+        composable(
+            route = Screen.Welcome.name,
+            exitTransition = { fadeOut(tween(NAV_DURATION)) }
+        ) { entry ->
             BottomInsetsPane {
                 WelcomeScreen(
                     onStart = {
                         entry.ifResumed {
-                            navController.navigate(Screen.Login.name) { launchSingleTop = true }
+                            navController.navigate(Screen.Login.name) {
+                                popUpTo(Screen.Welcome.name) { inclusive = true }
+                                launchSingleTop = true
+                            }
                         }
                     }
                 )
             }
         }
 
-        composable(Screen.Login.name) { entry ->
+        composable(
+            route = Screen.Login.name,
+            enterTransition = {
+                if (initialState.destination.route == Screen.Welcome.name) {
+                    fadeIn(tween(NAV_DURATION))
+                } else {
+                    defaultEnter(this)
+                }
+            }
+        ) { entry ->
             BottomInsetsPane {
                 LoginScreen(
                     onRegisterClick = {

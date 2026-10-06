@@ -5,6 +5,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +27,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -42,15 +46,22 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pet.R
-import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.adaptiveContentWidth
+import kotlinx.coroutines.delay
 
 private const val DARK_PHOTO_DIM = 0.35f
+private const val WELCOME_DURATION_MS = 2200L
 
 @Composable
 fun WelcomeScreen(onStart: () -> Unit, modifier: Modifier = Modifier) {
     var shown by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(Unit) { shown = true }
+    val currentOnStart by rememberUpdatedState(onStart)
+
+    LaunchedEffect(Unit) {
+        shown = true
+        delay(WELCOME_DURATION_MS)
+        currentOnStart()
+    }
 
     val background = MaterialTheme.colorScheme.background
     val isDark = background.luminance() < 0.5f
@@ -64,6 +75,11 @@ fun WelcomeScreen(onStart: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxSize()
             .clipToBounds()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = { currentOnStart() }
+            )
     ) {
         Image(
             painter = painterResource(R.drawable.welcome_cat),
@@ -139,18 +155,10 @@ fun WelcomeScreen(onStart: () -> Unit, modifier: Modifier = Modifier) {
 
             Spacer(Modifier.weight(1f))
 
-            PrimaryButton(
-                text = stringResource(R.string.text_1_3),
-                onClick = onStart,
-                modifier = Modifier.appear(shown, index = 3)
-            )
-
-            Spacer(Modifier.height(20.dp))
-
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.appear(shown, index = 4)
+                modifier = Modifier.appear(shown, index = 3)
             ) {
                 Icon(
                     imageVector = Icons.Default.Favorite,

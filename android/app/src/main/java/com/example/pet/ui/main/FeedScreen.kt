@@ -92,35 +92,41 @@ fun FeedScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
-            .verticalScroll(rememberScrollState())
     ) {
         ScreenHeader(
             title = stringResource(R.string.text_8_1),
             onBack = onBack
         )
 
-        Spacer(Modifier.height(20.dp))
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+        ) {
+            Spacer(Modifier.height(20.dp))
 
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            requests.forEach { request ->
-                RequestCard(
-                    request = request,
-                    responsesCount = AppContainer.volunteers.responsesFor(request.id).size,
-                    reviewed = request.id in reviewedRequestIds,
-                    onClick = { onRequestClick(request.id) },
-                    onLeaveReview = { reviewRequestId = request.id }
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                requests.forEach { request ->
+                    RequestCard(
+                        request = request,
+                        responsesCount = AppContainer.volunteers.responsesFor(request.id).size,
+                        reviewed = request.id in reviewedRequestIds,
+                        onClick = { onRequestClick(request.id) },
+                        onLeaveReview = { reviewRequestId = request.id }
+                    )
+                }
             }
+
+            Spacer(Modifier.height(16.dp))
+
+            PrimaryButton(
+                text = stringResource(R.string.text_8_2),
+                onClick = onCreateClick
+            )
+
+            Spacer(Modifier.height(32.dp))
         }
-
-        Spacer(Modifier.height(16.dp))
-
-        PrimaryButton(
-            text = stringResource(R.string.text_8_2),
-            onClick = onCreateClick
-        )
-
-        Spacer(Modifier.height(32.dp))
     }
 }
 

@@ -50,7 +50,6 @@
 
     <!-- Экраны: text_<номер экрана>_<номер строки> -->
     <string name="text_1_2">Найдите с кем оставить питомца</string>
-    <string name="text_1_3">Начать</string>
     <string name="text_1_4">Забота рядом</string>
     <string name="text_2_1">Авторизация</string>
     <string name="text_2_2">Владелец</string>
