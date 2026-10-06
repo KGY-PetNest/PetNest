@@ -7,6 +7,8 @@ import java.util.Locale
 
 enum class UserRole { Owner, Volunteer }
 
+enum class ThemeMode { System, Light, Dark }
+
 enum class PetKind { Cat, Dog, Other }
 
 enum class PetTraitGroup { Health, Care, Behavior }

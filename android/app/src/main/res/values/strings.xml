@@ -222,4 +222,8 @@
     <string name="text_22_2">Выйти из аккаунта?</string>
     <string name="text_22_3">Чтобы снова пользоваться приложением, нужно будет войти заново</string>
     <string name="text_22_4">Выйти</string>
+    <string name="text_22_5">Оформление</string>
+    <string name="text_22_6">Система</string>
+    <string name="text_22_7">Светлая</string>
+    <string name="text_22_8">Тёмная</string>
 </resources>

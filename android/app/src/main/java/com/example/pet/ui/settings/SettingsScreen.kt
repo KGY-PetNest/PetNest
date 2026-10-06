@@ -28,11 +28,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pet.R
+import com.example.pet.data.AppContainer
+import com.example.pet.data.ThemeMode
 import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.SectionTitle
+import com.example.pet.ui.components.SegmentedToggle
 import com.example.pet.ui.components.SettingsRow
 import com.example.pet.ui.components.adaptiveContentWidth
+
+private val themeOptions = listOf(
+    ThemeMode.System to R.string.text_22_6,
+    ThemeMode.Light to R.string.text_22_7,
+    ThemeMode.Dark to R.string.text_22_8
+)
 
 @Composable
 fun SettingsScreen(
@@ -43,6 +53,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     var showLogoutDialog by rememberSaveable { mutableStateOf(false) }
+    val themeMode by AppContainer.settings.themeMode.collectAsStateWithLifecycle()
 
     Box(
         modifier = modifier.fillMaxSize(),
@@ -81,6 +92,18 @@ fun SettingsScreen(
                         onClick = onChangePassword
                     )
                 }
+
+                Spacer(Modifier.height(28.dp))
+
+                SectionTitle(stringResource(R.string.text_22_5))
+
+                Spacer(Modifier.height(12.dp))
+
+                SegmentedToggle(
+                    options = themeOptions.map { stringResource(it.second) },
+                    selectedIndex = themeOptions.indexOfFirst { it.first == themeMode },
+                    onSelect = { index -> AppContainer.settings.setThemeMode(themeOptions[index].first) }
+                )
 
                 Spacer(Modifier.height(28.dp))
 

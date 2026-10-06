@@ -34,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -83,14 +82,14 @@ fun PrimaryButton(
         shape = RoundedCornerShape(28.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = Color.White
+            contentColor = MaterialTheme.colorScheme.onPrimary
         )
     ) {
         Crossfade(targetState = loading, label = "buttonLoading") { isLoading ->
             Box(contentAlignment = Alignment.Center) {
                 if (isLoading) {
                     CircularProgressIndicator(
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         strokeWidth = 2.dp,
                         modifier = Modifier.size(22.dp)
                     )
@@ -163,7 +162,7 @@ fun SegmentButton(
     modifier: Modifier = Modifier
 ) {
     val textColor by animateColorAsState(
-        targetValue = if (selected) Color.White else MaterialTheme.colorScheme.primary,
+        targetValue = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
         animationSpec = tween(durationMillis = 200),
         label = "segmentText"
     )
