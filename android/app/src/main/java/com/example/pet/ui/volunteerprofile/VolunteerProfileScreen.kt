@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -176,7 +177,9 @@ fun VolunteerProfileScreen(
 
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
-    Spacer(Modifier.height(28.dp))
+    Spacer(Modifier.height(24.dp))
+    HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outline)
+    Spacer(Modifier.height(20.dp))
     SectionTitle(text = title)
     Spacer(Modifier.height(12.dp))
     content()
