@@ -5,6 +5,7 @@ import androidx.core.content.edit
 import com.example.pet.data.GeoPoint
 import com.example.pet.data.SavedLocation
 import com.example.pet.data.ThemeMode
+import com.example.pet.data.UserRole
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,13 +37,35 @@ class PrefsSettingsRepository(context: Context) : SettingsRepository {
             putString(KEY_LOCATION_LAT, location.point.lat.toString())
             putString(KEY_LOCATION_LON, location.point.lon.toString())
             putString(KEY_LOCATION_LABEL, location.label)
+            putBoolean(KEY_LOCATION_AUTO, location.isAuto)
+        }
+    }
+
+    override val locationPrompted: Boolean
+        get() = prefs.getBoolean(KEY_LOCATION_PROMPTED, false)
+
+    override fun markLocationPrompted() {
+        prefs.edit { putBoolean(KEY_LOCATION_PROMPTED, true) }
+    }
+
+    override val sessionRole: UserRole?
+        get() = prefs.getString(KEY_SESSION_ROLE, null)
+            ?.let { name -> UserRole.entries.firstOrNull { it.name == name } }
+
+    override fun setSessionRole(role: UserRole?) {
+        prefs.edit {
+            if (role == null) remove(KEY_SESSION_ROLE) else putString(KEY_SESSION_ROLE, role.name)
         }
     }
 
     private fun readLocation(): SavedLocation? {
         val lat = prefs.getString(KEY_LOCATION_LAT, null)?.toDoubleOrNull() ?: return null
         val lon = prefs.getString(KEY_LOCATION_LON, null)?.toDoubleOrNull() ?: return null
-        return SavedLocation(GeoPoint(lat, lon), prefs.getString(KEY_LOCATION_LABEL, null).orEmpty())
+        return SavedLocation(
+            point = GeoPoint(lat, lon),
+            label = prefs.getString(KEY_LOCATION_LABEL, null).orEmpty(),
+            isAuto = prefs.getBoolean(KEY_LOCATION_AUTO, false)
+        )
     }
 
     private companion object {
@@ -51,5 +74,8 @@ class PrefsSettingsRepository(context: Context) : SettingsRepository {
         const val KEY_LOCATION_LAT = "volunteer_location_lat"
         const val KEY_LOCATION_LON = "volunteer_location_lon"
         const val KEY_LOCATION_LABEL = "volunteer_location_label"
+        const val KEY_LOCATION_AUTO = "volunteer_location_auto"
+        const val KEY_LOCATION_PROMPTED = "volunteer_location_prompted"
+        const val KEY_SESSION_ROLE = "session_role"
     }
 }

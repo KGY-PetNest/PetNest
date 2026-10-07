@@ -43,7 +43,7 @@ enum class MyResponseStatus { Pending, Chosen, NotChosen, Completed }
 
 data class GeoPoint(val lat: Double, val lon: Double) : Serializable
 
-data class SavedLocation(val point: GeoPoint, val label: String)
+data class SavedLocation(val point: GeoPoint, val label: String, val isAuto: Boolean = false)
 
 enum class HomeConditionType { Apartment, House, Yard, NoOtherPets, HasOtherPets, SomeoneHome, NoKids }
 
@@ -52,7 +52,8 @@ enum class AcceptedPet { Cats, SmallDogs, LargeDogs, Rodents, Birds, Other }
 data class UserProfile(
     val name: String,
     val phone: String,
-    val email: String
+    val email: String,
+    val avatarUri: String? = null
 )
 
 data class Pet(
@@ -82,6 +83,7 @@ data class PetRequest(
     val district: String,
     val address: String,
     val comment: String,
+    val addressDetails: String = "",
     val traits: List<PetTrait> = emptyList(),
     val features: String = "",
     val petPhotoUri: String? = null,
@@ -118,7 +120,8 @@ data class Volunteer(
     val experience: String,
     val about: String,
     val homeConditions: List<HomeConditionType>,
-    val acceptedPets: List<AcceptedPet>
+    val acceptedPets: List<AcceptedPet>,
+    val avatarUri: String? = null
 )
 
 data class Review(

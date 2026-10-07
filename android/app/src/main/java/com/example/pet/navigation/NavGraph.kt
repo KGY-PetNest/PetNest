@@ -15,6 +15,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
@@ -51,6 +52,7 @@ import com.example.pet.ui.welcome.WelcomeScreen
 private const val PICKED_ADDRESS_KEY = "picked_address"
 private const val ADDED_PET_KEY = "added_pet"
 private const val PICKED_POINT_KEY = "picked_point"
+private const val MAP_START_KEY = "map_start"
 
 
 private const val NAV_DURATION = 320
@@ -97,9 +99,19 @@ private fun NavBackStackEntry.ifResumed(action: () -> Unit) {
 private fun NavBackStackEntry.stringArg(name: String): String? = arguments?.getString(name)
 
 private fun NavHostController.logout() {
-    navigate(Screen.Login.name) {
+    AppContainer.settings.setSessionRole(null)
+    navigate(Screen.Welcome.name) {
         popUpTo(graph.id) { inclusive = true }
         launchSingleTop = true
+    }
+}
+
+private fun NavHostController.openLogin() {
+    if (!popBackStack(Screen.Login.name, inclusive = false)) {
+        navigate(Screen.Login.name) {
+            popUpTo(Screen.Welcome.name)
+            launchSingleTop = true
+        }
     }
 }
 
@@ -117,34 +129,33 @@ fun NavGraph(
         popEnterTransition = defaultPopEnter,
         popExitTransition = defaultPopExit
     ) {
-        composable(
-            route = Screen.Welcome.name,
-            exitTransition = { fadeOut(tween(NAV_DURATION)) }
-        ) { entry ->
+        composable(Screen.Welcome.name) { entry ->
+            val sessionRole = remember { AppContainer.settings.sessionRole }
             BottomInsetsPane {
                 WelcomeScreen(
-                    onStart = {
-                        entry.ifResumed {
-                            navController.navigate(Screen.Login.name) {
+                    onAutoContinue = sessionRole?.let { role ->
+                        {
+                            navController.navigate(Routes.main(role)) {
                                 popUpTo(Screen.Welcome.name) { inclusive = true }
                                 launchSingleTop = true
                             }
+                        }
+                    },
+                    onRegister = {
+                        entry.ifResumed {
+                            navController.navigate(Screen.Registration.name) { launchSingleTop = true }
+                        }
+                    },
+                    onLogin = {
+                        entry.ifResumed {
+                            navController.navigate(Screen.Login.name) { launchSingleTop = true }
                         }
                     }
                 )
             }
         }
 
-        composable(
-            route = Screen.Login.name,
-            enterTransition = {
-                if (initialState.destination.route == Screen.Welcome.name) {
-                    fadeIn(tween(NAV_DURATION))
-                } else {
-                    defaultEnter(this)
-                }
-            }
-        ) { entry ->
+        composable(Screen.Login.name) { entry ->
             BottomInsetsPane {
                 LoginScreen(
                     onRegisterClick = {
@@ -159,6 +170,7 @@ fun NavGraph(
                     },
                     onSuccess = { role ->
                         entry.ifResumed {
+                            AppContainer.settings.setSessionRole(role)
                             navController.navigate(Routes.main(role)) {
                                 popUpTo(navController.graph.id) { inclusive = true }
                                 launchSingleTop = true
@@ -173,7 +185,7 @@ fun NavGraph(
             BottomInsetsPane {
                 RegistrationScreen(
                     onLoginClick = {
-                        entry.ifResumed { navController.popBackStack(Screen.Login.name, inclusive = false) }
+                        entry.ifResumed { navController.openLogin() }
                     },
                     onSuccess = {
                         entry.ifResumed {
@@ -189,7 +201,7 @@ fun NavGraph(
                 EmailConfirmScreen(
                     onBack = { entry.ifResumed { navController.popBackStack() } },
                     onSuccess = {
-                        entry.ifResumed { navController.popBackStack(Screen.Login.name, inclusive = false) }
+                        entry.ifResumed { navController.openLogin() }
                     },
                     onResend = { }
                 )
@@ -245,7 +257,12 @@ fun NavGraph(
 
         composable(
             route = Routes.MAIN,
-            arguments = listOf(navArgument(Routes.ROLE_ARG) { type = NavType.StringType }),
+            arguments = listOf(
+                navArgument(Routes.ROLE_ARG) {
+                    type = NavType.StringType
+                    defaultValue = UserRole.Owner.name
+                }
+            ),
             enterTransition = mainEnter
         ) { entry ->
             val role = entry.stringArg(Routes.ROLE_ARG)
@@ -458,8 +475,9 @@ fun NavGraph(
                     onAddedPetUsed = {
                         entry.savedStateHandle[ADDED_PET_KEY] = null
                     },
-                    onPickOnMap = {
+                    onPickOnMap = { current ->
                         entry.ifResumed {
+                            entry.savedStateHandle[MAP_START_KEY] = current?.let { doubleArrayOf(it.lat, it.lon) }
                             navController.navigate(Routes.mapPicker()) { launchSingleTop = true }
                         }
                     }
@@ -480,10 +498,15 @@ fun NavGraph(
         ) { entry ->
             val forVolunteer = entry.arguments?.getBoolean(Routes.FOR_VOLUNTEER_ARG) ?: false
             val savedLocation = AppContainer.settings.volunteerLocation.collectAsState().value
+            val ownerStart = remember(entry) {
+                navController.previousBackStackEntry?.savedStateHandle
+                    ?.get<DoubleArray>(MAP_START_KEY)
+                    ?.let { GeoPoint(it[0], it[1]) }
+            }
             BottomInsetsPane {
                 MapPickerScreen(
                     forVolunteerLocation = forVolunteer,
-                    startPoint = if (forVolunteer) savedLocation?.point else null,
+                    startPoint = if (forVolunteer) savedLocation?.point else ownerStart,
                     onBack = { entry.ifResumed { navController.popBackStack() } },
                     onPicked = { address, point ->
                         entry.ifResumed {

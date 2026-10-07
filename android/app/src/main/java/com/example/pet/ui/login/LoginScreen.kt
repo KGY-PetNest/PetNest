@@ -126,6 +126,7 @@ fun LoginScreen(
             ) {
                 AppTextField(
                     value = email,
+                    maxLength = FormRules.EMAIL_MAX_LENGTH,
                     onValueChange = {
                         email = it.trim()
                         emailError = null

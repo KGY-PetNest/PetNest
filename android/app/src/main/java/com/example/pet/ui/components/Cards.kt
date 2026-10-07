@@ -3,6 +3,8 @@ package com.example.pet.ui.components
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -24,19 +26,26 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -139,12 +148,14 @@ fun FilterPill(
 fun InitialsAvatar(
     name: String,
     modifier: Modifier = Modifier,
-    size: Dp = 52.dp
+    size: Dp = 52.dp,
+    photoUri: String? = null
 ) {
     val initials = name.split(" ")
         .filter { it.isNotBlank() }
         .take(2)
         .joinToString("") { it.first().uppercase() }
+    val photo = rememberPhoto(photoUri)
 
     Box(
         contentAlignment = Alignment.Center,
@@ -154,16 +165,25 @@ fun InitialsAvatar(
             .background(MaterialTheme.colorScheme.primaryContainer)
             .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
     ) {
-        Text(
-            text = initials,
-            color = MaterialTheme.colorScheme.primary,
-            style = when {
-                size >= 88.dp -> MaterialTheme.typography.headlineSmall
-                size >= 64.dp -> MaterialTheme.typography.titleLarge
-                else -> MaterialTheme.typography.titleMedium
-            },
-            fontWeight = FontWeight.SemiBold
-        )
+        if (photo != null) {
+            Image(
+                bitmap = photo,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Text(
+                text = initials,
+                color = MaterialTheme.colorScheme.primary,
+                style = when {
+                    size >= 88.dp -> MaterialTheme.typography.headlineSmall
+                    size >= 64.dp -> MaterialTheme.typography.titleLarge
+                    else -> MaterialTheme.typography.titleMedium
+                },
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }
 
@@ -173,18 +193,7 @@ fun PetThumbnail(
     photoUri: String? = null,
     size: Dp = 64.dp
 ) {
-    val context = LocalContext.current
-    val photo by produceState<ImageBitmap?>(initialValue = null, photoUri) {
-        value = photoUri?.let { uri ->
-            withContext(Dispatchers.IO) {
-                runCatching {
-                    context.contentResolver.openInputStream(Uri.parse(uri))?.use {
-                        BitmapFactory.decodeStream(it)?.asImageBitmap()
-                    }
-                }.getOrNull()
-            }
-        }
-    }
+    val photo = rememberPhoto(photoUri)
 
     Box(
         contentAlignment = Alignment.Center,
@@ -363,23 +372,91 @@ fun PetTraitSelector(
     modifier: Modifier = Modifier
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
     ) {
-        PetTraitGroup.entries.forEach { group ->
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = stringResource(group.label),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                SelectableChips(
-                    items = PetTrait.entries.filter { it.group == group },
+        PetTraitGroup.entries.forEachIndexed { index, group ->
+            key(group) {
+                if (index > 0) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                }
+                PetTraitGroupSection(
+                    group = group,
                     selected = selected,
-                    label = { stringResource(it.label) },
                     onToggle = onToggle
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun PetTraitGroupSection(
+    group: PetTraitGroup,
+    selected: Set<PetTrait>,
+    onToggle: (PetTrait) -> Unit
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val groupTraits = remember(group) { PetTrait.entries.filter { it.group == group } }
+    val selectedCount = groupTraits.count { it in selected }
+    val visibleTraits = if (expanded) groupTraits else groupTraits.filter { it in selected }
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(200),
+        label = "traitArrow"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(tween(200))
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp)
+        ) {
+            Text(
+                text = stringResource(group.label),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+            if (selectedCount > 0) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                ) {
+                    Text(
+                        text = selectedCount.toString(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.rotate(arrowRotation)
+            )
+        }
+        if (visibleTraits.isNotEmpty()) {
+            SelectableChips(
+                items = visibleTraits,
+                selected = selected,
+                label = { stringResource(it.label) },
+                onToggle = onToggle,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 16.dp)
+            )
         }
     }
 }
@@ -397,4 +474,21 @@ fun MyResponseStatusChip(status: MyResponseStatus) {
         containerColor = container,
         contentColor = content
     )
+}
+
+@Composable
+fun rememberPhoto(photoUri: String?): ImageBitmap? {
+    val context = LocalContext.current
+    val photo by produceState<ImageBitmap?>(initialValue = null, photoUri) {
+        value = photoUri?.let { uri ->
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openInputStream(Uri.parse(uri))?.use {
+                        BitmapFactory.decodeStream(it)?.asImageBitmap()
+                    }
+                }.getOrNull()
+            }
+        }
+    }
+    return photo
 }

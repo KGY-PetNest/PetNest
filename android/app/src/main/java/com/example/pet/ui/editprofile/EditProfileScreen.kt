@@ -45,6 +45,7 @@ import com.example.pet.data.MockData
 import com.example.pet.data.UserProfile
 import com.example.pet.data.UserRole
 import com.example.pet.ui.components.AppTextField
+import com.example.pet.ui.components.AvatarPicker
 import com.example.pet.ui.components.FormRules
 import com.example.pet.ui.components.PhoneVisualTransformation
 import com.example.pet.ui.components.PinnedBottomBarLayout
@@ -76,6 +77,7 @@ fun EditProfileScreen(
     }
 
     var name by rememberSaveable { mutableStateOf(profile.name) }
+    var avatarUri by rememberSaveable { mutableStateOf(volunteer?.avatarUri ?: profile.avatarUri) }
     var phone by rememberSaveable { mutableStateOf(profile.phone) }
     var email by rememberSaveable { mutableStateOf(profile.email) }
     var experience by rememberSaveable { mutableStateOf(volunteer?.experience.orEmpty()) }
@@ -113,12 +115,18 @@ fun EditProfileScreen(
             saving = true
             AppContainer.profiles.updateProfile(
                 role,
-                UserProfile(name = FormRules.normalizeFullName(name), phone = phone, email = email.trim())
+                UserProfile(
+                    name = FormRules.normalizeFullName(name),
+                    phone = phone,
+                    email = email.trim(),
+                    avatarUri = avatarUri
+                )
             )
             if (volunteer != null) {
                 AppContainer.volunteers.update(
                     volunteer.copy(
                         name = FormRules.normalizeFullName(name),
+                        avatarUri = avatarUri,
                         experience = experience.trim(),
                         about = about.trim(),
                         homeConditions = HomeConditionType.entries.filter { it in homeConditions },
@@ -169,8 +177,15 @@ fun EditProfileScreen(
                         .padding(vertical = 8.dp)
                         .animateContentSize()
                 ) {
+                    AvatarPicker(
+                        name = name,
+                        photoUri = avatarUri,
+                        onPhotoChange = { avatarUri = it },
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
                     AppTextField(
                         value = name,
+                        maxLength = FormRules.NAME_MAX_LENGTH,
                         onValueChange = {
                             name = it
                             nameError = null
@@ -208,6 +223,7 @@ fun EditProfileScreen(
                             email = it.trim()
                             emailError = null
                         },
+                        maxLength = FormRules.EMAIL_MAX_LENGTH,
                         placeholder = stringResource(R.string.text_2_4),
                         leadingIcon = Icons.Default.Email,
                         errorText = emailError?.let { stringResource(it) },

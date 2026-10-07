@@ -131,6 +131,7 @@ fun RegistrationScreen(
             ) {
                 AppTextField(
                     value = name,
+                    maxLength = FormRules.NAME_MAX_LENGTH,
                     onValueChange = {
                         name = it
                         nameError = null
@@ -166,6 +167,7 @@ fun RegistrationScreen(
 
                 AppTextField(
                     value = email,
+                    maxLength = FormRules.EMAIL_MAX_LENGTH,
                     onValueChange = {
                         email = it.trim()
                         emailError = null

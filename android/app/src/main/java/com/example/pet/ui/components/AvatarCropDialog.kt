@@ -22,7 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -39,6 +39,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -50,9 +51,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.util.UUID
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+
+private const val AVATAR_DIR = "avatars"
+private const val AVATAR_SIZE_PX = 512
+private const val SOURCE_MAX_SIDE_PX = 2048
 
 @Composable
 fun AvatarCropDialog(
@@ -62,8 +68,13 @@ fun AvatarCropDialog(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val bitmap by produceState<Bitmap?>(initialValue = null, uri) {
-        value = withContext(Dispatchers.IO) { decodeBitmap(context, uri, 2048) }
+    var bitmap by remember(uri) { mutableStateOf<Bitmap?>(null) }
+    var decodeFailed by remember(uri) { mutableStateOf(false) }
+    var saving by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uri) {
+        val decoded = withContext(Dispatchers.IO) { decodeBitmap(context, uri, SOURCE_MAX_SIDE_PX) }
+        if (decoded != null) bitmap = decoded else decodeFailed = true
     }
 
     Dialog(
@@ -93,6 +104,18 @@ fun AvatarCropDialog(
                 val maxX = max(0f, (bmp.width * s - cropSize) / 2f)
                 val maxY = max(0f, (bmp.height * s - cropSize) / 2f)
                 return Offset(o.x.coerceIn(-maxX, maxX), o.y.coerceIn(-maxY, maxY))
+            }
+
+            if (decodeFailed) {
+                Text(
+                    text = stringResource(R.string.text_4_26),
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(horizontal = 32.dp)
+                )
             }
 
             if (bmp != null) {
@@ -145,48 +168,52 @@ fun AvatarCropDialog(
             ) {
                 TextButton(onClick = onDismiss) {
                     Text(
-                        text = stringResource(R.string.text_4_8),
+                        text = stringResource(R.string.common_cancel),
                         color = Color.White,
                         style = MaterialTheme.typography.labelLarge
                     )
                 }
                 TextButton(
-                    enabled = bmp != null,
+                    enabled = bmp != null && !saving,
                     onClick = {
                         val source = bmp ?: return@TextButton
                         val z = zoom
                         val o = offset
+                        saving = true
                         scope.launch {
                             val result = withContext(Dispatchers.IO) {
-                                val s = minScale * z
-                                val side = min(
-                                    (cropSize / s).roundToInt(),
-                                    min(source.width, source.height)
-                                ).coerceAtLeast(1)
-                                val x = ((source.width * s / 2f - cropSize / 2f - o.x) / s)
-                                    .roundToInt().coerceIn(0, source.width - side)
-                                val y = ((source.height * s / 2f - cropSize / 2f - o.y) / s)
-                                    .roundToInt().coerceIn(0, source.height - side)
-                                val cropped = Bitmap.createBitmap(source, x, y, side, side)
-                                val finalBitmap = if (side > 512) {
-                                    Bitmap.createScaledBitmap(cropped, 512, 512, true)
-                                } else cropped
-                                val file = File(
-                                    context.cacheDir,
-                                    "pet_avatar_${System.currentTimeMillis()}.jpg"
-                                )
-                                FileOutputStream(file).use {
-                                    finalBitmap.compress(Bitmap.CompressFormat.JPEG, 95, it)
-                                }
-                                Uri.fromFile(file)
+                                runCatching {
+                                    val s = minScale * z
+                                    val side = min(
+                                        (cropSize / s).roundToInt(),
+                                        min(source.width, source.height)
+                                    ).coerceAtLeast(1)
+                                    val x = ((source.width * s / 2f - cropSize / 2f - o.x) / s)
+                                        .roundToInt().coerceIn(0, source.width - side)
+                                    val y = ((source.height * s / 2f - cropSize / 2f - o.y) / s)
+                                        .roundToInt().coerceIn(0, source.height - side)
+                                    val cropped = Bitmap.createBitmap(source, x, y, side, side)
+                                    val finalBitmap = if (side > AVATAR_SIZE_PX) {
+                                        Bitmap.createScaledBitmap(cropped, AVATAR_SIZE_PX, AVATAR_SIZE_PX, true)
+                                    } else {
+                                        cropped
+                                    }
+                                    val dir = File(context.filesDir, AVATAR_DIR).apply { mkdirs() }
+                                    val file = File(dir, "avatar_${UUID.randomUUID()}.jpg")
+                                    FileOutputStream(file).use {
+                                        finalBitmap.compress(Bitmap.CompressFormat.JPEG, 90, it)
+                                    }
+                                    Uri.fromFile(file)
+                                }.getOrNull()
                             }
-                            onCropped(result)
+                            saving = false
+                            if (result != null) onCropped(result) else onDismiss()
                         }
                     }
                 ) {
                     Text(
-                        text = stringResource(R.string.text_4_9),
-                        color = if (bmp != null) Color.White else Color.Gray,
+                        text = stringResource(R.string.common_done),
+                        color = if (bmp != null && !saving) Color.White else Color.Gray,
                         style = MaterialTheme.typography.labelLarge
                     )
                 }

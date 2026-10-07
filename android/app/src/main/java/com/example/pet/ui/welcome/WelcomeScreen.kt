@@ -5,8 +5,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -27,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -44,27 +40,31 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.withResumed
 import com.example.pet.R
+import com.example.pet.ui.components.AuthFooterLink
+import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.adaptiveContentWidth
 import kotlinx.coroutines.delay
 
 private const val DARK_PHOTO_DIM = 0.35f
-private const val WELCOME_DURATION_MS = 2200L
+private const val SPLASH_DURATION_MS = 1100L
 
 @Composable
-fun WelcomeScreen(onStart: () -> Unit, modifier: Modifier = Modifier) {
+fun WelcomeScreen(
+    onRegister: () -> Unit,
+    onLogin: () -> Unit,
+    modifier: Modifier = Modifier,
+    onAutoContinue: (() -> Unit)? = null
+) {
     var shown by rememberSaveable { mutableStateOf(false) }
-    val currentOnStart by rememberUpdatedState(onStart)
+    LaunchedEffect(Unit) { shown = true }
 
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-
-    LaunchedEffect(Unit) {
-        shown = true
-        delay(WELCOME_DURATION_MS)
-        lifecycle.withResumed { currentOnStart() }
+    val currentAutoContinue by rememberUpdatedState(onAutoContinue)
+    if (onAutoContinue != null) {
+        LaunchedEffect(Unit) {
+            delay(SPLASH_DURATION_MS)
+            currentAutoContinue?.invoke()
+        }
     }
 
     val background = MaterialTheme.colorScheme.background
@@ -79,11 +79,6 @@ fun WelcomeScreen(onStart: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxSize()
             .clipToBounds()
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = { currentOnStart() }
-            )
     ) {
         Image(
             painter = painterResource(R.drawable.welcome_cat),
@@ -152,32 +147,31 @@ fun WelcomeScreen(onStart: () -> Unit, modifier: Modifier = Modifier) {
 
             Text(
                 text = stringResource(R.string.text_1_2),
-                style = MaterialTheme.typography.titleMedium.copy(letterSpacing = 0.sp),
+                style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.appear(shown, index = 2)
             )
 
             Spacer(Modifier.weight(1f))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.appear(shown, index = 3)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Favorite,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp)
+            if (onAutoContinue == null) {
+                PrimaryButton(
+                    text = stringResource(R.string.text_1_3),
+                    onClick = onRegister,
+                    modifier = Modifier.appear(shown, index = 3)
                 )
-                Text(
-                    text = stringResource(R.string.text_1_4),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
 
-            Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(12.dp))
+
+                AuthFooterLink(
+                    plainText = stringResource(R.string.text_1_5),
+                    linkText = stringResource(R.string.text_1_6),
+                    onClick = onLogin,
+                    modifier = Modifier.appear(shown, index = 4)
+                )
+
+                Spacer(Modifier.height(24.dp))
+            }
         }
     }
 }

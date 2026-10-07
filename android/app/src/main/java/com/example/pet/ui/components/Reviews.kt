@@ -261,7 +261,7 @@ fun ReviewSheet(
             OutlinedTextField(
                 value = text,
                 onValueChange = {
-                    text = it
+                    text = it.take(FormRules.LONG_TEXT_MAX_LENGTH)
                     textError = false
                 },
                 placeholder = { Text(stringResource(R.string.text_15_6)) },

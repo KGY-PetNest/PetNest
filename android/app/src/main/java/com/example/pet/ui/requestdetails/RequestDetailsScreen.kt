@@ -178,7 +178,9 @@ fun RequestDetailsScreen(
                     IconLine(
                         icon = Icons.Default.LocationOn,
                         text = when {
-                            isMine -> request.address
+                            isMine -> listOf(request.address, request.addressDetails)
+                                .filter { it.isNotBlank() }
+                                .joinToString(", ")
                             distanceKm != null -> stringResource(
                                 R.string.text_12_35,
                                 formatDistanceKm(distanceKm),

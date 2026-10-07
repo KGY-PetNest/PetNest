@@ -365,7 +365,7 @@ private fun ResponseCard(
             .padding(12.dp)
     ) {
         Row(verticalAlignment = Alignment.Top) {
-            InitialsAvatar(name = volunteer.name, size = 56.dp)
+            InitialsAvatar(name = volunteer.name, photoUri = volunteer.avatarUri, size = 56.dp)
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(3.dp),

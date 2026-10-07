@@ -58,4 +58,8 @@ interface SettingsRepository {
     fun setThemeMode(mode: ThemeMode)
     val volunteerLocation: StateFlow<SavedLocation?>
     fun setVolunteerLocation(location: SavedLocation)
+    val locationPrompted: Boolean
+    fun markLocationPrompted()
+    val sessionRole: UserRole?
+    fun setSessionRole(role: UserRole?)
 }
