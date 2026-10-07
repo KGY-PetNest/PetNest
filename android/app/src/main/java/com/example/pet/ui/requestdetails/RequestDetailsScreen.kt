@@ -21,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Info
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,6 +57,7 @@ import com.example.pet.R
 import com.example.pet.data.AppContainer
 import com.example.pet.data.MockData
 import com.example.pet.data.MyResponseStatus
+import com.example.pet.data.UserRole
 import com.example.pet.data.distanceKmTo
 import com.example.pet.data.formatDistanceKm
 import com.example.pet.data.phoneForDial
@@ -75,6 +78,7 @@ import kotlinx.coroutines.launch
 fun RequestDetailsScreen(
     requestId: String,
     onBack: () -> Unit,
+    onOpenChat: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -84,6 +88,7 @@ fun RequestDetailsScreen(
     val allReviews by AppContainer.reviews.reviews.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var busy by remember { mutableStateOf(false) }
+    var openingChat by remember { mutableStateOf(false) }
     val bodyStyle = MaterialTheme.typography.bodyLarge
     val request = feed.firstOrNull { it.id == requestId }
     if (request == null) {
@@ -93,9 +98,20 @@ fun RequestDetailsScreen(
     val isResponded = request.id in responded
     val myStatus = request.statusFor(MockData.CURRENT_VOLUNTEER_ID, responded)
     val isMine = myStatus == MyResponseStatus.Chosen || myStatus == MyResponseStatus.Completed
+    val canChat = myStatus != null && myStatus != MyResponseStatus.NotChosen
     val distanceKm = myLocation?.point?.let { origin -> request.location?.let { origin.distanceKmTo(it) } }
     val ownerReview = allReviews.firstOrNull {
         it.requestId == request.id && it.volunteerId == MockData.CURRENT_VOLUNTEER_ID
+    }
+
+    fun openChat() {
+        if (openingChat) return
+        scope.launch {
+            openingChat = true
+            AppContainer.chats.openChat(UserRole.Volunteer, request.id, MockData.CURRENT_VOLUNTEER_ID)
+                .onSuccess { onOpenChat(it.id) }
+            openingChat = false
+        }
     }
 
     Box(
@@ -108,7 +124,23 @@ fun RequestDetailsScreen(
                 .adaptiveContentWidth()
                 .padding(horizontal = 16.dp)
         ) {
-            ScreenHeader(title = stringResource(R.string.text_21_1), onBack = onBack)
+            ScreenHeader(
+                title = stringResource(R.string.text_21_1),
+                onBack = onBack,
+                actions = if (canChat) {
+                    {
+                        IconButton(onClick = { openChat() }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.Chat,
+                                contentDescription = stringResource(R.string.text_10_14),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                } else {
+                    null
+                }
+            )
 
             Column(
                 modifier = Modifier

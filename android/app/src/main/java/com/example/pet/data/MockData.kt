@@ -1,12 +1,22 @@
 package com.example.pet.data
 
 import java.time.LocalDate
+import java.time.LocalDateTime
+
+data class ChatSeed(
+    val side: UserRole,
+    val chat: Chat,
+    val messages: List<ChatMessage>,
+    val unread: Int
+)
 
 object MockData {
 
     const val CURRENT_VOLUNTEER_ID = "u1"
 
     private val today: LocalDate = LocalDate.now()
+
+    private val now: LocalDateTime = LocalDateTime.now()
 
     private fun inDays(days: Long): LocalDate = today.plusDays(days)
 
@@ -163,8 +173,10 @@ object MockData {
                     "Есть опыт с таблетками и особым уходом.",
             homeConditions = listOf(
                 HomeConditionType.Apartment,
+                HomeConditionType.WindowNets,
                 HomeConditionType.NoOtherPets,
-                HomeConditionType.SomeoneHome
+                HomeConditionType.SomeoneHome,
+                HomeConditionType.CanGiveMedication
             ),
             acceptedPets = listOf(AcceptedPet.Cats, AcceptedPet.SmallDogs)
         ),
@@ -174,7 +186,9 @@ object MockData {
             homeConditions = listOf(
                 HomeConditionType.House,
                 HomeConditionType.Yard,
-                HomeConditionType.HasOtherPets
+                HomeConditionType.HasOtherPets,
+                HomeConditionType.HasKids,
+                HomeConditionType.CanWalk
             ),
             acceptedPets = listOf(AcceptedPet.SmallDogs, AcceptedPet.LargeDogs, AcceptedPet.Cats)
         ),
@@ -183,6 +197,7 @@ object MockData {
             about = "Спокойная квартира, есть опыт с пожилыми кошками.",
             homeConditions = listOf(
                 HomeConditionType.Apartment,
+                HomeConditionType.WindowNets,
                 HomeConditionType.HasOtherPets,
                 HomeConditionType.NoKids
             ),
@@ -200,4 +215,102 @@ object MockData {
     )
 
     val respondedIds = setOf("v2", "v7", "v8", "v9")
+
+    private fun message(
+        chatId: String,
+        index: Int,
+        from: UserRole,
+        text: String,
+        ago: Long,
+        status: MessageStatus = MessageStatus.Read
+    ) = ChatMessage(
+        id = "$chatId-$index",
+        chatId = chatId,
+        senderRole = from,
+        text = text,
+        sentAt = now.minusMinutes(ago),
+        status = status
+    )
+
+    private fun ownerChat(id: String, requestId: String, volunteerId: String): Chat {
+        val request = ownerRequests.first { it.id == requestId }
+        val companion = volunteers.first { it.id == volunteerId }
+        return Chat(
+            id = id,
+            requestId = requestId,
+            volunteerId = volunteerId,
+            companionName = companion.name,
+            companionAvatarUri = companion.avatarUri,
+            requestTitle = request.title,
+            requestDates = request.dates,
+            petPhotoUri = request.petPhotoUri
+        )
+    }
+
+    private fun volunteerChat(id: String, requestId: String): Chat {
+        val request = volunteerFeed.first { it.id == requestId }
+        return Chat(
+            id = id,
+            requestId = requestId,
+            volunteerId = CURRENT_VOLUNTEER_ID,
+            companionName = request.ownerName,
+            requestTitle = request.title,
+            requestDates = request.dates,
+            petPhotoUri = request.petPhotoUri
+        )
+    }
+
+    private val ownerSide = UserRole.Owner
+    private val volunteerSide = UserRole.Volunteer
+
+    val chats = listOf(
+        ChatSeed(
+            side = ownerSide,
+            chat = ownerChat("c1", "o1", "u1"),
+            messages = listOf(
+                message("c1", 1, volunteerSide, "Здравствуйте! Увидела заявку на Барсика, могу взять его на эти даты", 26L * 60),
+                message("c1", 2, ownerSide, "Здравствуйте! Он принимает таблетку утром, получится давать?", 25L * 60),
+                message("c1", 3, volunteerSide, "Да, конечно. Можно спрятать в паштет, у меня был такой опыт", 40L)
+            ),
+            unread = 1
+        ),
+        ChatSeed(
+            side = ownerSide,
+            chat = ownerChat("c2", "o2", "u3"),
+            messages = listOf(
+                message("c2", 1, ownerSide, "Екатерина, добрый день! Когда вам удобно забрать Мусю?", 3L * 24 * 60 + 120),
+                message("c2", 2, volunteerSide, "Добрый! Давайте в пятницу после 18:00", 3L * 24 * 60 + 90),
+                message("c2", 3, ownerSide, "Отлично, договорились", 3L * 24 * 60 + 80)
+            ),
+            unread = 0
+        ),
+        ChatSeed(
+            side = volunteerSide,
+            chat = volunteerChat("c3", "v7"),
+            messages = listOf(
+                message("c3", 1, ownerSide, "Мария, здравствуйте! Я выбрала вас для передержки моей кошки", 5L * 60),
+                message("c3", 2, volunteerSide, "Спасибо! Буду рада помочь. Когда удобно передать?", 4L * 60 + 50),
+                message("c3", 3, ownerSide, "Ключи оставлю у консьержа, корм и наполнитель в прихожей", 12L),
+                message("c3", 4, ownerSide, "Позвоните, когда будете подъезжать", 11L)
+            ),
+            unread = 2
+        ),
+        ChatSeed(
+            side = volunteerSide,
+            chat = volunteerChat("c4", "v2"),
+            messages = listOf(
+                message("c4", 1, volunteerSide, "Здравствуйте! Сколько примерно гулять с собакой?", 2L * 24 * 60 + 300),
+                message("c4", 2, ownerSide, "Минимум два часа в день, лучше утром и вечером", 2L * 24 * 60 + 250)
+            ),
+            unread = 0
+        )
+    )
+
+    val chatAutoReplies = listOf(
+        "Хорошо, договорились!",
+        "Спасибо, сейчас посмотрю",
+        "Да, конечно",
+        "Отлично, тогда до встречи",
+        "Поняла, спасибо за подробности"
+    )
 }

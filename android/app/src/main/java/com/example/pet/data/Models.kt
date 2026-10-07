@@ -2,6 +2,7 @@ package com.example.pet.data
 
 import java.io.Serializable
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
@@ -45,7 +46,35 @@ data class GeoPoint(val lat: Double, val lon: Double) : Serializable
 
 data class SavedLocation(val point: GeoPoint, val label: String, val isAuto: Boolean = false)
 
-enum class HomeConditionType { Apartment, House, Yard, NoOtherPets, HasOtherPets, SomeoneHome, NoKids }
+enum class HomeConditionGroup { Housing, Household, Care }
+
+enum class HomeConditionType(val group: HomeConditionGroup) {
+    Apartment(HomeConditionGroup.Housing),
+    House(HomeConditionGroup.Housing),
+    Yard(HomeConditionGroup.Housing),
+    WindowNets(HomeConditionGroup.Housing),
+    NoOtherPets(HomeConditionGroup.Household),
+    HasOtherPets(HomeConditionGroup.Household),
+    NoKids(HomeConditionGroup.Household),
+    HasKids(HomeConditionGroup.Household),
+    SomeoneHome(HomeConditionGroup.Care),
+    CanWalk(HomeConditionGroup.Care),
+    CanGiveMedication(HomeConditionGroup.Care)
+}
+
+val HomeConditionType.opposite: HomeConditionType?
+    get() = when (this) {
+        HomeConditionType.Apartment -> HomeConditionType.House
+        HomeConditionType.House -> HomeConditionType.Apartment
+        HomeConditionType.NoOtherPets -> HomeConditionType.HasOtherPets
+        HomeConditionType.HasOtherPets -> HomeConditionType.NoOtherPets
+        HomeConditionType.NoKids -> HomeConditionType.HasKids
+        HomeConditionType.HasKids -> HomeConditionType.NoKids
+        else -> null
+    }
+
+fun Set<HomeConditionType>.toggled(item: HomeConditionType): Set<HomeConditionType> =
+    if (item in this) this - item else this - setOfNotNull(item.opposite) + item
 
 enum class AcceptedPet { Cats, SmallDogs, LargeDogs, Rodents, Birds, Other }
 
@@ -132,6 +161,30 @@ data class Review(
     val rating: Int,
     val text: String,
     val date: LocalDate
+)
+
+enum class MessageStatus { Sending, Sent, Read, Failed }
+
+data class ChatMessage(
+    val id: String,
+    val chatId: String,
+    val senderRole: UserRole,
+    val text: String,
+    val sentAt: LocalDateTime,
+    val status: MessageStatus = MessageStatus.Sent
+)
+
+data class Chat(
+    val id: String,
+    val requestId: String,
+    val volunteerId: String,
+    val companionName: String,
+    val requestTitle: String,
+    val requestDates: String,
+    val companionAvatarUri: String? = null,
+    val petPhotoUri: String? = null,
+    val lastMessage: ChatMessage? = null,
+    val unreadCount: Int = 0
 )
 
 val DayMonthFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM", Locale.forLanguageTag("ru"))

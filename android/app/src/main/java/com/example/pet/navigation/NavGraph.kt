@@ -30,6 +30,7 @@ import com.example.pet.data.AppContainer
 import com.example.pet.data.GeoPoint
 import com.example.pet.data.SavedLocation
 import com.example.pet.data.UserRole
+import com.example.pet.ui.chat.ConversationScreen
 import com.example.pet.ui.components.BottomInsetsPane
 import com.example.pet.ui.createrequest.CreateRequestScreen
 import com.example.pet.ui.editprofile.EditProfileScreen
@@ -97,6 +98,11 @@ private fun NavBackStackEntry.ifResumed(action: () -> Unit) {
 }
 
 private fun NavBackStackEntry.stringArg(name: String): String? = arguments?.getString(name)
+
+private fun NavBackStackEntry.roleArg(): UserRole =
+    stringArg(Routes.ROLE_ARG)
+        ?.let { name -> UserRole.entries.firstOrNull { it.name == name } }
+        ?: UserRole.Owner
 
 private fun NavHostController.logout() {
     AppContainer.settings.setSessionRole(null)
@@ -265,12 +271,9 @@ fun NavGraph(
             ),
             enterTransition = mainEnter
         ) { entry ->
-            val role = entry.stringArg(Routes.ROLE_ARG)
-                ?.let { name -> UserRole.entries.firstOrNull { it.name == name } }
-                ?: UserRole.Owner
             MainScreen(
                 navController = navController,
-                role = role
+                role = entry.roleArg()
             )
         }
 
@@ -278,9 +281,7 @@ fun NavGraph(
             route = Routes.SETTINGS,
             arguments = listOf(navArgument(Routes.ROLE_ARG) { type = NavType.StringType })
         ) { entry ->
-            val role = entry.stringArg(Routes.ROLE_ARG)
-                ?.let { name -> UserRole.entries.firstOrNull { it.name == name } }
-                ?: UserRole.Owner
+            val role = entry.roleArg()
             BottomInsetsPane {
                 SettingsScreen(
                     onBack = { entry.ifResumed { navController.popBackStack() } },
@@ -303,12 +304,9 @@ fun NavGraph(
             route = Routes.EDIT_PROFILE,
             arguments = listOf(navArgument(Routes.ROLE_ARG) { type = NavType.StringType })
         ) { entry ->
-            val role = entry.stringArg(Routes.ROLE_ARG)
-                ?.let { name -> UserRole.entries.firstOrNull { it.name == name } }
-                ?: UserRole.Owner
             BottomInsetsPane(includeIme = false) {
                 EditProfileScreen(
-                    role = role,
+                    role = entry.roleArg(),
                     onBack = { entry.ifResumed { navController.popBackStack() } },
                     onSaved = { entry.ifResumed { navController.popBackStack() } }
                 )
@@ -330,6 +328,34 @@ fun NavGraph(
         }
 
         composable(
+            route = Routes.CONVERSATION,
+            arguments = listOf(
+                navArgument(Routes.ROLE_ARG) { type = NavType.StringType },
+                navArgument(Routes.CHAT_ID_ARG) { type = NavType.StringType }
+            )
+        ) { entry ->
+            val role = entry.roleArg()
+            BottomInsetsPane {
+                ConversationScreen(
+                    chatId = entry.stringArg(Routes.CHAT_ID_ARG).orEmpty(),
+                    role = role,
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onOpenRequest = { requestId ->
+                        entry.ifResumed {
+                            val route = when (role) {
+                                UserRole.Owner -> Routes.responses(requestId)
+                                UserRole.Volunteer -> Routes.requestDetails(requestId)
+                            }
+                            if (!navController.popBackStack(route, inclusive = false)) {
+                                navController.navigate(route) { launchSingleTop = true }
+                            }
+                        }
+                    }
+                )
+            }
+        }
+
+        composable(
             route = Routes.RESPONSES,
             arguments = listOf(navArgument(Routes.REQUEST_ID_ARG) { type = NavType.StringType })
         ) { entry ->
@@ -346,6 +372,11 @@ fun NavGraph(
                     onEditRequest = { id ->
                         entry.ifResumed {
                             navController.navigate(Routes.createRequest(id)) { launchSingleTop = true }
+                        }
+                    },
+                    onOpenChat = { chatId ->
+                        entry.ifResumed {
+                            navController.navigate(Routes.conversation(chatId, UserRole.Owner)) { launchSingleTop = true }
                         }
                     }
                 )
@@ -389,7 +420,12 @@ fun NavGraph(
             BottomInsetsPane {
                 RequestDetailsScreen(
                     requestId = entry.stringArg(Routes.REQUEST_ID_ARG).orEmpty(),
-                    onBack = { entry.ifResumed { navController.popBackStack() } }
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onOpenChat = { chatId ->
+                        entry.ifResumed {
+                            navController.navigate(Routes.conversation(chatId, UserRole.Volunteer)) { launchSingleTop = true }
+                        }
+                    }
                 )
             }
         }

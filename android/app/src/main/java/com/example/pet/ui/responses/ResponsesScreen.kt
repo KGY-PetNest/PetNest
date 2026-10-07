@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
@@ -92,6 +93,7 @@ fun ResponsesScreen(
     onBack: () -> Unit,
     onVolunteerClick: (String) -> Unit,
     onEditRequest: (String) -> Unit,
+    onOpenChat: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -103,6 +105,7 @@ fun ResponsesScreen(
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var favorites by rememberSaveable { mutableStateOf(emptySet<String>()) }
     var completing by remember { mutableStateOf(false) }
+    var openingChat by remember { mutableStateOf(false) }
     var showReview by rememberSaveable { mutableStateOf(false) }
     var confirmComplete by rememberSaveable { mutableStateOf(false) }
     val responses = remember(volunteers, requestId) { AppContainer.volunteers.responsesFor(requestId) }
@@ -122,6 +125,16 @@ fun ResponsesScreen(
     }
 
     val reviewed = allReviews.any { it.requestId == request.id }
+
+    fun openChat(volunteerId: String) {
+        if (openingChat) return
+        scope.launch {
+            openingChat = true
+            AppContainer.chats.openChat(UserRole.Owner, request.id, volunteerId)
+                .onSuccess { onOpenChat(it.id) }
+            openingChat = false
+        }
+    }
 
     if (confirmComplete) {
         AlertDialog(
@@ -283,6 +296,7 @@ fun ResponsesScreen(
                                 )
                             }
                         },
+                        onChat = { openChat(volunteer.id) },
                         onClick = { onVolunteerClick(volunteer.id) },
                         modifier = Modifier.animateItem()
                     )
@@ -355,6 +369,7 @@ private fun ResponseCard(
     selectable: Boolean,
     onFavoriteToggle: () -> Unit,
     onSelect: () -> Unit,
+    onChat: () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -383,6 +398,14 @@ private fun ResponseCard(
                     text = stringResource(R.string.text_13_2, volunteer.experience),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            IconButton(onClick = onChat) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.Chat,
+                    contentDescription = stringResource(R.string.text_10_13),
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
 

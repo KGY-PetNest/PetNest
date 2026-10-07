@@ -44,9 +44,11 @@ import com.example.pet.data.HomeConditionType
 import com.example.pet.data.MockData
 import com.example.pet.data.UserProfile
 import com.example.pet.data.UserRole
+import com.example.pet.data.toggled
 import com.example.pet.ui.components.AppTextField
 import com.example.pet.ui.components.AvatarPicker
 import com.example.pet.ui.components.FormRules
+import com.example.pet.ui.components.HomeConditionSelector
 import com.example.pet.ui.components.PhoneVisualTransformation
 import com.example.pet.ui.components.PinnedBottomBarLayout
 import com.example.pet.ui.components.PrimaryButton
@@ -261,13 +263,10 @@ fun EditProfileScreen(
                         )
 
                         FieldTitle(stringResource(R.string.text_13_5))
-                        SelectableChips(
-                            items = HomeConditionType.entries,
+                        FieldHint(stringResource(R.string.text_17_14))
+                        HomeConditionSelector(
                             selected = homeConditions,
-                            label = { stringResource(it.label) },
-                            onToggle = { item ->
-                                homeConditions = if (item in homeConditions) homeConditions - item else homeConditions + item
-                            }
+                            onToggle = { item -> homeConditions = homeConditions.toggled(item) }
                         )
 
                         FieldTitle(stringResource(R.string.text_13_6))
@@ -303,5 +302,15 @@ private fun FieldTitle(text: String) {
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier.padding(start = 4.dp, top = 8.dp)
+    )
+}
+
+@Composable
+private fun FieldHint(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 4.dp)
     )
 }

@@ -59,6 +59,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.pet.R
+import com.example.pet.data.HomeConditionGroup
+import com.example.pet.data.HomeConditionType
 import com.example.pet.data.MyResponseStatus
 import com.example.pet.data.PetTrait
 import com.example.pet.data.PetTraitGroup
@@ -348,7 +350,8 @@ fun <T> SelectableChips(
     selected: Set<T>,
     label: @Composable (T) -> String,
     onToggle: (T) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    icon: ((T) -> ImageVector)? = null
 ) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -359,17 +362,23 @@ fun <T> SelectableChips(
             FilterPill(
                 text = label(item),
                 selected = item in selected,
-                onClick = { onToggle(item) }
+                onClick = { onToggle(item) },
+                leadingIcon = icon?.invoke(item)
             )
         }
     }
 }
 
 @Composable
-fun PetTraitSelector(
-    selected: Set<PetTrait>,
-    onToggle: (PetTrait) -> Unit,
-    modifier: Modifier = Modifier
+fun <G, T> GroupedChipSelector(
+    groups: List<G>,
+    itemsOf: (G) -> List<T>,
+    groupLabel: @Composable (G) -> String,
+    itemLabel: @Composable (T) -> String,
+    selected: Set<T>,
+    onToggle: (T) -> Unit,
+    modifier: Modifier = Modifier,
+    itemIcon: ((T) -> ImageVector)? = null
 ) {
     Column(
         modifier = modifier
@@ -377,13 +386,16 @@ fun PetTraitSelector(
             .clip(RoundedCornerShape(16.dp))
             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
     ) {
-        PetTraitGroup.entries.forEachIndexed { index, group ->
+        groups.forEachIndexed { index, group ->
             key(group) {
                 if (index > 0) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 }
-                PetTraitGroupSection(
-                    group = group,
+                ChipGroupSection(
+                    title = groupLabel(group),
+                    items = itemsOf(group),
+                    itemLabel = itemLabel,
+                    itemIcon = itemIcon,
                     selected = selected,
                     onToggle = onToggle
                 )
@@ -393,19 +405,21 @@ fun PetTraitSelector(
 }
 
 @Composable
-private fun PetTraitGroupSection(
-    group: PetTraitGroup,
-    selected: Set<PetTrait>,
-    onToggle: (PetTrait) -> Unit
+private fun <T> ChipGroupSection(
+    title: String,
+    items: List<T>,
+    itemLabel: @Composable (T) -> String,
+    itemIcon: ((T) -> ImageVector)?,
+    selected: Set<T>,
+    onToggle: (T) -> Unit
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
-    val groupTraits = remember(group) { PetTrait.entries.filter { it.group == group } }
-    val selectedCount = groupTraits.count { it in selected }
-    val visibleTraits = if (expanded) groupTraits else groupTraits.filter { it in selected }
+    val selectedCount = items.count { it in selected }
+    val visibleItems = if (expanded) items else items.filter { it in selected }
     val arrowRotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
         animationSpec = tween(200),
-        label = "traitArrow"
+        label = "groupArrow"
     )
 
     Column(
@@ -421,7 +435,7 @@ private fun PetTraitGroupSection(
                 .padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp)
         ) {
             Text(
-                text = stringResource(group.label),
+                text = title,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
@@ -449,16 +463,52 @@ private fun PetTraitGroupSection(
                 modifier = Modifier.rotate(arrowRotation)
             )
         }
-        if (visibleTraits.isNotEmpty()) {
+        if (visibleItems.isNotEmpty()) {
             SelectableChips(
-                items = visibleTraits,
+                items = visibleItems,
                 selected = selected,
-                label = { stringResource(it.label) },
+                label = itemLabel,
                 onToggle = onToggle,
+                icon = itemIcon,
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 16.dp)
             )
         }
     }
+}
+
+@Composable
+fun PetTraitSelector(
+    selected: Set<PetTrait>,
+    onToggle: (PetTrait) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    GroupedChipSelector(
+        groups = PetTraitGroup.entries,
+        itemsOf = { group -> PetTrait.entries.filter { it.group == group } },
+        groupLabel = { stringResource(it.label) },
+        itemLabel = { stringResource(it.label) },
+        selected = selected,
+        onToggle = onToggle,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun HomeConditionSelector(
+    selected: Set<HomeConditionType>,
+    onToggle: (HomeConditionType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    GroupedChipSelector(
+        groups = HomeConditionGroup.entries,
+        itemsOf = { group -> HomeConditionType.entries.filter { it.group == group } },
+        groupLabel = { stringResource(it.label) },
+        itemLabel = { stringResource(it.label) },
+        itemIcon = { it.icon },
+        selected = selected,
+        onToggle = onToggle,
+        modifier = modifier
+    )
 }
 
 @Composable

@@ -1,5 +1,6 @@
 package com.example.pet.ui.volunteerprofile
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +12,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
@@ -25,14 +28,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pet.R
 import com.example.pet.data.AppContainer
+import com.example.pet.data.HomeConditionGroup
+import com.example.pet.data.HomeConditionType
 import com.example.pet.data.averageRating
-import com.example.pet.ui.components.IconLine
 import com.example.pet.ui.components.InitialsAvatar
 import com.example.pet.ui.components.NotFoundScreen
 import com.example.pet.ui.components.RatingLabel
@@ -130,17 +135,7 @@ fun VolunteerProfileScreen(
                 }
 
                 Section(title = stringResource(R.string.text_13_5)) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        volunteer.homeConditions.forEach { condition ->
-                            IconLine(
-                                icon = condition.icon,
-                                text = stringResource(condition.label),
-                                iconSize = 24.dp,
-                                textStyle = bodyStyle,
-                                textColor = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
+                    HomeConditionsByGroup(volunteer.homeConditions)
                 }
 
                 Section(title = stringResource(R.string.text_13_6)) {
@@ -177,6 +172,62 @@ fun VolunteerProfileScreen(
                 Spacer(Modifier.height(32.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun HomeConditionsByGroup(conditions: List<HomeConditionType>) {
+    if (conditions.isEmpty()) {
+        Text(
+            text = stringResource(R.string.text_13_10),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        return
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        HomeConditionGroup.entries.forEach { group ->
+            val items = conditions.filter { it.group == group }
+            if (items.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = stringResource(group.label),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items.forEach { HomeConditionChip(it) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeConditionChip(condition: HomeConditionType) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Icon(
+            imageVector = condition.icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(18.dp)
+        )
+        Text(
+            text = stringResource(condition.label),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }
 
