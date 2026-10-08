@@ -1,5 +1,6 @@
 package com.example.pet
 
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.os.Bundle
@@ -21,6 +22,8 @@ import androidx.navigation.compose.rememberNavController
 import com.example.pet.data.AppContainer
 import com.example.pet.data.ThemeMode
 import com.example.pet.navigation.NavGraph
+import com.example.pet.notifications.AppForeground
+import com.example.pet.notifications.PendingChatLink
 import com.example.pet.ui.theme.PetTheme
 import com.yandex.mapkit.MapKitFactory
 
@@ -35,6 +38,10 @@ class MainActivity : ComponentActivity() {
 
         if (resources.configuration.smallestScreenWidthDp < 600) {
             requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+
+        if (savedInstanceState == null) {
+            PendingChatLink.offer(intent)
         }
 
         enableEdgeToEdge()
@@ -73,5 +80,21 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        PendingChatLink.offer(intent)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        AppForeground.visible = true
+    }
+
+    override fun onStop() {
+        AppForeground.visible = false
+        super.onStop()
     }
 }

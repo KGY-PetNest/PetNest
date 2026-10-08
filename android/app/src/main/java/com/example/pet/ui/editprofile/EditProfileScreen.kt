@@ -58,6 +58,7 @@ import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.clearFocusOnTap
 import com.example.pet.ui.components.label
 import kotlinx.coroutines.launch
+import com.example.pet.ui.components.rememberLeaveGuard
 
 @Composable
 fun EditProfileScreen(
@@ -94,8 +95,21 @@ fun EditProfileScreen(
     var aboutError by rememberSaveable { mutableStateOf<Int?>(null) }
     var acceptedError by rememberSaveable { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
+    var saveError by remember { mutableStateOf(false) }
+
+    val hasChanges = name != profile.name ||
+            avatarUri != (volunteer?.avatarUri ?: profile.avatarUri) ||
+            phone != profile.phone ||
+            email != profile.email ||
+            experience != volunteer?.experience.orEmpty() ||
+            about != volunteer?.about.orEmpty() ||
+            homeConditions != (volunteer?.homeConditions?.toSet() ?: emptySet<HomeConditionType>()) ||
+            acceptedPets != (volunteer?.acceptedPets?.toSet() ?: emptySet<AcceptedPet>())
+    val leave = rememberLeaveGuard(hasChanges = hasChanges && !saving, onLeave = onBack)
 
     fun submit() {
+        if (saving) return
+        saveError = false
         nameError = FormRules.fullNameError(name)
         phoneError = if (phone.length != FormRules.PHONE_LENGTH) R.string.text_3_6 else null
         emailError = when {
@@ -115,7 +129,7 @@ fun EditProfileScreen(
         focusManager.clearFocus()
         scope.launch {
             saving = true
-            AppContainer.profiles.updateProfile(
+            val profileResult = AppContainer.profiles.updateProfile(
                 role,
                 UserProfile(
                     name = FormRules.normalizeFullName(name),
@@ -124,10 +138,11 @@ fun EditProfileScreen(
                     avatarUri = avatarUri
                 )
             )
-            if (volunteer != null) {
+            val volunteerResult = if (volunteer != null && profileResult.isSuccess) {
                 AppContainer.volunteers.update(
                     volunteer.copy(
                         name = FormRules.normalizeFullName(name),
+                        phone = phone,
                         avatarUri = avatarUri,
                         experience = experience.trim(),
                         about = about.trim(),
@@ -135,9 +150,11 @@ fun EditProfileScreen(
                         acceptedPets = AcceptedPet.entries.filter { it in acceptedPets }
                     )
                 )
+            } else {
+                profileResult
             }
             saving = false
-            onSaved()
+            if (volunteerResult.isSuccess) onSaved() else saveError = true
         }
     }
 
@@ -155,7 +172,7 @@ fun EditProfileScreen(
                 .adaptiveContentWidth()
                 .padding(horizontal = 16.dp)
         ) {
-            ScreenHeader(title = stringResource(R.string.text_17_1), onBack = onBack)
+            ScreenHeader(title = stringResource(R.string.text_17_1), onBack = leave)
 
             PinnedBottomBarLayout(
                 modifier = Modifier
@@ -163,6 +180,14 @@ fun EditProfileScreen(
                     .fillMaxWidth(),
                 bottomBar = {
                     Spacer(Modifier.height(8.dp))
+                    if (saveError) {
+                        Text(
+                            text = stringResource(R.string.common_request_error),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
                     PrimaryButton(
                         text = stringResource(R.string.text_4_7),
                         loading = saving,

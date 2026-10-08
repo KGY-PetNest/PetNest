@@ -5,9 +5,6 @@ import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 
-/**
- Маска номера
- */
 class PhoneVisualTransformation : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
         val digits = text.text

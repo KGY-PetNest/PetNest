@@ -12,6 +12,8 @@ navigationCompose = "2.10.2"
 composeIconsExtended = "1.7.8"
 yandexMapkit = "4.45.0-full"
 playServicesLocation = "21.3.0"
+firebaseBom = "34.19.0"
+googleServices = "4.5.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -33,7 +35,10 @@ androidx-compose-material-icons-extended = { group = "androidx.compose.material"
 yandex-mapkit = { group = "com.yandex.android", name = "maps.mobile", version.ref = "yandexMapkit" }
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }

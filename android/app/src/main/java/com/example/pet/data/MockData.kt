@@ -178,7 +178,8 @@ object MockData {
                 HomeConditionType.SomeoneHome,
                 HomeConditionType.CanGiveMedication
             ),
-            acceptedPets = listOf(AcceptedPet.Cats, AcceptedPet.SmallDogs)
+            acceptedPets = listOf(AcceptedPet.Cats, AcceptedPet.SmallDogs),
+            phone = "9267654321"
         ),
         Volunteer(
             id = "u2", name = "Иванов Алексей Петрович", experience = "5 лет",
@@ -190,7 +191,8 @@ object MockData {
                 HomeConditionType.HasKids,
                 HomeConditionType.CanWalk
             ),
-            acceptedPets = listOf(AcceptedPet.SmallDogs, AcceptedPet.LargeDogs, AcceptedPet.Cats)
+            acceptedPets = listOf(AcceptedPet.SmallDogs, AcceptedPet.LargeDogs, AcceptedPet.Cats),
+            phone = "9035557788"
         ),
         Volunteer(
             id = "u3", name = "Соколова Екатерина Олеговна", experience = "2 года",
@@ -201,7 +203,8 @@ object MockData {
                 HomeConditionType.HasOtherPets,
                 HomeConditionType.NoKids
             ),
-            acceptedPets = listOf(AcceptedPet.Cats, AcceptedPet.Rodents)
+            acceptedPets = listOf(AcceptedPet.Cats, AcceptedPet.Rodents),
+            phone = "9154442211"
         )
     )
 
@@ -216,20 +219,30 @@ object MockData {
 
     val respondedIds = setOf("v2", "v7", "v8", "v9")
 
+    val ownerResponses = mapOf(
+        "o1" to listOf("u1", "u2", "u3"),
+        "o2" to listOf("u3", "u1"),
+        "o3" to listOf("u2")
+    )
+
+    val simulatedResponders = listOf("u2", "u3", "u1")
+
     private fun message(
         chatId: String,
         index: Int,
         from: UserRole,
         text: String,
         ago: Long,
-        status: MessageStatus = MessageStatus.Read
+        status: MessageStatus = MessageStatus.Read,
+        event: ChatEvent? = null
     ) = ChatMessage(
         id = "$chatId-$index",
         chatId = chatId,
         senderRole = from,
         text = text,
         sentAt = now.minusMinutes(ago),
-        status = status
+        status = status,
+        event = event
     )
 
     private fun ownerChat(id: String, requestId: String, volunteerId: String): Chat {
@@ -278,6 +291,7 @@ object MockData {
             side = ownerSide,
             chat = ownerChat("c2", "o2", "u3"),
             messages = listOf(
+                message("c2", 0, ownerSide, "", 3L * 24 * 60 + 125, event = ChatEvent.VolunteerChosen),
                 message("c2", 1, ownerSide, "Екатерина, добрый день! Когда вам удобно забрать Мусю?", 3L * 24 * 60 + 120),
                 message("c2", 2, volunteerSide, "Добрый! Давайте в пятницу после 18:00", 3L * 24 * 60 + 90),
                 message("c2", 3, ownerSide, "Отлично, договорились", 3L * 24 * 60 + 80)
@@ -288,6 +302,7 @@ object MockData {
             side = volunteerSide,
             chat = volunteerChat("c3", "v7"),
             messages = listOf(
+                message("c3", 0, ownerSide, "", 5L * 60 + 2, event = ChatEvent.VolunteerChosen),
                 message("c3", 1, ownerSide, "Мария, здравствуйте! Я выбрала вас для передержки моей кошки", 5L * 60),
                 message("c3", 2, volunteerSide, "Спасибо! Буду рада помочь. Когда удобно передать?", 4L * 60 + 50),
                 message("c3", 3, ownerSide, "Ключи оставлю у консьержа, корм и наполнитель в прихожей", 12L),

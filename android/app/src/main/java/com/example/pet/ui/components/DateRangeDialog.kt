@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.example.pet.R
 import java.text.SimpleDateFormat
 import java.time.LocalDate
-import java.util.Calendar
+import java.time.ZoneOffset
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
@@ -35,17 +35,9 @@ import java.util.TimeZone
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun rememberFutureDateRangePickerState(): DateRangePickerState {
-    val todayStartUtc = remember {
-        Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-    }
-    val currentYear = remember {
-        Calendar.getInstance(TimeZone.getTimeZone("UTC")).get(Calendar.YEAR)
-    }
+    val today = remember { LocalDate.now() }
+    val todayStartUtc = remember(today) { today.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() }
+    val currentYear = today.year
     return rememberDateRangePickerState(
         initialDisplayMode = DisplayMode.Picker,
         selectableDates = remember(todayStartUtc, currentYear) {

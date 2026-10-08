@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
@@ -39,6 +40,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -63,6 +65,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pet.R
 import com.example.pet.data.AppContainer
@@ -72,8 +75,9 @@ import com.example.pet.data.MyResponseStatus
 import com.example.pet.data.PetKind
 import com.example.pet.data.PetRequest
 import com.example.pet.data.PetTrait
-import com.example.pet.data.RequestStatus
 import com.example.pet.data.SavedLocation
+import com.example.pet.data.UserRole
+import com.example.pet.data.canChat
 import com.example.pet.data.distanceKmTo
 import com.example.pet.data.formatDistanceKm
 import com.example.pet.ui.components.DateRangeDialog
@@ -122,6 +126,7 @@ private val MyResponsesOrder = listOf(
     MyResponseStatus.Chosen,
     MyResponseStatus.Pending,
     MyResponseStatus.Completed,
+    MyResponseStatus.Expired,
     MyResponseStatus.NotChosen
 )
 
@@ -130,6 +135,7 @@ private val MyResponsesOrder = listOf(
 fun VolunteerFeedScreen(
     onRequestClick: (String) -> Unit,
     onPickLocationOnMap: () -> Unit,
+    onOpenChat: (String) -> Unit,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null
 ) {
@@ -153,6 +159,8 @@ fun VolunteerFeedScreen(
     val feedListState = rememberLazyListState()
     val myListState = rememberLazyListState()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var openingChat by remember { mutableStateOf(false) }
     val myLocationLabel = stringResource(R.string.text_12_34)
     var locating by remember { mutableStateOf(false) }
     var locationProblem by rememberSaveable { mutableStateOf<LocationProblem?>(null) }
@@ -211,12 +219,12 @@ fun VolunteerFeedScreen(
 
     val requests = remember(feed, kinds, radiusKm, distances, freeFrom, freeTo, sort, mustHave, exclude) {
         feed
-            .filter { it.status == RequestStatus.Open && it.chosenVolunteerId == null }
+            .filter { it.acceptsResponses }
             .filter { request ->
                 val kindOk = kinds.isEmpty() || request.kind in kinds
                 val radius = radiusKm
                 val distance = distances[request.id]
-                val radiusOk = radius == null || origin == null || distance == null || distance <= radius
+                val radiusOk = radius == null || origin == null || (distance != null && distance <= radius)
                 val from = freeFrom
                 val to = freeTo
                 val datesOk = from == null || to == null ||
@@ -251,6 +259,23 @@ fun VolunteerFeedScreen(
         datesState.setSelection(null, null)
         mustHave = emptySet()
         exclude = emptySet()
+    }
+
+    fun openChat(requestId: String) {
+        if (openingChat) return
+        openingChat = true
+        scope.launch {
+            AppContainer.chats.openChat(UserRole.Volunteer, requestId, MockData.CURRENT_VOLUNTEER_ID)
+                .onSuccess { onOpenChat(it.id) }
+            openingChat = false
+        }
+    }
+
+    LifecycleResumeEffect(Unit) {
+        if (!locationSheetOpen && AppContainer.settings.volunteerLocation.value == null && sort == FeedSort.Closest) {
+            sort = FeedSort.Soonest
+        }
+        onPauseOrDispose { }
     }
 
     if (locationSheetOpen) {
@@ -427,6 +452,11 @@ fun VolunteerFeedScreen(
                             distanceKm = distances[request.id],
                             status = status,
                             onClick = { onRequestClick(request.id) },
+                            onChat = if (status.canChat) {
+                                { openChat(request.id) }
+                            } else {
+                                null
+                            },
                             modifier = Modifier.animateItem()
                         )
                     }
@@ -559,7 +589,8 @@ private fun VolunteerRequestCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     responded: Boolean = false,
-    status: MyResponseStatus? = null
+    status: MyResponseStatus? = null,
+    onChat: (() -> Unit)? = null
 ) {
     Row(
         verticalAlignment = Alignment.Top,
@@ -620,6 +651,19 @@ private fun VolunteerRequestCard(
                 PetTraitChips(
                     traits = request.traits,
                     modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+        }
+
+        if (onChat != null) {
+            IconButton(
+                onClick = onChat,
+                modifier = Modifier.align(Alignment.Bottom)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.Chat,
+                    contentDescription = stringResource(R.string.text_10_14),
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
         }

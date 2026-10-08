@@ -12,11 +12,15 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavBackStackEntry
@@ -24,12 +28,20 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import com.example.pet.R
 import com.example.pet.data.AppContainer
 import com.example.pet.data.GeoPoint
 import com.example.pet.data.SavedLocation
 import com.example.pet.data.UserRole
+import com.example.pet.notifications.ChatNotifier
+import com.example.pet.notifications.PendingChatLink
+import com.example.pet.notifications.PushRegistrar
+import com.example.pet.ui.appguide.AppGuideScreen
+import com.example.pet.ui.chat.AttachmentViewerScreen
+import com.example.pet.ui.chat.ChatDrafts
+import com.example.pet.ui.chat.ChatInfoScreen
 import com.example.pet.ui.chat.ConversationScreen
 import com.example.pet.ui.components.BottomInsetsPane
 import com.example.pet.ui.createrequest.CreateRequestScreen
@@ -97,6 +109,13 @@ private fun NavBackStackEntry.ifResumed(action: () -> Unit) {
     if (lifecycle.currentState == Lifecycle.State.RESUMED) action()
 }
 
+private fun NavBackStackEntry.ifTop(navController: NavHostController, action: () -> Unit) {
+    if (navController.currentBackStackEntry?.id == id) action()
+}
+
+private fun entryRouteFor(role: UserRole): String =
+    if (AppContainer.settings.guideSeen(role)) Routes.main(role) else Routes.appGuide(role, firstRun = true)
+
 private fun NavBackStackEntry.stringArg(name: String): String? = arguments?.getString(name)
 
 private fun NavBackStackEntry.roleArg(): UserRole =
@@ -104,9 +123,24 @@ private fun NavBackStackEntry.roleArg(): UserRole =
         ?.let { name -> UserRole.entries.firstOrNull { it.name == name } }
         ?: UserRole.Owner
 
-private fun NavHostController.logout() {
+private val SignedOutRoutes = setOf(
+    Screen.Welcome.name,
+    Screen.Login.name,
+    Screen.Registration.name,
+    Screen.EmailConfirm.name,
+    Screen.ForgotPassword.name,
+    Routes.RESET_CODE,
+    Screen.ResetPassword.name
+)
+
+private fun NavHostController.logout(context: Context) {
+    PushRegistrar.signOut(context)
+    ChatNotifier.cancelAll(context)
+    ChatDrafts.clear()
+    PendingChatLink.consume()
     AppContainer.settings.setSessionRole(null)
-    navigate(Screen.Welcome.name) {
+    AppContainer.settings.clearVolunteerLocation()
+    navigate(Screen.Login.name) {
         popUpTo(graph.id) { inclusive = true }
         launchSingleTop = true
     }
@@ -126,6 +160,26 @@ fun NavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val pendingLink by PendingChatLink.link.collectAsState()
+    val currentEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentEntry?.destination?.route
+
+    LaunchedEffect(pendingLink, currentRoute) {
+        val link = pendingLink ?: return@LaunchedEffect
+        if (currentRoute == null || currentRoute in SignedOutRoutes) return@LaunchedEffect
+        if (currentRoute == Routes.APP_GUIDE && currentEntry?.arguments?.getBoolean(Routes.FIRST_RUN_ARG) == true) {
+            return@LaunchedEffect
+        }
+        PendingChatLink.consume()
+        if (AppContainer.settings.sessionRole != link.role) return@LaunchedEffect
+        val sameChat = currentRoute == Routes.CONVERSATION &&
+                currentEntry?.arguments?.getString(Routes.CHAT_ID_ARG) == link.chatId
+        if (!sameChat) {
+            navController.navigate(Routes.conversation(link.chatId, link.role))
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = Screen.Welcome.name,
@@ -136,24 +190,32 @@ fun NavGraph(
         popExitTransition = defaultPopExit
     ) {
         composable(Screen.Welcome.name) { entry ->
-            val sessionRole = remember { AppContainer.settings.sessionRole }
+            val autoRoute = remember {
+                val settings = AppContainer.settings
+                settings.sessionRole?.let { entryRouteFor(it) }
+                    ?: Screen.Login.name.takeIf { settings.onboardingSeen }
+            }
             BottomInsetsPane {
                 WelcomeScreen(
-                    onAutoContinue = sessionRole?.let { role ->
+                    onAutoContinue = autoRoute?.let { route ->
                         {
-                            navController.navigate(Routes.main(role)) {
-                                popUpTo(Screen.Welcome.name) { inclusive = true }
-                                launchSingleTop = true
+                            entry.ifTop(navController) {
+                                navController.navigate(route) {
+                                    popUpTo(Screen.Welcome.name) { inclusive = true }
+                                    launchSingleTop = true
+                                }
                             }
                         }
                     },
                     onRegister = {
                         entry.ifResumed {
+                            AppContainer.settings.markOnboardingSeen()
                             navController.navigate(Screen.Registration.name) { launchSingleTop = true }
                         }
                     },
                     onLogin = {
                         entry.ifResumed {
+                            AppContainer.settings.markOnboardingSeen()
                             navController.navigate(Screen.Login.name) { launchSingleTop = true }
                         }
                     }
@@ -175,9 +237,11 @@ fun NavGraph(
                         }
                     },
                     onSuccess = { role ->
-                        entry.ifResumed {
-                            AppContainer.settings.setSessionRole(role)
-                            navController.navigate(Routes.main(role)) {
+                        AppContainer.settings.setSessionRole(role)
+                        AppContainer.settings.setLastRole(role)
+                        PushRegistrar.register(context)
+                        entry.ifTop(navController) {
+                            navController.navigate(entryRouteFor(role)) {
                                 popUpTo(navController.graph.id) { inclusive = true }
                                 launchSingleTop = true
                             }
@@ -193,8 +257,9 @@ fun NavGraph(
                     onLoginClick = {
                         entry.ifResumed { navController.openLogin() }
                     },
-                    onSuccess = {
-                        entry.ifResumed {
+                    onSuccess = { role ->
+                        AppContainer.settings.setLastRole(role)
+                        entry.ifTop(navController) {
                             navController.navigate(Screen.EmailConfirm.name) { launchSingleTop = true }
                         }
                     }
@@ -206,8 +271,9 @@ fun NavGraph(
             BottomInsetsPane {
                 EmailConfirmScreen(
                     onBack = { entry.ifResumed { navController.popBackStack() } },
+                    verify = { code -> AppContainer.auth.confirmCode(code) },
                     onSuccess = {
-                        entry.ifResumed { navController.openLogin() }
+                        entry.ifTop(navController) { navController.openLogin() }
                     },
                     onResend = { }
                 )
@@ -219,7 +285,7 @@ fun NavGraph(
                 ForgotPasswordScreen(
                     onBack = { entry.ifResumed { navController.popBackStack() } },
                     onCodeSent = { target ->
-                        entry.ifResumed {
+                        entry.ifTop(navController) {
                             navController.navigate(Routes.resetCode(target)) { launchSingleTop = true }
                         }
                     }
@@ -251,7 +317,7 @@ fun NavGraph(
                 ResetPasswordScreen(
                     onBack = { entry.ifResumed { navController.popBackStack() } },
                     onDone = {
-                        entry.ifResumed {
+                        entry.ifTop(navController) {
                             if (!navController.popBackStack(Screen.Login.name, inclusive = false)) {
                                 navController.popBackStack(Screen.ChangePassword.name, inclusive = true)
                             }
@@ -295,7 +361,45 @@ fun NavGraph(
                             navController.navigate(Screen.ChangePassword.name) { launchSingleTop = true }
                         }
                     },
-                    onLogout = { entry.ifResumed { navController.logout() } }
+                    onOpenGuide = {
+                        entry.ifResumed {
+                            navController.navigate(Routes.appGuide(role)) { launchSingleTop = true }
+                        }
+                    },
+                    onLogout = { entry.ifResumed { navController.logout(context) } }
+                )
+            }
+        }
+
+        composable(
+            route = Routes.APP_GUIDE,
+            arguments = listOf(
+                navArgument(Routes.ROLE_ARG) { type = NavType.StringType },
+                navArgument(Routes.FIRST_RUN_ARG) {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            ),
+            enterTransition = {
+                if (initialState.destination.route == Screen.Login.name) mainEnter(this) else defaultEnter(this)
+            }
+        ) { entry ->
+            val role = entry.roleArg()
+            val firstRun = entry.arguments?.getBoolean(Routes.FIRST_RUN_ARG) ?: false
+            BottomInsetsPane {
+                AppGuideScreen(
+                    role = role,
+                    firstRun = firstRun,
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onFinish = {
+                        entry.ifResumed {
+                            AppContainer.settings.markGuideSeen(role)
+                            navController.navigate(Routes.main(role)) {
+                                popUpTo(navController.graph.id) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    }
                 )
             }
         }
@@ -308,7 +412,7 @@ fun NavGraph(
                 EditProfileScreen(
                     role = entry.roleArg(),
                     onBack = { entry.ifResumed { navController.popBackStack() } },
-                    onSaved = { entry.ifResumed { navController.popBackStack() } }
+                    onSaved = { entry.ifTop(navController) { navController.popBackStack() } }
                 )
             }
         }
@@ -322,7 +426,7 @@ fun NavGraph(
                             navController.navigate(Screen.ForgotPassword.name) { launchSingleTop = true }
                         }
                     },
-                    onChanged = { entry.ifResumed { navController.popBackStack() } }
+                    onChanged = { entry.ifTop(navController) { navController.popBackStack() } }
                 )
             }
         }
@@ -335,11 +439,47 @@ fun NavGraph(
             )
         ) { entry ->
             val role = entry.roleArg()
+            val chatId = entry.stringArg(Routes.CHAT_ID_ARG).orEmpty()
             BottomInsetsPane {
-                ConversationScreen(
-                    chatId = entry.stringArg(Routes.CHAT_ID_ARG).orEmpty(),
+                key(chatId) {
+                    ConversationScreen(
+                        chatId = chatId,
+                        role = role,
+                        onBack = { entry.ifResumed { navController.popBackStack() } },
+                        onOpenInfo = {
+                            entry.ifResumed {
+                                navController.navigate(Routes.chatInfo(chatId, role)) { launchSingleTop = true }
+                            }
+                        },
+                        onOpenAttachment = { messageId ->
+                            entry.ifResumed {
+                                navController.navigate(Routes.attachment(chatId, messageId)) { launchSingleTop = true }
+                            }
+                        }
+                    )
+                }
+            }
+        }
+
+        composable(
+            route = Routes.CHAT_INFO,
+            arguments = listOf(
+                navArgument(Routes.ROLE_ARG) { type = NavType.StringType },
+                navArgument(Routes.CHAT_ID_ARG) { type = NavType.StringType }
+            )
+        ) { entry ->
+            val role = entry.roleArg()
+            val chatId = entry.stringArg(Routes.CHAT_ID_ARG).orEmpty()
+            BottomInsetsPane {
+                ChatInfoScreen(
+                    chatId = chatId,
                     role = role,
                     onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onOpenProfile = { volunteerId ->
+                        entry.ifResumed {
+                            navController.navigate(Routes.volunteerProfile(volunteerId)) { launchSingleTop = true }
+                        }
+                    },
                     onOpenRequest = { requestId ->
                         entry.ifResumed {
                             val route = when (role) {
@@ -350,7 +490,30 @@ fun NavGraph(
                                 navController.navigate(route) { launchSingleTop = true }
                             }
                         }
+                    },
+                    onOpenAttachment = { messageId ->
+                        entry.ifResumed {
+                            navController.navigate(Routes.attachment(chatId, messageId)) { launchSingleTop = true }
+                        }
                     }
+                )
+            }
+        }
+
+        composable(
+            route = Routes.ATTACHMENT,
+            arguments = listOf(
+                navArgument(Routes.CHAT_ID_ARG) { type = NavType.StringType },
+                navArgument(Routes.MESSAGE_ID_ARG) { type = NavType.StringType }
+            ),
+            enterTransition = sheetEnter,
+            popExitTransition = sheetPopExit
+        ) { entry ->
+            BottomInsetsPane {
+                AttachmentViewerScreen(
+                    chatId = entry.stringArg(Routes.CHAT_ID_ARG).orEmpty(),
+                    messageId = entry.stringArg(Routes.MESSAGE_ID_ARG).orEmpty(),
+                    onBack = { entry.ifResumed { navController.popBackStack() } }
                 )
             }
         }
@@ -446,7 +609,7 @@ fun NavGraph(
                     petId = petId,
                     onBack = { entry.ifResumed { navController.popBackStack() } },
                     onSave = { savedId ->
-                        entry.ifResumed {
+                        entry.ifTop(navController) {
                             if (petId == null && savedId != null) {
                                 navController.previousBackStackEntry?.savedStateHandle?.set(ADDED_PET_KEY, savedId)
                             }
@@ -500,7 +663,7 @@ fun NavGraph(
                             navController.navigate(Routes.petProfile()) { launchSingleTop = true }
                         }
                     },
-                    onCreate = { entry.ifResumed { navController.popBackStack() } },
+                    onCreate = { entry.ifTop(navController) { navController.popBackStack() } },
                     pickedAddress = pickedAddress,
                     pickedPoint = pickedPoint?.let { GeoPoint(it[0], it[1]) },
                     onPickedAddressUsed = {

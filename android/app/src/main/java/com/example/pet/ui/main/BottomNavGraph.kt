@@ -54,7 +54,8 @@ fun BottomNavGraph(
                     )
                     UserRole.Volunteer -> VolunteerFeedScreen(
                         onRequestClick = actions.onOpenRequestDetails,
-                        onPickLocationOnMap = actions.onPickVolunteerLocation
+                        onPickLocationOnMap = actions.onPickVolunteerLocation,
+                        onOpenChat = actions.onOpenChat
                     )
                 }
             }

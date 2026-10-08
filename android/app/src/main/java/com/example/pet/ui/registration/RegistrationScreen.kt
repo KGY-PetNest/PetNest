@@ -1,7 +1,6 @@
 package com.example.pet.ui.registration
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,17 +39,27 @@ import com.example.pet.ui.components.FormRules
 import com.example.pet.ui.components.PasswordField
 import com.example.pet.ui.components.PhoneVisualTransformation
 import com.example.pet.ui.components.PrimaryButton
+import com.example.pet.ui.components.PrivacyPolicyLink
 import com.example.pet.ui.components.SegmentedToggle
 import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.clearFocusOnTap
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.text.style.TextAlign
+import com.example.pet.data.AppContainer
+import com.example.pet.data.UserRole
+import kotlinx.coroutines.launch
 
 @Composable
 fun RegistrationScreen(
     onLoginClick: () -> Unit,
-    onSuccess: () -> Unit,
+    onSuccess: (UserRole) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val focusManager = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
+    var loading by remember { mutableStateOf(false) }
+    var submitError by rememberSaveable { mutableStateOf(false) }
 
     var selectedRole by rememberSaveable { mutableIntStateOf(0) }
     var name by rememberSaveable { mutableStateOf("") }
@@ -66,6 +75,8 @@ fun RegistrationScreen(
     var passwordRepeatError by rememberSaveable { mutableStateOf<Int?>(null) }
 
     fun submit() {
+        if (loading) return
+        submitError = false
         nameError = FormRules.fullNameError(name)
         phoneError = if (phone.length != FormRules.PHONE_LENGTH) R.string.text_3_6 else null
         emailError = when {
@@ -88,7 +99,19 @@ fun RegistrationScreen(
             .any { it != null }
         if (!hasErrors) {
             focusManager.clearFocus()
-            onSuccess()
+            val role = if (selectedRole == 1) UserRole.Volunteer else UserRole.Owner
+            scope.launch {
+                loading = true
+                val result = AppContainer.auth.register(
+                    name = FormRules.normalizeFullName(name),
+                    phone = phone,
+                    email = email.trim(),
+                    password = password,
+                    role = role
+                )
+                loading = false
+                if (result.isSuccess) onSuccess(role) else submitError = true
+            }
         }
     }
 
@@ -213,8 +236,21 @@ fun RegistrationScreen(
 
             Spacer(Modifier.height(24.dp))
 
+            if (submitError) {
+                Text(
+                    text = stringResource(R.string.common_request_error),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
+                )
+            }
+
             PrimaryButton(
                 text = stringResource(R.string.text_3_4),
+                loading = loading,
                 onClick = { submit() }
             )
 
@@ -232,12 +268,7 @@ fun RegistrationScreen(
 
                 Spacer(Modifier.height(4.dp))
 
-                Text(
-                    text = stringResource(R.string.text_2_9),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { /* TODO */ },
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                PrivacyPolicyLink()
             }
         }
     }

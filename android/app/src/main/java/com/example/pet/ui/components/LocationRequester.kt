@@ -113,6 +113,7 @@ fun rememberLocationRequester(onOutcome: (LocationOutcome) -> Unit): LocationReq
         ActivityResultContracts.RequestMultiplePermissions()
     ) { result ->
         when {
+            result.isEmpty() -> currentOnOutcome(LocationOutcome.PermissionDenied)
             result.values.any { it } -> ensureLocationEnabled()
             activity != null && !ActivityCompat.shouldShowRequestPermissionRationale(
                 activity,

@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import java.util.concurrent.atomic.AtomicBoolean
 import com.example.pet.data.GeoPoint
 
 private const val FRESH_LOCATION_MS = 10 * 60 * 1000L
@@ -37,10 +38,12 @@ fun requestCurrentLocation(context: Context, onResult: (GeoPoint?) -> Unit) {
     }
 
     val provider = providers.first()
+    val resultSent = AtomicBoolean(false)
+    val deliver: (GeoPoint?) -> Unit = { point -> if (resultSent.compareAndSet(false, true)) onResult(point) }
     runCatching {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             manager.getCurrentLocation(provider, null, context.mainExecutor) { location ->
-                onResult(location?.toGeoPoint() ?: last?.toGeoPoint())
+                deliver(location?.toGeoPoint() ?: last?.toGeoPoint())
             }
         } else {
             var delivered = false
@@ -50,7 +53,7 @@ fun requestCurrentLocation(context: Context, onResult: (GeoPoint?) -> Unit) {
                 if (!delivered) {
                     delivered = true
                     manager.removeUpdates(listener)
-                    onResult(last?.toGeoPoint())
+                    deliver(last?.toGeoPoint())
                 }
             }
             listener = object : LocationListener {
@@ -58,7 +61,7 @@ fun requestCurrentLocation(context: Context, onResult: (GeoPoint?) -> Unit) {
                     if (!delivered) {
                         delivered = true
                         handler.removeCallbacks(timeout)
-                        onResult(location.toGeoPoint())
+                        deliver(location.toGeoPoint())
                     }
                 }
 
@@ -73,7 +76,7 @@ fun requestCurrentLocation(context: Context, onResult: (GeoPoint?) -> Unit) {
             @Suppress("DEPRECATION")
             manager.requestSingleUpdate(provider, listener, Looper.getMainLooper())
         }
-    }.onFailure { onResult(last?.toGeoPoint()) }
+    }.onFailure { deliver(last?.toGeoPoint()) }
 }
 
 private fun Location.toGeoPoint() = GeoPoint(latitude, longitude)

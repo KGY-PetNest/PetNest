@@ -29,16 +29,21 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -53,24 +58,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.example.pet.R
-import kotlinx.coroutines.launch
-import java.util.UUID
-import com.example.pet.data.Pet
 import com.example.pet.data.AppContainer
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material.icons.filled.Delete
+import com.example.pet.data.Pet
+import com.example.pet.data.repository.PetInUseException
 import com.example.pet.data.PetTrait
+import com.example.pet.data.RequestStatus
 import com.example.pet.ui.components.AvatarCropDialog
 import com.example.pet.ui.components.FormRules
 import com.example.pet.ui.components.PetTraitSelector
@@ -80,8 +80,11 @@ import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.clearFocusOnTap
 import com.example.pet.ui.components.pressScale
+import java.util.UUID
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.example.pet.ui.components.rememberLeaveGuard
 
 @Composable
 fun PetProfileScreen(
@@ -106,6 +109,14 @@ fun PetProfileScreen(
     var features by rememberSaveable { mutableStateOf(existing?.features.orEmpty()) }
     var traits by rememberSaveable { mutableStateOf(existing?.traits?.toSet() ?: emptySet()) }
     var saving by remember { mutableStateOf(false) }
+
+    val hasChanges = photoUri?.toString() != existing?.photoUri ||
+            name != existing?.name.orEmpty() ||
+            animal != existing?.animal.orEmpty() ||
+            age != existing?.age?.toString().orEmpty() ||
+            features != existing?.features.orEmpty() ||
+            traits != (existing?.traits?.toSet() ?: emptySet<PetTrait>())
+    val leave = rememberLeaveGuard(hasChanges = hasChanges && !saving, onLeave = onBack)
     var confirmDelete by remember { mutableStateOf(false) }
 
     var nameError by rememberSaveable { mutableStateOf(false) }
@@ -114,6 +125,7 @@ fun PetProfileScreen(
     var featuresError by rememberSaveable { mutableStateOf<Int?>(null) }
 
     fun submit() {
+        if (saving) return
         nameError = name.isBlank()
         animalError = animal.isBlank()
         ageError = age.isBlank()
@@ -129,11 +141,11 @@ fun PetProfileScreen(
                 features = features.trim(),
                 photoUri = photoUri?.toString()
             )
+            saving = true
             scope.launch {
-                saving = true
                 AppContainer.pets.save(pet)
-                saving = false
-                onSave(pet.id)
+                    .onSuccess { onSave(pet.id) }
+                    .onFailure { saving = false }
             }
         }
     }
@@ -170,30 +182,49 @@ fun PetProfileScreen(
     }
 
     if (confirmDelete && existing != null) {
-        AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            title = { Text(stringResource(R.string.text_4_16)) },
-            text = { Text(stringResource(R.string.text_4_17, existing.name)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmDelete = false
-                    scope.launch {
-                        AppContainer.pets.delete(existing.id)
-                        onSave(null)
-                    }
-                }) {
-                    Text(
-                        text = stringResource(R.string.common_delete),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
+        val hasActiveRequest = remember(existing.id) {
+            AppContainer.requests.ownerRequests.value.any {
+                it.petId == existing.id && it.status != RequestStatus.Completed
             }
-        )
+        }
+        if (hasActiveRequest) {
+            AlertDialog(
+                onDismissRequest = { confirmDelete = false },
+                title = { Text(stringResource(R.string.text_4_16)) },
+                text = { Text(stringResource(R.string.text_4_27, existing.name)) },
+                confirmButton = {
+                    TextButton(onClick = { confirmDelete = false }) {
+                        Text(stringResource(R.string.common_ok))
+                    }
+                }
+            )
+        } else {
+            AlertDialog(
+                onDismissRequest = { confirmDelete = false },
+                title = { Text(stringResource(R.string.text_4_16)) },
+                text = { Text(stringResource(R.string.text_4_17, existing.name)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        confirmDelete = false
+                        scope.launch {
+                            AppContainer.pets.delete(existing.id)
+                                .onSuccess { onSave(null) }
+                                .onFailure { if (it is PetInUseException) confirmDelete = true }
+                        }
+                    }) {
+                        Text(
+                            text = stringResource(R.string.common_delete),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { confirmDelete = false }) {
+                        Text(stringResource(R.string.common_cancel))
+                    }
+                }
+            )
+        }
     }
 
     val nextField = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
@@ -212,7 +243,7 @@ fun PetProfileScreen(
         ) {
             ScreenHeader(
                 title = stringResource(if (existing != null) R.string.text_4_15 else R.string.text_4_1),
-                onBack = onBack,
+                onBack = leave,
                 actions = if (existing != null) {
                     {
                         IconButton(onClick = { confirmDelete = true }) {

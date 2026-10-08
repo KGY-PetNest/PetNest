@@ -137,6 +137,7 @@ fun ChangePasswordScreen(
     var saving by remember { mutableStateOf(false) }
 
     fun submit() {
+        if (saving) return
         currentError = if (current.isEmpty()) R.string.text_18_4 else null
         passwordError = newPasswordError(password) ?: if (password == current) R.string.text_18_5 else null
         repeatErrorRes = repeatError(password, repeat)
@@ -222,6 +223,7 @@ fun ForgotPasswordScreen(
     var sending by remember { mutableStateOf(false) }
 
     fun submit() {
+        if (sending) return
         error = if (channel == 0) {
             when {
                 email.isBlank() -> R.string.text_2_10
@@ -328,6 +330,7 @@ fun ResetPasswordScreen(
     var saving by remember { mutableStateOf(false) }
 
     fun submit() {
+        if (saving) return
         passwordError = newPasswordError(password)
         repeatErrorRes = repeatError(password, repeat)
         if (passwordError != null || repeatErrorRes != null) return
