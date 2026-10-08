@@ -2,7 +2,9 @@ package com.example.pet.data
 
 import android.content.Context
 import com.example.pet.data.repository.AuthRepository
+import com.example.pet.data.repository.ChatRepository
 import com.example.pet.data.repository.FakeAuthRepository
+import com.example.pet.data.repository.InMemoryChatRepository
 import com.example.pet.data.repository.InMemoryPetRepository
 import com.example.pet.data.repository.InMemoryProfileRepository
 import com.example.pet.data.repository.InMemoryRequestRepository
@@ -23,6 +25,7 @@ object AppContainer {
     val requests: RequestRepository = InMemoryRequestRepository()
     val volunteers: VolunteerRepository = InMemoryVolunteerRepository()
     val reviews: ReviewRepository = InMemoryReviewRepository()
+    val chats: ChatRepository = InMemoryChatRepository(requests, volunteers)
 
     lateinit var settings: SettingsRepository
         private set

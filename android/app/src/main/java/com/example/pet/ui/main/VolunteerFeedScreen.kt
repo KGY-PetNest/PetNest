@@ -1,8 +1,5 @@
 package com.example.pet.ui.main
 
-import android.Manifest
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -82,6 +79,7 @@ import com.example.pet.data.formatDistanceKm
 import com.example.pet.ui.components.DateRangeDialog
 import com.example.pet.ui.components.FilterPill
 import com.example.pet.ui.components.IconLine
+import com.example.pet.ui.components.LocationOutcome
 import com.example.pet.ui.components.MyResponseStatusChip
 import com.example.pet.ui.components.PetThumbnail
 import com.example.pet.ui.components.PetTraitChips
@@ -90,12 +88,15 @@ import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.SegmentedToggle
 import com.example.pet.ui.components.cardSurface
+import com.example.pet.ui.components.fetchLocationSilently
+import com.example.pet.ui.components.openAppSettings
+import com.example.pet.ui.components.openLocationSettings
 import com.example.pet.ui.components.rememberFutureDateRangePickerState
-import com.example.pet.ui.components.requestCurrentLocation
+import com.example.pet.ui.components.rememberLocationRequester
 import com.example.pet.ui.components.toUtcMillis
 import com.example.pet.ui.components.utcMillisToLocalDate
-import kotlinx.coroutines.launch
 import java.time.LocalDate
+import kotlinx.coroutines.launch
 
 private enum class FeedSort(@param:StringRes val label: Int) {
     Soonest(R.string.text_12_14),
@@ -112,6 +113,10 @@ private val KindFilters = listOf(
 
 private val RadiusOptionsKm = listOf(1, 3, 5, 10, 20)
 private const val DEFAULT_RADIUS_KM = 5
+
+private enum class LocationProblem { Denied, Blocked, Off, Failed }
+
+private const val LOCATION_REFRESH_MIN_KM = 0.3
 
 private val MyResponsesOrder = listOf(
     MyResponseStatus.Chosen,
@@ -147,11 +152,47 @@ fun VolunteerFeedScreen(
     var locationSheetOpen by rememberSaveable { mutableStateOf(false) }
     val feedListState = rememberLazyListState()
     val myListState = rememberLazyListState()
+    val context = LocalContext.current
+    val myLocationLabel = stringResource(R.string.text_12_34)
+    var locating by remember { mutableStateOf(false) }
+    var locationProblem by rememberSaveable { mutableStateOf<LocationProblem?>(null) }
+    val locationRequester = rememberLocationRequester { outcome ->
+        locating = false
+        locationProblem = when (outcome) {
+            is LocationOutcome.Found -> {
+                AppContainer.settings.setVolunteerLocation(
+                    SavedLocation(outcome.point, myLocationLabel, isAuto = true)
+                )
+                null
+            }
+            LocationOutcome.PermissionBlocked -> LocationProblem.Blocked
+            LocationOutcome.LocationOff -> LocationProblem.Off
+            LocationOutcome.PermissionDenied -> LocationProblem.Denied
+            LocationOutcome.Failed -> LocationProblem.Failed
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val saved = AppContainer.settings.volunteerLocation.value
+        when {
+            saved == null && !AppContainer.settings.locationPrompted -> {
+                AppContainer.settings.markLocationPrompted()
+                locating = true
+                locationRequester.request()
+            }
+            saved != null && saved.isAuto -> fetchLocationSilently(context) { point ->
+                if (point != null && point.distanceKmTo(saved.point) > LOCATION_REFRESH_MIN_KM) {
+                    AppContainer.settings.setVolunteerLocation(SavedLocation(point, myLocationLabel, isAuto = true))
+                }
+            }
+        }
+    }
+
     val locationKey = myLocation?.point?.let { "${it.lat},${it.lon}" }
     var knownLocationKey by rememberSaveable { mutableStateOf(locationKey) }
 
     LaunchedEffect(locationKey) {
-        if (locationKey != null && locationKey != knownLocationKey && radiusKm == null) {
+        if (locationKey != null && knownLocationKey == null && radiusKm == null) {
             radiusKm = DEFAULT_RADIUS_KM
             sort = FeedSort.Closest
         }
@@ -216,6 +257,13 @@ fun VolunteerFeedScreen(
         LocationFilterSheet(
             location = myLocation,
             radiusKm = radiusKm,
+            locating = locating,
+            problem = locationProblem,
+            onLocate = {
+                locating = true
+                locationProblem = null
+                locationRequester.request()
+            },
             onRadiusChange = { radiusKm = it },
             onPickOnMap = {
                 locationSheetOpen = false
@@ -583,6 +631,9 @@ private fun VolunteerRequestCard(
 private fun LocationFilterSheet(
     location: SavedLocation?,
     radiusKm: Int?,
+    locating: Boolean,
+    problem: LocationProblem?,
+    onLocate: () -> Unit,
     onRadiusChange: (Int?) -> Unit,
     onPickOnMap: () -> Unit,
     onDismiss: () -> Unit
@@ -590,33 +641,11 @@ private fun LocationFilterSheet(
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
-    var locating by remember { mutableStateOf(false) }
-    var locateFailed by remember { mutableStateOf(false) }
-    val myLocationLabel = stringResource(R.string.text_12_34)
 
     fun close() {
         scope.launch { sheetState.hide() }.invokeOnCompletion {
             if (!sheetState.isVisible) onDismiss()
         }
-    }
-
-    fun locate() {
-        locating = true
-        locateFailed = false
-        requestCurrentLocation(context) { point ->
-            locating = false
-            if (point != null) {
-                AppContainer.settings.setVolunteerLocation(SavedLocation(point, myLocationLabel))
-            } else {
-                locateFailed = true
-            }
-        }
-    }
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { result ->
-        if (result.values.any { it }) locate() else locateFailed = true
     }
 
     ModalBottomSheet(
@@ -658,14 +687,7 @@ private fun LocationFilterSheet(
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
-                    onClick = {
-                        permissionLauncher.launch(
-                            arrayOf(
-                                Manifest.permission.ACCESS_COARSE_LOCATION,
-                                Manifest.permission.ACCESS_FINE_LOCATION
-                            )
-                        )
-                    },
+                    onClick = onLocate,
                     enabled = !locating,
                     modifier = Modifier.weight(1f)
                 ) {
@@ -695,13 +717,29 @@ private fun LocationFilterSheet(
                 }
             }
 
-            if (locateFailed) {
+            if (problem != null) {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = stringResource(R.string.text_12_33),
+                    text = stringResource(
+                        when (problem) {
+                            LocationProblem.Denied -> R.string.text_12_48
+                            LocationProblem.Blocked -> R.string.text_12_44
+                            LocationProblem.Off -> R.string.text_12_46
+                            LocationProblem.Failed -> R.string.text_12_33
+                        }
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
+                when (problem) {
+                    LocationProblem.Blocked -> TextButton(onClick = { openAppSettings(context) }) {
+                        Text(stringResource(R.string.text_12_45))
+                    }
+                    LocationProblem.Off -> TextButton(onClick = { openLocationSettings(context) }) {
+                        Text(stringResource(R.string.text_12_47))
+                    }
+                    LocationProblem.Denied, LocationProblem.Failed -> Unit
+                }
             }
 
             Spacer(Modifier.height(20.dp))

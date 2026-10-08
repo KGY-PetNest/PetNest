@@ -1,5 +1,7 @@
 package com.example.pet.data.repository
 
+import com.example.pet.data.Chat
+import com.example.pet.data.ChatMessage
 import com.example.pet.data.Pet
 import com.example.pet.data.PetRequest
 import com.example.pet.data.Review
@@ -53,9 +55,22 @@ interface ReviewRepository {
     suspend fun add(review: Review): Result<Unit>
 }
 
+interface ChatRepository {
+    fun chats(role: UserRole): StateFlow<List<Chat>>
+    fun messages(chatId: String): StateFlow<List<ChatMessage>>
+    suspend fun openChat(role: UserRole, requestId: String, volunteerId: String): Result<Chat>
+    suspend fun send(chatId: String, role: UserRole, text: String): Result<Unit>
+    suspend fun resend(chatId: String, messageId: String): Result<Unit>
+    suspend fun markRead(chatId: String)
+}
+
 interface SettingsRepository {
     val themeMode: StateFlow<ThemeMode>
     fun setThemeMode(mode: ThemeMode)
     val volunteerLocation: StateFlow<SavedLocation?>
     fun setVolunteerLocation(location: SavedLocation)
+    val locationPrompted: Boolean
+    fun markLocationPrompted()
+    val sessionRole: UserRole?
+    fun setSessionRole(role: UserRole?)
 }

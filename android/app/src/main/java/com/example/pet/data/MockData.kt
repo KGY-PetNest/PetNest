@@ -1,12 +1,26 @@
 package com.example.pet.data
 
 import java.time.LocalDate
+import java.time.LocalDateTime
+
+data class ChatSeed(
+    val side: UserRole,
+    val chat: Chat,
+    val messages: List<ChatMessage>,
+    val unread: Int
+)
 
 object MockData {
 
     const val CURRENT_VOLUNTEER_ID = "u1"
 
-    private fun date(month: Int, day: Int, year: Int = 2027): LocalDate = LocalDate.of(year, month, day)
+    private val today: LocalDate = LocalDate.now()
+
+    private val now: LocalDateTime = LocalDateTime.now()
+
+    private fun inDays(days: Long): LocalDate = today.plusDays(days)
+
+    private fun daysAgo(days: Long): LocalDate = today.minusDays(days)
 
     val ownerProfile = UserProfile(
         name = "Петрова Елена Сергеевна",
@@ -41,7 +55,7 @@ object MockData {
     val ownerRequests = listOf(
         PetRequest(
             id = "o1", petId = "p1", title = "Барсик", petInfo = "Кот, 3 года", kind = PetKind.Cat,
-            start = date(5, 12), end = date(5, 19), district = "",
+            start = inDays(6), end = inDays(13), district = "",
             address = "Москва, ул. Пушкина, 48", comment = "Ключи у соседки из 12 квартиры",
             traits = listOf(PetTrait.Medication, PetTrait.FearsNoise),
             features = "Таблетка утром вместе с едой, боится пылесоса",
@@ -49,7 +63,7 @@ object MockData {
         ),
         PetRequest(
             id = "o2", petId = "p2", title = "Муся", petInfo = "Кошка, 1 год", kind = PetKind.Cat,
-            start = date(6, 16), end = date(7, 5), district = "",
+            start = inDays(40), end = inDays(59), district = "",
             address = "Москва, ул. Горького, 37", comment = "Кормить два раза в день",
             traits = listOf(PetTrait.Calm, PetTrait.SpecialDiet),
             features = "Ест только влажный корм, очень ласковая",
@@ -58,7 +72,7 @@ object MockData {
         ),
         PetRequest(
             id = "o3", petId = "p3", title = "Памперс", petInfo = "Пёс, 5 лет", kind = PetKind.Dog,
-            start = date(3, 1, 2026), end = date(3, 6, 2026), district = "",
+            start = daysAgo(40), end = daysAgo(35), district = "",
             address = "Москва, ул. Ленина, 5", comment = "Гулять утром и вечером",
             traits = listOf(PetTrait.Active, PetTrait.NeedsWalks),
             features = "Гулять два раза в день, тянет поводок",
@@ -70,7 +84,7 @@ object MockData {
     val volunteerFeed = listOf(
         PetRequest(
             id = "v1", petId = "x1", title = "Нужна передержка для кота", petInfo = "Кот, 3 года", kind = PetKind.Cat,
-            start = date(5, 12), end = date(5, 19), district = "",
+            start = inDays(6), end = inDays(13), district = "",
             address = "Москва, ул. Тверская, 10", comment = "Кот спокойный, нужен корм по расписанию",
             traits = listOf(PetTrait.Medication, PetTrait.FearsNoise),
             features = "Таблетка от давления утром, прячется при громких звуках",
@@ -79,7 +93,7 @@ object MockData {
         ),
         PetRequest(
             id = "v2", petId = "x2", title = "Собака, 5 лет", petInfo = "Собака, 5 лет", kind = PetKind.Dog,
-            start = date(5, 10), end = date(5, 15), district = "",
+            start = inDays(4), end = inDays(9), district = "",
             address = "Москва, ул. Лесная, 3", comment = "Очень любит долгие прогулки",
             traits = listOf(PetTrait.Active, PetTrait.NeedsWalks),
             features = "Очень энергичный, нужно минимум два часа прогулок в день",
@@ -88,7 +102,7 @@ object MockData {
         ),
         PetRequest(
             id = "v3", petId = "x3", title = "Кошка, 2 года", petInfo = "Кошка, 2 года", kind = PetKind.Cat,
-            start = date(5, 8), end = date(5, 11), district = "",
+            start = inDays(2), end = inDays(5), district = "",
             address = "Москва, проспект Мира, 21", comment = "Не любит, когда берут на руки",
             traits = listOf(PetTrait.Calm),
             features = "Спокойная, любит сидеть на подоконнике, не берите на руки",
@@ -97,7 +111,7 @@ object MockData {
         ),
         PetRequest(
             id = "v4", petId = "x4", title = "Кот, 4 года", petInfo = "Кот, 4 года", kind = PetKind.Cat,
-            start = date(5, 15), end = date(5, 25), district = "",
+            start = inDays(9), end = inDays(19), district = "",
             address = "Москва, Садовая-Кудринская улица, 7", comment = "Нужно давать лекарство вечером",
             traits = listOf(PetTrait.Medication, PetTrait.Senior),
             features = "Пожилой, лекарство вечером в паштете, мало двигается",
@@ -106,7 +120,7 @@ object MockData {
         ),
         PetRequest(
             id = "v5", petId = "x5", title = "Хомяк, 1 год", petInfo = "Хомяк, 1 год", kind = PetKind.Other,
-            start = date(5, 20), end = date(5, 27), district = "",
+            start = inDays(14), end = inDays(21), district = "",
             address = "Москва, ул. Арбат, 15", comment = "Клетку привезу сам",
             traits = listOf(PetTrait.Calm, PetTrait.SpecialDiet),
             features = "Корм только специальный, зерновую смесь не давать",
@@ -115,7 +129,7 @@ object MockData {
         ),
         PetRequest(
             id = "v6", petId = "x6", title = "Пёс, 7 лет", petInfo = "Пёс, 7 лет", kind = PetKind.Dog,
-            start = date(6, 1), end = date(6, 4), district = "",
+            start = inDays(26), end = inDays(29), district = "",
             address = "Москва, Кутузовский проспект, 2", comment = "Не ладит с другими собаками",
             traits = listOf(PetTrait.NotFriendlyWithAnimals, PetTrait.NeedsWalks),
             features = "Агрессивно реагирует на других собак, гулять на коротком поводке",
@@ -124,8 +138,9 @@ object MockData {
         ),
         PetRequest(
             id = "v7", petId = "x7", title = "Кошка, 6 лет", petInfo = "Кошка, 6 лет", kind = PetKind.Cat,
-            start = date(5, 3), end = date(5, 9), district = "",
+            start = inDays(3), end = inDays(9), district = "",
             address = "Москва, Новослободская улица, 14", comment = "Корм и наполнитель оставлю",
+            addressDetails = "кв. 27, подъезд 2, этаж 5",
             traits = listOf(PetTrait.Calm, PetTrait.SpecialDiet),
             features = "Ест только по расписанию, очень спокойная",
             location = GeoPoint(55.7835, 37.6),
@@ -133,7 +148,7 @@ object MockData {
         ),
         PetRequest(
             id = "v8", petId = "x8", title = "Пёс, 2 года", petInfo = "Пёс, 2 года", kind = PetKind.Dog,
-            start = date(5, 18), end = date(5, 22), district = "",
+            start = inDays(12), end = inDays(16), district = "",
             address = "Москва, Ленинградский проспект, 30", comment = "Нужны две прогулки в день",
             traits = listOf(PetTrait.Active, PetTrait.NeedsWalks),
             features = "Молодой и игривый, любит мяч",
@@ -142,7 +157,7 @@ object MockData {
         ),
         PetRequest(
             id = "v9", petId = "x9", title = "Кот, 8 лет", petInfo = "Кот, 8 лет", kind = PetKind.Cat,
-            start = date(2, 10, 2026), end = date(2, 15, 2026), district = "",
+            start = daysAgo(60), end = daysAgo(55), district = "",
             address = "Москва, Тверская улица, 22", comment = "Лекарство утром",
             traits = listOf(PetTrait.Medication, PetTrait.Senior),
             features = "Пожилой, таблетка утром в корме",
@@ -158,8 +173,10 @@ object MockData {
                     "Есть опыт с таблетками и особым уходом.",
             homeConditions = listOf(
                 HomeConditionType.Apartment,
+                HomeConditionType.WindowNets,
                 HomeConditionType.NoOtherPets,
-                HomeConditionType.SomeoneHome
+                HomeConditionType.SomeoneHome,
+                HomeConditionType.CanGiveMedication
             ),
             acceptedPets = listOf(AcceptedPet.Cats, AcceptedPet.SmallDogs)
         ),
@@ -169,7 +186,9 @@ object MockData {
             homeConditions = listOf(
                 HomeConditionType.House,
                 HomeConditionType.Yard,
-                HomeConditionType.HasOtherPets
+                HomeConditionType.HasOtherPets,
+                HomeConditionType.HasKids,
+                HomeConditionType.CanWalk
             ),
             acceptedPets = listOf(AcceptedPet.SmallDogs, AcceptedPet.LargeDogs, AcceptedPet.Cats)
         ),
@@ -178,6 +197,7 @@ object MockData {
             about = "Спокойная квартира, есть опыт с пожилыми кошками.",
             homeConditions = listOf(
                 HomeConditionType.Apartment,
+                HomeConditionType.WindowNets,
                 HomeConditionType.HasOtherPets,
                 HomeConditionType.NoKids
             ),
@@ -186,13 +206,111 @@ object MockData {
     )
 
     val reviews = listOf(
-        Review("r1", "u1", "v9", "Ольга", 5, "Мария прекрасно позаботилась о нашем коте, присылала фото каждый день.", date(2, 16, 2026)),
-        Review("r2", "u1", null, "Игорь", 5, "Всё отлично, собака вернулась довольная и спокойная.", date(1, 22, 2026)),
-        Review("r3", "u1", null, "Анна", 4, "Хорошая передержка, но хотелось бы чаще получать новости.", date(12, 5, 2025)),
-        Review("r4", "u2", null, "Света", 5, "Алексей гулял с собакой даже под дождём. Рекомендую!", date(2, 1, 2026)),
-        Review("r5", "u2", null, "Павел", 4, "Всё хорошо, пёс набегался во дворе.", date(11, 14, 2025)),
-        Review("r6", "u3", null, "Дмитрий", 5, "Катя очень бережно отнеслась к нашему пожилому коту.", date(1, 30, 2026))
+        Review("r1", "u1", "v9", "Ольга", 5, "Мария прекрасно позаботилась о нашем коте, присылала фото каждый день.", daysAgo(54)),
+        Review("r2", "u1", null, "Игорь", 5, "Всё отлично, собака вернулась довольная и спокойная.", daysAgo(80)),
+        Review("r3", "u1", null, "Анна", 4, "Хорошая передержка, но хотелось бы чаще получать новости.", daysAgo(120)),
+        Review("r4", "u2", null, "Света", 5, "Алексей гулял с собакой даже под дождём. Рекомендую!", daysAgo(95)),
+        Review("r5", "u2", null, "Павел", 4, "Всё хорошо, пёс набегался во дворе.", daysAgo(140)),
+        Review("r6", "u3", null, "Дмитрий", 5, "Катя очень бережно отнеслась к нашему пожилому коту.", daysAgo(85))
     )
 
     val respondedIds = setOf("v2", "v7", "v8", "v9")
+
+    private fun message(
+        chatId: String,
+        index: Int,
+        from: UserRole,
+        text: String,
+        ago: Long,
+        status: MessageStatus = MessageStatus.Read
+    ) = ChatMessage(
+        id = "$chatId-$index",
+        chatId = chatId,
+        senderRole = from,
+        text = text,
+        sentAt = now.minusMinutes(ago),
+        status = status
+    )
+
+    private fun ownerChat(id: String, requestId: String, volunteerId: String): Chat {
+        val request = ownerRequests.first { it.id == requestId }
+        val companion = volunteers.first { it.id == volunteerId }
+        return Chat(
+            id = id,
+            requestId = requestId,
+            volunteerId = volunteerId,
+            companionName = companion.name,
+            companionAvatarUri = companion.avatarUri,
+            requestTitle = request.title,
+            requestDates = request.dates,
+            petPhotoUri = request.petPhotoUri
+        )
+    }
+
+    private fun volunteerChat(id: String, requestId: String): Chat {
+        val request = volunteerFeed.first { it.id == requestId }
+        return Chat(
+            id = id,
+            requestId = requestId,
+            volunteerId = CURRENT_VOLUNTEER_ID,
+            companionName = request.ownerName,
+            requestTitle = request.title,
+            requestDates = request.dates,
+            petPhotoUri = request.petPhotoUri
+        )
+    }
+
+    private val ownerSide = UserRole.Owner
+    private val volunteerSide = UserRole.Volunteer
+
+    val chats = listOf(
+        ChatSeed(
+            side = ownerSide,
+            chat = ownerChat("c1", "o1", "u1"),
+            messages = listOf(
+                message("c1", 1, volunteerSide, "Здравствуйте! Увидела заявку на Барсика, могу взять его на эти даты", 26L * 60),
+                message("c1", 2, ownerSide, "Здравствуйте! Он принимает таблетку утром, получится давать?", 25L * 60),
+                message("c1", 3, volunteerSide, "Да, конечно. Можно спрятать в паштет, у меня был такой опыт", 40L)
+            ),
+            unread = 1
+        ),
+        ChatSeed(
+            side = ownerSide,
+            chat = ownerChat("c2", "o2", "u3"),
+            messages = listOf(
+                message("c2", 1, ownerSide, "Екатерина, добрый день! Когда вам удобно забрать Мусю?", 3L * 24 * 60 + 120),
+                message("c2", 2, volunteerSide, "Добрый! Давайте в пятницу после 18:00", 3L * 24 * 60 + 90),
+                message("c2", 3, ownerSide, "Отлично, договорились", 3L * 24 * 60 + 80)
+            ),
+            unread = 0
+        ),
+        ChatSeed(
+            side = volunteerSide,
+            chat = volunteerChat("c3", "v7"),
+            messages = listOf(
+                message("c3", 1, ownerSide, "Мария, здравствуйте! Я выбрала вас для передержки моей кошки", 5L * 60),
+                message("c3", 2, volunteerSide, "Спасибо! Буду рада помочь. Когда удобно передать?", 4L * 60 + 50),
+                message("c3", 3, ownerSide, "Ключи оставлю у консьержа, корм и наполнитель в прихожей", 12L),
+                message("c3", 4, ownerSide, "Позвоните, когда будете подъезжать", 11L)
+            ),
+            unread = 2
+        ),
+        ChatSeed(
+            side = volunteerSide,
+            chat = volunteerChat("c4", "v2"),
+            messages = listOf(
+                message("c4", 1, volunteerSide, "Здравствуйте! Сколько примерно гулять с собакой?", 2L * 24 * 60 + 300),
+                message("c4", 2, ownerSide, "Минимум два часа в день, лучше утром и вечером", 2L * 24 * 60 + 250)
+            ),
+            unread = 0
+        )
+    )
+
+    val chatAutoReplies = listOf(
+        "Хорошо, договорились!",
+        "Спасибо, сейчас посмотрю",
+        "Да, конечно",
+        "Отлично, тогда до встречи",
+        "Поняла, спасибо за подробности"
+    )
 }

@@ -7,6 +7,8 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -19,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.example.pet.navigation.Screen
+
+private const val BADGE_MAX = 99
 
 private data class BottomNavItem(
     val screen: Screen,
@@ -37,7 +41,8 @@ private val bottomNavItems = listOf(
 fun BottomNavBar(
     currentScreen: Screen,
     onItemClick: (Screen) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    unreadChats: Int = 0
 ) {
     val primary = MaterialTheme.colorScheme.primary
 
@@ -56,11 +61,24 @@ fun BottomNavBar(
                     selected = currentScreen == item.screen,
                     onClick = { onItemClick(item.screen) },
                     icon = {
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = null,
-                            modifier = Modifier.size(22.dp)
-                        )
+                        BadgedBox(
+                            badge = {
+                                if (item.screen == Screen.Chat && unreadChats > 0) {
+                                    Badge(
+                                        containerColor = primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                    ) {
+                                        Text(if (unreadChats > BADGE_MAX) "$BADGE_MAX+" else unreadChats.toString())
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
                     },
                     label = {
                         Text(

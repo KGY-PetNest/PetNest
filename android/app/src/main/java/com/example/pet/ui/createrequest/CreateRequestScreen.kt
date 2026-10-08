@@ -30,12 +30,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Apartment
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -45,6 +45,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -60,20 +61,15 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.pet.R
-import kotlinx.coroutines.launch
-import java.util.UUID
-import com.example.pet.ui.components.toUtcMillis
-import com.example.pet.ui.components.utcMillisToLocalDate
-import com.example.pet.data.UserRole
-import com.example.pet.data.RequestStatus
-import com.example.pet.data.GeoPoint
-import com.example.pet.data.PetRequest
-import com.example.pet.data.Pet
-import com.example.pet.data.AppContainer
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.rememberCoroutineScope
+import com.example.pet.R
+import com.example.pet.data.AppContainer
+import com.example.pet.data.GeoPoint
+import com.example.pet.data.Pet
+import com.example.pet.data.PetRequest
+import com.example.pet.data.RequestStatus
+import com.example.pet.data.UserRole
+import com.example.pet.ui.components.AppTextField
 import com.example.pet.ui.components.DateRangeDialog
 import com.example.pet.ui.components.FormRules
 import com.example.pet.ui.components.PetThumbnail
@@ -85,11 +81,15 @@ import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.clearFocusOnTap
 import com.example.pet.ui.components.pressScale
 import com.example.pet.ui.components.rememberFutureDateRangePickerState
+import com.example.pet.ui.components.toUtcMillis
+import com.example.pet.ui.components.utcMillisToLocalDate
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import java.util.UUID
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,7 +103,7 @@ fun CreateRequestScreen(
     onPickedAddressUsed: () -> Unit,
     addedPetId: String?,
     onAddedPetUsed: () -> Unit,
-    onPickOnMap: () -> Unit,
+    onPickOnMap: (GeoPoint?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val focusManager = LocalFocusManager.current
@@ -138,6 +138,7 @@ fun CreateRequestScreen(
 
     var address by rememberSaveable { mutableStateOf(existing?.address.orEmpty()) }
     var location by rememberSaveable { mutableStateOf(existing?.location) }
+    var addressDetails by rememberSaveable { mutableStateOf(existing?.addressDetails.orEmpty()) }
 
     LaunchedEffect(addedPetId, pets) {
         if (addedPetId != null && pets.any { it.id == addedPetId }) {
@@ -193,6 +194,7 @@ fun CreateRequestScreen(
                 end = utcMillisToLocalDate(end),
                 district = existing?.district.orEmpty(),
                 address = address.trim(),
+                addressDetails = addressDetails.trim(),
                 location = location,
                 comment = comment.trim(),
                 traits = selectedPet.traits,
@@ -372,47 +374,70 @@ fun CreateRequestScreen(
 
                             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
                                 SectionLabel(stringResource(R.string.text_5_7))
-                                OutlinedTextField(
-                                    value = address,
-                                    onValueChange = {
-                                        address = it
-                                        location = null
-                                        addressError = false
-                                    },
-                                    placeholder = { Text(stringResource(R.string.text_5_8)) },
-                                    leadingIcon = {
-                                        Icon(
-                                            imageVector = Icons.Default.LocationOn,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    },
-                                    trailingIcon = {
-                                        IconButton(onClick = {
-                                            focusManager.clearFocus()
-                                            onPickOnMap()
-                                        }) {
-                                            Icon(
-                                                imageVector = Icons.Default.Map,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
-                                    },
-                                    isError = addressError,
-                                    supportingText = if (addressError) {
-                                        { Text(stringResource(R.string.text_5_21)) }
+
+                                val addressBorder by animateColorAsState(
+                                    targetValue = if (addressError) {
+                                        MaterialTheme.colorScheme.error
                                     } else {
-                                        null
+                                        MaterialTheme.colorScheme.outline
                                     },
-                                    keyboardOptions = KeyboardOptions(
-                                        keyboardType = KeyboardType.Text,
-                                        imeAction = ImeAction.Done
-                                    ),
-                                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                                    shape = RoundedCornerShape(16.dp),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
+                                    label = "addressBorder"
+                                )
+                                val addressInteraction = remember { MutableInteractionSource() }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .pressScale(addressInteraction, pressedScale = 0.98f)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .border(1.dp, addressBorder, RoundedCornerShape(16.dp))
+                                        .clickable(interactionSource = addressInteraction, indication = null) {
+                                            focusManager.clearFocus()
+                                            onPickOnMap(location)
+                                        }
+                                        .padding(horizontal = 16.dp, vertical = 16.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.LocationOn,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Text(
+                                        text = address.ifBlank { stringResource(R.string.text_5_8) },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = if (address.isNotBlank()) {
+                                            MaterialTheme.colorScheme.onSurface
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.Map,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                                ErrorText(
+                                    visible = addressError,
+                                    text = stringResource(R.string.text_5_21),
+                                    horizontalPadding = 16.dp
+                                )
+
+                                Spacer(Modifier.height(10.dp))
+
+                                AppTextField(
+                                    value = addressDetails,
+                                    onValueChange = { addressDetails = it },
+                                    placeholder = stringResource(R.string.text_5_27),
+                                    leadingIcon = Icons.Default.Apartment,
+                                    helperText = stringResource(R.string.text_5_28),
+                                    maxLength = FormRules.ADDRESS_DETAILS_MAX_LENGTH,
+                                    imeAction = ImeAction.Done,
+                                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
                                 )
                             }
 
@@ -430,7 +455,7 @@ fun CreateRequestScreen(
                         OutlinedTextField(
                             value = comment,
                             onValueChange = {
-                                comment = it
+                                comment = it.take(FormRules.LONG_TEXT_MAX_LENGTH)
                                 commentError = null
                             },
                             placeholder = { Text(stringResource(R.string.text_5_25)) },
@@ -498,7 +523,7 @@ private fun PetCard(
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = current?.info ?: stringResource(R.string.text_5_22),
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (current != null) {

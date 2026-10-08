@@ -265,6 +265,7 @@ fun ForgotPasswordScreen(
             if (selected == 0) {
                 AppTextField(
                     value = email,
+                    maxLength = FormRules.EMAIL_MAX_LENGTH,
                     onValueChange = {
                         email = it.trim()
                         error = null

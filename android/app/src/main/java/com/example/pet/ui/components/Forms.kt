@@ -41,6 +41,13 @@ object FormRules {
     const val CODE_LENGTH = 6
     const val PET_AGE_MAX_DIGITS = 2
     const val DESCRIPTION_MIN_LENGTH = 10
+    const val NAME_MAX_LENGTH = 60
+    const val EMAIL_MAX_LENGTH = 100
+    const val PASSWORD_MAX_LENGTH = 64
+    const val SHORT_TEXT_MAX_LENGTH = 40
+    const val ADDRESS_DETAILS_MAX_LENGTH = 100
+    const val LONG_TEXT_MAX_LENGTH = 1000
+    const val DEFAULT_MAX_LENGTH = 200
     val FULL_NAME_WORDS = 2..3
 
     fun normalizeFullName(value: String): String =
@@ -81,11 +88,13 @@ fun AppTextField(
     imeAction: ImeAction = ImeAction.Next,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
-    singleLine: Boolean = true
+    singleLine: Boolean = true,
+    helperText: String? = null,
+    maxLength: Int = if (singleLine) FormRules.DEFAULT_MAX_LENGTH else FormRules.LONG_TEXT_MAX_LENGTH
 ) {
     OutlinedTextField(
         value = value,
-        onValueChange = onValueChange,
+        onValueChange = { onValueChange(it.take(maxLength)) },
         placeholder = {
             Text(
                 text = placeholder,
@@ -100,10 +109,14 @@ fun AppTextField(
         },
         trailingIcon = trailingIcon,
         isError = errorText != null,
-        supportingText = if (errorText != null) {
-            { Text(errorText) }
-        } else {
-            null
+        supportingText = when {
+            errorText != null -> {
+                { Text(errorText) }
+            }
+            helperText != null -> {
+                { Text(helperText) }
+            }
+            else -> null
         },
         visualTransformation = visualTransformation,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
@@ -127,6 +140,7 @@ fun PasswordField(
     var visible by rememberSaveable { mutableStateOf(false) }
 
     AppTextField(
+        maxLength = FormRules.PASSWORD_MAX_LENGTH,
         value = value,
         onValueChange = onValueChange,
         placeholder = placeholder,

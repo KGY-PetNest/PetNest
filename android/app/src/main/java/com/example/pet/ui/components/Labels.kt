@@ -2,19 +2,24 @@ package com.example.pet.ui.components
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Apartment
 import androidx.compose.material.icons.filled.ChildCare
+import androidx.compose.material.icons.filled.ChildFriendly
 import androidx.compose.material.icons.filled.Grass
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.filled.Window
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.pet.R
 import com.example.pet.data.AcceptedPet
+import com.example.pet.data.HomeConditionGroup
 import com.example.pet.data.HomeConditionType
+import com.example.pet.data.MyResponseStatus
 import com.example.pet.data.PetTrait
 import com.example.pet.data.PetTraitGroup
-import com.example.pet.data.MyResponseStatus
 import com.example.pet.data.RequestStatus
 
 @get:StringRes
@@ -45,15 +50,27 @@ val PetTraitGroup.label: Int
     }
 
 @get:StringRes
+val HomeConditionGroup.label: Int
+    get() = when (this) {
+        HomeConditionGroup.Housing -> R.string.common_home_group_housing
+        HomeConditionGroup.Household -> R.string.common_home_group_household
+        HomeConditionGroup.Care -> R.string.common_home_group_care
+    }
+
+@get:StringRes
 val HomeConditionType.label: Int
     get() = when (this) {
         HomeConditionType.Apartment -> R.string.common_home_apartment
         HomeConditionType.House -> R.string.common_home_house
         HomeConditionType.Yard -> R.string.common_home_yard
+        HomeConditionType.WindowNets -> R.string.common_home_window_nets
         HomeConditionType.NoOtherPets -> R.string.common_home_no_pets
         HomeConditionType.HasOtherPets -> R.string.common_home_has_pets
-        HomeConditionType.SomeoneHome -> R.string.common_home_someone_home
         HomeConditionType.NoKids -> R.string.common_home_no_kids
+        HomeConditionType.HasKids -> R.string.common_home_has_kids
+        HomeConditionType.SomeoneHome -> R.string.common_home_someone_home
+        HomeConditionType.CanWalk -> R.string.common_home_can_walk
+        HomeConditionType.CanGiveMedication -> R.string.common_home_can_medicate
     }
 
 val HomeConditionType.icon: ImageVector
@@ -61,9 +78,13 @@ val HomeConditionType.icon: ImageVector
         HomeConditionType.Apartment -> Icons.Default.Apartment
         HomeConditionType.House -> Icons.Default.Home
         HomeConditionType.Yard -> Icons.Default.Grass
+        HomeConditionType.WindowNets -> Icons.Default.Window
         HomeConditionType.NoOtherPets, HomeConditionType.HasOtherPets -> Icons.Default.Pets
-        HomeConditionType.SomeoneHome -> Icons.Default.Person
         HomeConditionType.NoKids -> Icons.Default.ChildCare
+        HomeConditionType.HasKids -> Icons.Default.ChildFriendly
+        HomeConditionType.SomeoneHome -> Icons.Default.Person
+        HomeConditionType.CanWalk -> Icons.AutoMirrored.Filled.DirectionsWalk
+        HomeConditionType.CanGiveMedication -> Icons.Default.Medication
     }
 
 @get:StringRes

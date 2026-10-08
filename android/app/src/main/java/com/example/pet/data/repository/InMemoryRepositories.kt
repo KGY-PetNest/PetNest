@@ -1,5 +1,8 @@
 package com.example.pet.data.repository
 
+import com.example.pet.data.Chat
+import com.example.pet.data.ChatMessage
+import com.example.pet.data.MessageStatus
 import com.example.pet.data.MockData
 import com.example.pet.data.Pet
 import com.example.pet.data.PetRequest
@@ -8,13 +11,22 @@ import com.example.pet.data.Review
 import com.example.pet.data.UserProfile
 import com.example.pet.data.UserRole
 import com.example.pet.data.Volunteer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.util.UUID
 
 private const val FAKE_NETWORK_DELAY_MS = 400L
+private const val FAKE_READ_DELAY_MS = 1500L
+private const val FAKE_REPLY_DELAY_MS = 2500L
 
 class FakeAuthRepository : AuthRepository {
     override suspend fun login(email: String, password: String, role: UserRole): Result<Unit> {
@@ -169,5 +181,172 @@ class InMemoryReviewRepository : ReviewRepository {
         delay(FAKE_NETWORK_DELAY_MS)
         state.update { listOf(review) + it }
         return Result.success(Unit)
+    }
+}
+
+private data class ChatThread(
+    val side: UserRole,
+    val chat: Chat,
+    val messages: List<ChatMessage>,
+    val unread: Int
+) {
+    fun toChat(): Chat = chat.copy(lastMessage = messages.lastOrNull(), unreadCount = unread)
+}
+
+class InMemoryChatRepository(
+    private val requests: RequestRepository,
+    private val volunteers: VolunteerRepository
+) : ChatRepository {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val lock = Any()
+    private val threads = LinkedHashMap<String, ChatThread>()
+    private val ownerChats = MutableStateFlow<List<Chat>>(emptyList())
+    private val volunteerChats = MutableStateFlow<List<Chat>>(emptyList())
+    private val messageFlows = HashMap<String, MutableStateFlow<List<ChatMessage>>>()
+    private val replyJobs = HashMap<String, Job>()
+
+    init {
+        MockData.chats.forEach { seed ->
+            threads[seed.chat.id] = ChatThread(seed.side, seed.chat, seed.messages, seed.unread)
+        }
+        publish()
+    }
+
+    override fun chats(role: UserRole): StateFlow<List<Chat>> = when (role) {
+        UserRole.Owner -> ownerChats.asStateFlow()
+        UserRole.Volunteer -> volunteerChats.asStateFlow()
+    }
+
+    override fun messages(chatId: String): StateFlow<List<ChatMessage>> = synchronized(lock) {
+        messageFlows.getOrPut(chatId) { MutableStateFlow(threads[chatId]?.messages.orEmpty()) }.asStateFlow()
+    }
+
+    override suspend fun openChat(role: UserRole, requestId: String, volunteerId: String): Result<Chat> {
+        val existing = synchronized(lock) {
+            threads.values.firstOrNull {
+                it.side == role && it.chat.requestId == requestId && it.chat.volunteerId == volunteerId
+            }
+        }
+        if (existing != null) return Result.success(existing.toChat())
+
+        delay(FAKE_NETWORK_DELAY_MS)
+        val request = when (role) {
+            UserRole.Owner -> requests.ownerRequests.value
+            UserRole.Volunteer -> requests.feed.value
+        }.firstOrNull { it.id == requestId }
+        val volunteer = volunteers.volunteers.value.firstOrNull { it.id == volunteerId }
+        if (request == null || volunteer == null) {
+            return Result.failure(NoSuchElementException("Chat target not found"))
+        }
+
+        val chat = Chat(
+            id = UUID.randomUUID().toString(),
+            requestId = requestId,
+            volunteerId = volunteerId,
+            companionName = if (role == UserRole.Owner) volunteer.name else request.ownerName,
+            companionAvatarUri = if (role == UserRole.Owner) volunteer.avatarUri else null,
+            requestTitle = request.title,
+            requestDates = request.dates,
+            petPhotoUri = request.petPhotoUri
+        )
+        synchronized(lock) {
+            threads[chat.id] = ChatThread(role, chat, emptyList(), 0)
+            publish()
+        }
+        return Result.success(chat)
+    }
+
+    override suspend fun send(chatId: String, role: UserRole, text: String): Result<Unit> {
+        val body = text.trim()
+        if (body.isEmpty()) return Result.failure(IllegalArgumentException("Empty message"))
+        val message = ChatMessage(
+            id = UUID.randomUUID().toString(),
+            chatId = chatId,
+            senderRole = role,
+            text = body,
+            sentAt = LocalDateTime.now(),
+            status = MessageStatus.Sending
+        )
+        val added = update(chatId) { it.copy(messages = it.messages + message) }
+        if (!added) return Result.failure(NoSuchElementException("Chat not found"))
+        deliver(chatId, message.id, role)
+        return Result.success(Unit)
+    }
+
+    override suspend fun resend(chatId: String, messageId: String): Result<Unit> {
+        val senderRole = synchronized(lock) {
+            threads[chatId]?.messages?.firstOrNull { it.id == messageId }?.senderRole
+        } ?: return Result.failure(NoSuchElementException("Message not found"))
+        setStatus(chatId, messageId, MessageStatus.Sending)
+        deliver(chatId, messageId, senderRole)
+        return Result.success(Unit)
+    }
+
+    private fun deliver(chatId: String, messageId: String, senderRole: UserRole) {
+        scope.launch {
+            delay(FAKE_NETWORK_DELAY_MS)
+            setStatus(chatId, messageId, MessageStatus.Sent)
+            scheduleReply(chatId, senderRole)
+        }
+    }
+
+    override suspend fun markRead(chatId: String) {
+        update(chatId) { if (it.unread == 0) it else it.copy(unread = 0) }
+    }
+
+    private fun setStatus(chatId: String, messageId: String, status: MessageStatus) {
+        update(chatId) { thread ->
+            thread.copy(messages = thread.messages.map { if (it.id == messageId) it.copy(status = status) else it })
+        }
+    }
+
+    private fun scheduleReply(chatId: String, senderRole: UserRole) {
+        val companionRole = if (senderRole == UserRole.Owner) UserRole.Volunteer else UserRole.Owner
+        synchronized(lock) {
+            replyJobs[chatId]?.cancel()
+            replyJobs[chatId] = scope.launch {
+                delay(FAKE_READ_DELAY_MS)
+                update(chatId) { thread ->
+                    thread.copy(messages = thread.messages.map {
+                        if (it.senderRole == senderRole && it.status == MessageStatus.Sent) {
+                            it.copy(status = MessageStatus.Read)
+                        } else {
+                            it
+                        }
+                    })
+                }
+                delay(FAKE_REPLY_DELAY_MS)
+                val reply = ChatMessage(
+                    id = UUID.randomUUID().toString(),
+                    chatId = chatId,
+                    senderRole = companionRole,
+                    text = MockData.chatAutoReplies.random(),
+                    sentAt = LocalDateTime.now()
+                )
+                update(chatId) { it.copy(messages = it.messages + reply, unread = it.unread + 1) }
+            }
+        }
+    }
+
+    private fun update(chatId: String, transform: (ChatThread) -> ChatThread): Boolean {
+        synchronized(lock) {
+            val current = threads[chatId] ?: return false
+            val updated = transform(current)
+            if (updated != current) {
+                threads[chatId] = updated
+                publish()
+            }
+            return true
+        }
+    }
+
+    private fun publish() {
+        fun listFor(side: UserRole): List<Chat> = threads.values
+            .filter { it.side == side }
+            .map { it.toChat() }
+            .sortedByDescending { it.lastMessage?.sentAt }
+        ownerChats.value = listFor(UserRole.Owner)
+        volunteerChats.value = listFor(UserRole.Volunteer)
+        messageFlows.forEach { (id, flow) -> threads[id]?.let { flow.value = it.messages } }
     }
 }

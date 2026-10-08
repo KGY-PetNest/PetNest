@@ -25,7 +25,8 @@ class MainActions(
     val onAddPet: () -> Unit,
     val onEditPet: (String) -> Unit,
     val onOpenSettings: () -> Unit,
-    val onOpenReviews: (String) -> Unit
+    val onOpenReviews: (String) -> Unit,
+    val onOpenChat: (String) -> Unit
 )
 
 @Composable
@@ -61,7 +62,11 @@ fun BottomNavGraph(
 
         composable(Screen.Chat.name) {
             AdaptivePane {
-                ChatScreen(onBack = actions.onBackToFeed)
+                ChatScreen(
+                    role = role,
+                    onOpenChat = actions.onOpenChat,
+                    onBack = actions.onBackToFeed
+                )
             }
         }
 

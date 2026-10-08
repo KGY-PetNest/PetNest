@@ -248,9 +248,9 @@ fun PetProfileScreen(
                 BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                     val stableHeight = maxHeight + imeOverlap
                     val dynamicFeaturesHeight = if (topContentHeightDp > 0.dp) {
-                        (stableHeight - topContentHeightDp - 16.dp).coerceAtLeast(96.dp)
+                        (stableHeight - topContentHeightDp - 16.dp).coerceAtLeast(FEATURES_MIN_HEIGHT)
                     } else {
-                        96.dp
+                        FEATURES_MIN_HEIGHT
                     }
 
                     Column(
@@ -315,6 +315,15 @@ fun PetProfileScreen(
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             )
 
+                            Text(
+                                text = stringResource(R.string.text_4_25),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .align(Alignment.CenterHorizontally)
+                                    .padding(top = 2.dp)
+                            )
+
                             Spacer(Modifier.height(20.dp))
 
                             Column(
@@ -330,6 +339,7 @@ fun PetProfileScreen(
                                         nameError = false
                                     },
                                     errorText = if (nameError) stringResource(R.string.text_4_10) else null,
+                                    placeholder = stringResource(R.string.text_4_18),
                                     keyboardActions = nextField
                                 )
                                 LabeledField(
@@ -341,6 +351,7 @@ fun PetProfileScreen(
                                         animalError = false
                                     },
                                     errorText = if (animalError) stringResource(R.string.text_4_11) else null,
+                                    placeholder = stringResource(R.string.text_4_19),
                                     keyboardActions = nextField
                                 )
                                 LabeledField(
@@ -352,6 +363,7 @@ fun PetProfileScreen(
                                         ageError = false
                                     },
                                     errorText = if (ageError) stringResource(R.string.text_4_12) else null,
+                                    placeholder = stringResource(R.string.text_4_21),
                                     keyboardType = KeyboardType.Number,
                                     keyboardActions = nextField
                                 )
@@ -362,7 +374,13 @@ fun PetProfileScreen(
                             FieldLabel(
                                 text = stringResource(R.string.text_4_6),
                                 required = true,
-                                modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)
+                                modifier = Modifier.padding(start = 12.dp, bottom = 4.dp)
+                            )
+                            Text(
+                                text = stringResource(R.string.text_4_23),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp)
                             )
 
                             PetTraitSelector(
@@ -382,16 +400,12 @@ fun PetProfileScreen(
                         OutlinedTextField(
                             value = features,
                             onValueChange = {
-                                features = it
+                                features = it.take(FormRules.LONG_TEXT_MAX_LENGTH)
                                 featuresError = null
                             },
                             placeholder = { Text(stringResource(R.string.text_4_14)) },
                             isError = featuresError != null,
-                            supportingText = if (featuresErrorText != null) {
-                                { Text(featuresErrorText) }
-                            } else {
-                                null
-                            },
+                            supportingText = featuresErrorText?.let { { Text(it) } },
                             shape = RoundedCornerShape(16.dp),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                             modifier = Modifier
@@ -407,6 +421,8 @@ fun PetProfileScreen(
         }
     }
 }
+
+private val FEATURES_MIN_HEIGHT = 136.dp
 
 @Composable
 private fun FieldLabel(
@@ -440,7 +456,9 @@ private fun LabeledField(
     keyboardType: KeyboardType = KeyboardType.Text,
     imeAction: ImeAction = ImeAction.Next,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
-    singleLine: Boolean = true
+    singleLine: Boolean = true,
+    placeholder: String? = null,
+    maxLength: Int = FormRules.SHORT_TEXT_MAX_LENGTH
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
         FieldLabel(
@@ -450,15 +468,16 @@ private fun LabeledField(
         )
         OutlinedTextField(
             value = value,
-            onValueChange = onValueChange,
+            onValueChange = { onValueChange(it.take(maxLength)) },
             shape = RoundedCornerShape(16.dp),
             singleLine = singleLine,
             isError = errorText != null,
-            supportingText = if (errorText != null) {
-                { Text(errorText) }
+            placeholder = if (placeholder != null) {
+                { Text(placeholder) }
             } else {
                 null
             },
+            supportingText = errorText?.let { { Text(it) } },
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
             keyboardActions = keyboardActions,
             modifier = Modifier.fillMaxWidth()

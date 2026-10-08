@@ -26,6 +26,7 @@ enum class Screen {
     ResetCode,
     ResetPassword,
     Settings,
+    Conversation,
 }
 
 object Routes {
@@ -35,6 +36,7 @@ object Routes {
     const val PET_ID_ARG = "petId"
     const val TARGET_ARG = "target"
     const val FOR_VOLUNTEER_ARG = "forVolunteer"
+    const val CHAT_ID_ARG = "chatId"
 
     val MAIN = "${Screen.Main.name}/{$ROLE_ARG}"
     fun main(role: UserRole) = "${Screen.Main.name}/${role.name}"
@@ -64,6 +66,9 @@ object Routes {
 
     val SETTINGS = "${Screen.Settings.name}/{$ROLE_ARG}"
     fun settings(role: UserRole) = "${Screen.Settings.name}/${role.name}"
+
+    val CONVERSATION = "${Screen.Conversation.name}/{$ROLE_ARG}/{$CHAT_ID_ARG}"
+    fun conversation(chatId: String, role: UserRole) = "${Screen.Conversation.name}/${role.name}/$chatId"
 
     val MAP_PICKER = "${Screen.MapPicker.name}?$FOR_VOLUNTEER_ARG={$FOR_VOLUNTEER_ARG}"
     fun mapPicker(forVolunteer: Boolean = false) =

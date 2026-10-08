@@ -50,7 +50,6 @@ android {
         }
     }
 
-
     packaging {
         jniLibs {
             useLegacyPackaging = true
@@ -82,6 +81,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.yandex.mapkit)
+    implementation(libs.play.services.location)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)

@@ -3,6 +3,8 @@ package com.example.pet.ui.components
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -24,19 +26,26 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -50,6 +59,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.pet.R
+import com.example.pet.data.HomeConditionGroup
+import com.example.pet.data.HomeConditionType
 import com.example.pet.data.MyResponseStatus
 import com.example.pet.data.PetTrait
 import com.example.pet.data.PetTraitGroup
@@ -139,12 +150,14 @@ fun FilterPill(
 fun InitialsAvatar(
     name: String,
     modifier: Modifier = Modifier,
-    size: Dp = 52.dp
+    size: Dp = 52.dp,
+    photoUri: String? = null
 ) {
     val initials = name.split(" ")
         .filter { it.isNotBlank() }
         .take(2)
         .joinToString("") { it.first().uppercase() }
+    val photo = rememberPhoto(photoUri)
 
     Box(
         contentAlignment = Alignment.Center,
@@ -154,16 +167,25 @@ fun InitialsAvatar(
             .background(MaterialTheme.colorScheme.primaryContainer)
             .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
     ) {
-        Text(
-            text = initials,
-            color = MaterialTheme.colorScheme.primary,
-            style = when {
-                size >= 88.dp -> MaterialTheme.typography.headlineSmall
-                size >= 64.dp -> MaterialTheme.typography.titleLarge
-                else -> MaterialTheme.typography.titleMedium
-            },
-            fontWeight = FontWeight.SemiBold
-        )
+        if (photo != null) {
+            Image(
+                bitmap = photo,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Text(
+                text = initials,
+                color = MaterialTheme.colorScheme.primary,
+                style = when {
+                    size >= 88.dp -> MaterialTheme.typography.headlineSmall
+                    size >= 64.dp -> MaterialTheme.typography.titleLarge
+                    else -> MaterialTheme.typography.titleMedium
+                },
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }
 
@@ -173,18 +195,7 @@ fun PetThumbnail(
     photoUri: String? = null,
     size: Dp = 64.dp
 ) {
-    val context = LocalContext.current
-    val photo by produceState<ImageBitmap?>(initialValue = null, photoUri) {
-        value = photoUri?.let { uri ->
-            withContext(Dispatchers.IO) {
-                runCatching {
-                    context.contentResolver.openInputStream(Uri.parse(uri))?.use {
-                        BitmapFactory.decodeStream(it)?.asImageBitmap()
-                    }
-                }.getOrNull()
-            }
-        }
-    }
+    val photo = rememberPhoto(photoUri)
 
     Box(
         contentAlignment = Alignment.Center,
@@ -339,7 +350,8 @@ fun <T> SelectableChips(
     selected: Set<T>,
     label: @Composable (T) -> String,
     onToggle: (T) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    icon: ((T) -> ImageVector)? = null
 ) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -350,7 +362,115 @@ fun <T> SelectableChips(
             FilterPill(
                 text = label(item),
                 selected = item in selected,
-                onClick = { onToggle(item) }
+                onClick = { onToggle(item) },
+                leadingIcon = icon?.invoke(item)
+            )
+        }
+    }
+}
+
+@Composable
+fun <G, T> GroupedChipSelector(
+    groups: List<G>,
+    itemsOf: (G) -> List<T>,
+    groupLabel: @Composable (G) -> String,
+    itemLabel: @Composable (T) -> String,
+    selected: Set<T>,
+    onToggle: (T) -> Unit,
+    modifier: Modifier = Modifier,
+    itemIcon: ((T) -> ImageVector)? = null
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
+    ) {
+        groups.forEachIndexed { index, group ->
+            key(group) {
+                if (index > 0) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                }
+                ChipGroupSection(
+                    title = groupLabel(group),
+                    items = itemsOf(group),
+                    itemLabel = itemLabel,
+                    itemIcon = itemIcon,
+                    selected = selected,
+                    onToggle = onToggle
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun <T> ChipGroupSection(
+    title: String,
+    items: List<T>,
+    itemLabel: @Composable (T) -> String,
+    itemIcon: ((T) -> ImageVector)?,
+    selected: Set<T>,
+    onToggle: (T) -> Unit
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val selectedCount = items.count { it in selected }
+    val visibleItems = if (expanded) items else items.filter { it in selected }
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(200),
+        label = "groupArrow"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(tween(200))
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+            if (selectedCount > 0) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                ) {
+                    Text(
+                        text = selectedCount.toString(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.rotate(arrowRotation)
+            )
+        }
+        if (visibleItems.isNotEmpty()) {
+            SelectableChips(
+                items = visibleItems,
+                selected = selected,
+                label = itemLabel,
+                onToggle = onToggle,
+                icon = itemIcon,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 16.dp)
             )
         }
     }
@@ -362,26 +482,33 @@ fun PetTraitSelector(
     onToggle: (PetTrait) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    GroupedChipSelector(
+        groups = PetTraitGroup.entries,
+        itemsOf = { group -> PetTrait.entries.filter { it.group == group } },
+        groupLabel = { stringResource(it.label) },
+        itemLabel = { stringResource(it.label) },
+        selected = selected,
+        onToggle = onToggle,
         modifier = modifier
-    ) {
-        PetTraitGroup.entries.forEach { group ->
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = stringResource(group.label),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                SelectableChips(
-                    items = PetTrait.entries.filter { it.group == group },
-                    selected = selected,
-                    label = { stringResource(it.label) },
-                    onToggle = onToggle
-                )
-            }
-        }
-    }
+    )
+}
+
+@Composable
+fun HomeConditionSelector(
+    selected: Set<HomeConditionType>,
+    onToggle: (HomeConditionType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    GroupedChipSelector(
+        groups = HomeConditionGroup.entries,
+        itemsOf = { group -> HomeConditionType.entries.filter { it.group == group } },
+        groupLabel = { stringResource(it.label) },
+        itemLabel = { stringResource(it.label) },
+        itemIcon = { it.icon },
+        selected = selected,
+        onToggle = onToggle,
+        modifier = modifier
+    )
 }
 
 @Composable
@@ -397,4 +524,21 @@ fun MyResponseStatusChip(status: MyResponseStatus) {
         containerColor = container,
         contentColor = content
     )
+}
+
+@Composable
+fun rememberPhoto(photoUri: String?): ImageBitmap? {
+    val context = LocalContext.current
+    val photo by produceState<ImageBitmap?>(initialValue = null, photoUri) {
+        value = photoUri?.let { uri ->
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openInputStream(Uri.parse(uri))?.use {
+                        BitmapFactory.decodeStream(it)?.asImageBitmap()
+                    }
+                }.getOrNull()
+            }
+        }
+    }
+    return photo
 }
