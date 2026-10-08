@@ -40,7 +40,10 @@ enum class PetTrait(val group: PetTraitGroup) {
 
 enum class RequestStatus { Open, VolunteerChosen, Completed }
 
-enum class MyResponseStatus { Pending, Chosen, NotChosen, Completed }
+enum class MyResponseStatus { Pending, Chosen, NotChosen, Expired, Completed }
+
+val MyResponseStatus?.canChat: Boolean
+    get() = this == MyResponseStatus.Pending || this == MyResponseStatus.Chosen || this == MyResponseStatus.Completed
 
 data class GeoPoint(val lat: Double, val lon: Double) : Serializable
 
@@ -134,11 +137,18 @@ data class PetRequest(
     val publicPlace: String
         get() = district.ifBlank { approximateAddress(address) }
 
+    val isExpired: Boolean
+        get() = status == RequestStatus.Open && start.isBefore(LocalDate.now())
+
+    val acceptsResponses: Boolean
+        get() = status == RequestStatus.Open && chosenVolunteerId == null && !isExpired
+
     fun statusFor(volunteerId: String, respondedIds: Set<String>): MyResponseStatus? = when {
         chosenVolunteerId == volunteerId && status == RequestStatus.Completed -> MyResponseStatus.Completed
         chosenVolunteerId == volunteerId -> MyResponseStatus.Chosen
         id !in respondedIds -> null
         chosenVolunteerId != null -> MyResponseStatus.NotChosen
+        isExpired -> MyResponseStatus.Expired
         else -> MyResponseStatus.Pending
     }
 }
@@ -150,7 +160,8 @@ data class Volunteer(
     val about: String,
     val homeConditions: List<HomeConditionType>,
     val acceptedPets: List<AcceptedPet>,
-    val avatarUri: String? = null
+    val avatarUri: String? = null,
+    val phone: String = ""
 )
 
 data class Review(
@@ -165,13 +176,36 @@ data class Review(
 
 enum class MessageStatus { Sending, Sent, Read, Failed }
 
+enum class AttachmentKind { Image, Pdf }
+
+data class ChatAttachment(
+    val kind: AttachmentKind,
+    val uri: String,
+    val name: String,
+    val sizeBytes: Long,
+    val width: Int = 0,
+    val height: Int = 0
+)
+
+enum class ChatEvent { VolunteerChosen, ChoiceCancelled, Completed, VolunteerWithdrew }
+
+enum class ReportReason { Spam, Rude, Fraud, Inappropriate, Other }
+
 data class ChatMessage(
     val id: String,
     val chatId: String,
     val senderRole: UserRole,
     val text: String,
     val sentAt: LocalDateTime,
-    val status: MessageStatus = MessageStatus.Sent
+    val status: MessageStatus = MessageStatus.Sent,
+    val attachment: ChatAttachment? = null,
+    val event: ChatEvent? = null
+)
+
+data class IncomingMessage(
+    val role: UserRole,
+    val chat: Chat,
+    val message: ChatMessage
 )
 
 data class Chat(
@@ -184,7 +218,8 @@ data class Chat(
     val companionAvatarUri: String? = null,
     val petPhotoUri: String? = null,
     val lastMessage: ChatMessage? = null,
-    val unreadCount: Int = 0
+    val unreadCount: Int = 0,
+    val blocked: Boolean = false
 )
 
 val DayMonthFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM", Locale.forLanguageTag("ru"))

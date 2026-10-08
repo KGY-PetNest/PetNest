@@ -69,6 +69,7 @@ import com.example.pet.data.Pet
 import com.example.pet.data.PetRequest
 import com.example.pet.data.RequestStatus
 import com.example.pet.data.UserRole
+import com.example.pet.data.repository.RequestOverlapException
 import com.example.pet.ui.components.AppTextField
 import com.example.pet.ui.components.DateRangeDialog
 import com.example.pet.ui.components.FormRules
@@ -81,9 +82,11 @@ import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.clearFocusOnTap
 import com.example.pet.ui.components.pressScale
 import com.example.pet.ui.components.rememberFutureDateRangePickerState
+import com.example.pet.ui.components.rememberLeaveGuard
 import com.example.pet.ui.components.toUtcMillis
 import com.example.pet.ui.components.utcMillisToLocalDate
 import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
@@ -115,15 +118,21 @@ fun CreateRequestScreen(
     var saving by remember { mutableStateOf(false) }
 
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
-    var datesBeforeOpen by remember { mutableStateOf<Pair<Long?, Long?>>(null to null) }
+    var datesBeforeStart by rememberSaveable { mutableStateOf<Long?>(null) }
+    var datesBeforeEnd by rememberSaveable { mutableStateOf<Long?>(null) }
     var showPetPicker by rememberSaveable { mutableStateOf(false) }
 
     val pets by AppContainer.pets.pets.collectAsStateWithLifecycle()
+    val responseIds by AppContainer.requests.responses.collectAsStateWithLifecycle()
+    val hasResponses = existing != null && responseIds[existing.id].orEmpty().isNotEmpty()
     var selectedPetId by rememberSaveable { mutableStateOf(existing?.petId) }
     val selectedPet = pets.firstOrNull { it.id == selectedPetId }
 
     var petError by rememberSaveable { mutableStateOf(false) }
     var datesError by rememberSaveable { mutableStateOf(false) }
+    var overlapError by rememberSaveable { mutableStateOf(false) }
+    var pastDatesError by rememberSaveable { mutableStateOf(false) }
+    var saveError by remember { mutableStateOf(false) }
     var addressError by rememberSaveable { mutableStateOf(false) }
     var commentError by rememberSaveable { mutableStateOf<Int?>(null) }
 
@@ -144,6 +153,7 @@ fun CreateRequestScreen(
         if (addedPetId != null && pets.any { it.id == addedPetId }) {
             selectedPetId = addedPetId
             petError = false
+            overlapError = false
             showPetPicker = false
             onAddedPetUsed()
         }
@@ -162,6 +172,16 @@ fun CreateRequestScreen(
     val start = pickerState.selectedStartDateMillis
     val end = pickerState.selectedEndDateMillis
     val hasDates = start != null && end != null
+    val hasChanges = if (existing == null) {
+        selectedPetId != null || hasDates || address.isNotBlank() || addressDetails.isNotBlank() || comment.isNotBlank()
+    } else {
+        selectedPetId != existing.petId ||
+                (datesPrefilled && (start != existing.start.toUtcMillis() || end != existing.end.toUtcMillis())) ||
+                address != existing.address ||
+                addressDetails != existing.addressDetails ||
+                comment != existing.comment
+    }
+    val leave = rememberLeaveGuard(hasChanges = hasChanges && !saving, onLeave = onBack)
     val datesText = if (start != null && end != null) {
         val format = SimpleDateFormat("d MMMM yyyy", Locale.forLanguageTag("ru")).apply {
             timeZone = TimeZone.getTimeZone("UTC")
@@ -178,39 +198,59 @@ fun CreateRequestScreen(
     }
 
     fun submit() {
+        if (saving) return
+        saveError = false
         petError = selectedPet == null
         datesError = !hasDates
         addressError = address.isBlank()
         commentError = FormRules.descriptionError(comment, R.string.text_5_24)
-        if (!petError && !datesError && !addressError && commentError == null && selectedPet != null && start != null && end != null) {
-            focusManager.clearFocus()
-            val request = PetRequest(
-                id = existing?.id ?: UUID.randomUUID().toString(),
-                petId = selectedPet.id,
-                title = selectedPet.name,
-                petInfo = selectedPet.info,
-                kind = selectedPet.kind,
-                start = utcMillisToLocalDate(start),
-                end = utcMillisToLocalDate(end),
-                district = existing?.district.orEmpty(),
-                address = address.trim(),
-                addressDetails = addressDetails.trim(),
-                location = location,
-                comment = comment.trim(),
-                traits = selectedPet.traits,
-                features = selectedPet.features,
-                petPhotoUri = selectedPet.photoUri,
-                status = existing?.status ?: RequestStatus.Open,
-                chosenVolunteerId = existing?.chosenVolunteerId,
-                ownerName = AppContainer.profiles.profile(UserRole.Owner).value.name,
-                ownerPhone = AppContainer.profiles.profile(UserRole.Owner).value.phone
-            )
-            scope.launch {
-                saving = true
-                AppContainer.requests.save(request)
-                saving = false
-                onCreate()
-            }
+        val pet = selectedPet
+        if (petError || datesError || addressError || commentError != null || pet == null || start == null || end == null) {
+            return
+        }
+        val startDate = utcMillisToLocalDate(start)
+        val endDate = utcMillisToLocalDate(end)
+        pastDatesError = startDate.isBefore(LocalDate.now())
+        if (pastDatesError) return
+        overlapError = AppContainer.requests.ownerRequests.value.any { other ->
+            other.id != existing?.id &&
+                    other.petId == pet.id &&
+                    other.status != RequestStatus.Completed &&
+                    !startDate.isAfter(other.end) &&
+                    !endDate.isBefore(other.start)
+        }
+        if (overlapError) return
+
+        focusManager.clearFocus()
+        val owner = AppContainer.profiles.profile(UserRole.Owner).value
+        val request = PetRequest(
+            id = existing?.id ?: UUID.randomUUID().toString(),
+            petId = pet.id,
+            title = pet.name,
+            petInfo = pet.info,
+            kind = pet.kind,
+            start = startDate,
+            end = endDate,
+            district = existing?.district.orEmpty(),
+            address = address.trim(),
+            addressDetails = addressDetails.trim(),
+            location = location,
+            comment = comment.trim(),
+            traits = pet.traits,
+            features = pet.features,
+            petPhotoUri = pet.photoUri,
+            status = existing?.status ?: RequestStatus.Open,
+            chosenVolunteerId = existing?.chosenVolunteerId,
+            ownerName = owner.name,
+            ownerPhone = owner.phone
+        )
+        scope.launch {
+            saving = true
+            val result = AppContainer.requests.save(request)
+            saving = false
+            result
+                .onSuccess { onCreate() }
+                .onFailure { if (it is RequestOverlapException) overlapError = true else saveError = true }
         }
     }
 
@@ -221,6 +261,7 @@ fun CreateRequestScreen(
             onPetSelected = { pet ->
                 selectedPetId = pet.id
                 petError = false
+                overlapError = false
             },
             onAddPet = onAddPet,
             onDismiss = { showPetPicker = false }
@@ -234,9 +275,11 @@ fun CreateRequestScreen(
             onConfirm = {
                 showDatePicker = false
                 datesError = false
+                overlapError = false
+                pastDatesError = false
             },
             onDismiss = {
-                pickerState.setSelection(datesBeforeOpen.first, datesBeforeOpen.second)
+                pickerState.setSelection(datesBeforeStart, datesBeforeEnd)
                 showDatePicker = false
             }
         )
@@ -256,7 +299,7 @@ fun CreateRequestScreen(
         ) {
             ScreenHeader(
                 title = stringResource(if (existing != null) R.string.text_5_26 else R.string.text_5_1),
-                onBack = onBack
+                onBack = leave
             )
 
             PinnedBottomBarLayout(
@@ -264,6 +307,14 @@ fun CreateRequestScreen(
                     .weight(1f)
                     .fillMaxWidth(),
                 bottomBar = {
+                    if (saveError) {
+                        Text(
+                            text = stringResource(R.string.common_request_error),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
                     PrimaryButton(
                         text = stringResource(if (existing != null) R.string.text_4_7 else R.string.text_5_12),
                         loading = saving,
@@ -316,8 +367,9 @@ fun CreateRequestScreen(
                             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
                                 SectionLabel(stringResource(R.string.text_5_5))
 
+                                val datesInvalid = datesError || overlapError || pastDatesError
                                 val datesBorder by animateColorAsState(
-                                    targetValue = if (datesError) {
+                                    targetValue = if (datesInvalid) {
                                         MaterialTheme.colorScheme.error
                                     } else {
                                         MaterialTheme.colorScheme.outline
@@ -335,7 +387,8 @@ fun CreateRequestScreen(
                                         .border(1.dp, datesBorder, RoundedCornerShape(16.dp))
                                         .clickable(interactionSource = datesInteraction, indication = null) {
                                             focusManager.clearFocus()
-                                            datesBeforeOpen = start to end
+                                            datesBeforeStart = start
+                                            datesBeforeEnd = end
                                             showDatePicker = true
                                         }
                                         .padding(horizontal = 16.dp, vertical = 16.dp)
@@ -364,10 +417,22 @@ fun CreateRequestScreen(
                                     )
                                 }
                                 ErrorText(
-                                    visible = datesError,
-                                    text = stringResource(R.string.text_5_20),
+                                    visible = datesInvalid,
+                                    text = when {
+                                        overlapError -> stringResource(R.string.text_5_29, selectedPet?.name.orEmpty())
+                                        pastDatesError -> stringResource(R.string.text_5_30)
+                                        else -> stringResource(R.string.text_5_20)
+                                    },
                                     horizontalPadding = 16.dp
                                 )
+                                if (hasResponses) {
+                                    Text(
+                                        text = stringResource(R.string.text_5_31),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp)
+                                    )
+                                }
                             }
 
                             Spacer(Modifier.height(16.dp))

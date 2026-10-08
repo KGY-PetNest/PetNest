@@ -15,9 +15,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.size
 import com.example.pet.R
+import com.example.pet.data.ChatEvent
+import com.example.pet.ui.components.labelFor
 import com.example.pet.data.DayMonthFormat
 import com.example.pet.data.DayMonthYearFormat
 import com.example.pet.data.MessageStatus
+import com.example.pet.data.UserRole
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -67,3 +70,6 @@ fun MessageStatusIcon(
         modifier = modifier.size(size)
     )
 }
+
+@Composable
+fun chatEventText(event: ChatEvent, role: UserRole): String = stringResource(event.labelFor(role))

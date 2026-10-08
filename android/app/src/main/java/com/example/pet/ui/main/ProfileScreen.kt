@@ -95,7 +95,7 @@ fun ProfileScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(horizontal = 8.dp)
             ) {
-                InitialsAvatar(name = profile.name, photoUri = profile.avatarUri, size = 80.dp)
+                InitialsAvatar(name = profile.name, photoUri = profile.avatarUri, size = 80.dp, zoomable = true)
                 Column(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.padding(start = 16.dp)

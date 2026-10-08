@@ -24,10 +24,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -36,6 +39,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -198,23 +202,73 @@ fun ReviewSheet(
     onSubmit: suspend (rating: Int, text: String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val scope = rememberCoroutineScope()
-
+    val sendingState = remember { mutableStateOf(false) }
+    var sending by sendingState
     var rating by rememberSaveable { mutableIntStateOf(0) }
     var text by rememberSaveable { mutableStateOf("") }
     var ratingError by rememberSaveable { mutableStateOf(false) }
     var textError by rememberSaveable { mutableStateOf(false) }
-    var sending by remember { mutableStateOf(false) }
+    val dirtyState = rememberUpdatedState(rating > 0 || text.isNotBlank())
+    val allowHideState = remember { mutableStateOf(false) }
+    var askDiscard by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { value ->
+            when {
+                value != SheetValue.Hidden -> true
+                sendingState.value -> false
+                allowHideState.value || !dirtyState.value -> true
+                else -> {
+                    askDiscard = true
+                    false
+                }
+            }
+        }
+    )
+    val scope = rememberCoroutineScope()
+
 
     fun close() {
+        allowHideState.value = true
         scope.launch { sheetState.hide() }.invokeOnCompletion {
             if (!sheetState.isVisible) onDismiss()
         }
     }
 
+    if (askDiscard) {
+        AlertDialog(
+            onDismissRequest = { askDiscard = false },
+            title = { Text(stringResource(R.string.text_15_14)) },
+            text = { Text(stringResource(R.string.text_15_15)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        askDiscard = false
+                        close()
+                    }
+                ) {
+                    Text(
+                        text = stringResource(R.string.common_discard_confirm),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { askDiscard = false }) {
+                    Text(stringResource(R.string.common_discard_keep))
+                }
+            }
+        )
+    }
+
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            when {
+                sending -> Unit
+                dirtyState.value && !allowHideState.value -> askDiscard = true
+                else -> onDismiss()
+            }
+        },
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.background,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
@@ -283,14 +337,16 @@ fun ReviewSheet(
                 text = stringResource(R.string.text_15_7),
                 loading = sending,
                 onClick = {
-                    ratingError = rating == 0
-                    textError = text.trim().length < FormRules.DESCRIPTION_MIN_LENGTH
-                    if (!ratingError && !textError) {
-                        scope.launch {
+                    if (!sending) {
+                        ratingError = rating == 0
+                        textError = text.trim().length < FormRules.DESCRIPTION_MIN_LENGTH
+                        if (!ratingError && !textError) {
                             sending = true
-                            onSubmit(rating, text.trim())
-                            sending = false
-                            close()
+                            scope.launch {
+                                onSubmit(rating, text.trim())
+                                sending = false
+                                close()
+                            }
                         }
                     }
                 }

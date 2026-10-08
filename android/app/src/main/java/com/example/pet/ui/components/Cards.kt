@@ -151,19 +151,27 @@ fun InitialsAvatar(
     name: String,
     modifier: Modifier = Modifier,
     size: Dp = 52.dp,
-    photoUri: String? = null
+    photoUri: String? = null,
+    zoomable: Boolean = false
 ) {
     val initials = name.split(" ")
         .filter { it.isNotBlank() }
         .take(2)
         .joinToString("") { it.first().uppercase() }
     val photo = rememberPhoto(photoUri)
+    var viewerOpen by rememberSaveable { mutableStateOf(false) }
+    if (viewerOpen && photoUri != null) {
+        PhotoViewerDialog(photoUri = photoUri, title = name, onDismiss = { viewerOpen = false })
+    }
 
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .size(size)
             .clip(CircleShape)
+            .then(
+                if (zoomable && photo != null) Modifier.clickable { viewerOpen = true } else Modifier
+            )
             .background(MaterialTheme.colorScheme.primaryContainer)
             .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
     ) {
@@ -193,15 +201,24 @@ fun InitialsAvatar(
 fun PetThumbnail(
     modifier: Modifier = Modifier,
     photoUri: String? = null,
-    size: Dp = 64.dp
+    size: Dp = 64.dp,
+    zoomTitle: String? = null,
+    zoomable: Boolean = false
 ) {
     val photo = rememberPhoto(photoUri)
+    var viewerOpen by rememberSaveable { mutableStateOf(false) }
+    if (viewerOpen && photoUri != null) {
+        PhotoViewerDialog(photoUri = photoUri, title = zoomTitle, onDismiss = { viewerOpen = false })
+    }
 
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .size(size)
             .clip(CircleShape)
+            .then(
+                if (zoomable && photo != null) Modifier.clickable { viewerOpen = true } else Modifier
+            )
             .background(MaterialTheme.colorScheme.primaryContainer)
     ) {
         val bitmap = photo
@@ -516,7 +533,8 @@ fun MyResponseStatusChip(status: MyResponseStatus) {
     val (container, content) = when (status) {
         MyResponseStatus.Pending -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.primary
         MyResponseStatus.Chosen -> MaterialTheme.extraColors.successContainer to MaterialTheme.extraColors.success
-        MyResponseStatus.NotChosen -> MaterialTheme.colorScheme.outline to MaterialTheme.colorScheme.onSurfaceVariant
+        MyResponseStatus.NotChosen, MyResponseStatus.Expired ->
+            MaterialTheme.colorScheme.outline to MaterialTheme.colorScheme.onSurfaceVariant
         MyResponseStatus.Completed -> MaterialTheme.extraColors.warningContainer to MaterialTheme.extraColors.warning
     }
     TagChip(

@@ -1,7 +1,6 @@
 package com.example.pet.ui.login
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +42,7 @@ import com.example.pet.ui.components.AuthFooterLink
 import com.example.pet.ui.components.FormRules
 import com.example.pet.ui.components.PasswordField
 import com.example.pet.ui.components.PrimaryButton
+import com.example.pet.ui.components.PrivacyPolicyLink
 import com.example.pet.ui.components.SegmentedToggle
 import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.clearFocusOnTap
@@ -58,7 +58,9 @@ fun LoginScreen(
     val scope = rememberCoroutineScope()
     var loading by remember { mutableStateOf(false) }
 
-    var selectedRole by rememberSaveable { mutableIntStateOf(0) }
+    var selectedRole by rememberSaveable {
+        mutableIntStateOf(if (AppContainer.settings.lastRole == UserRole.Volunteer) 1 else 0)
+    }
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
 
@@ -66,6 +68,7 @@ fun LoginScreen(
     var passwordError by rememberSaveable { mutableStateOf<Int?>(null) }
 
     fun submit() {
+        if (loading) return
         emailError = when {
             email.isBlank() -> R.string.text_2_10
             !FormRules.isEmailValid(email) -> R.string.text_2_11
@@ -183,12 +186,7 @@ fun LoginScreen(
 
                 Spacer(Modifier.height(4.dp))
 
-                Text(
-                    text = stringResource(R.string.text_2_9),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { },
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                PrivacyPolicyLink()
             }
         }
     }

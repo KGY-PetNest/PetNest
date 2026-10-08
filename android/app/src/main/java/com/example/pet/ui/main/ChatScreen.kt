@@ -25,6 +25,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -42,12 +45,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pet.R
 import com.example.pet.data.AppContainer
+import com.example.pet.data.AttachmentKind
 import com.example.pet.data.Chat
 import com.example.pet.data.UserRole
 import com.example.pet.data.shortPersonName
 import com.example.pet.ui.chat.MessageStatusIcon
+import com.example.pet.ui.chat.chatEventText
 import com.example.pet.ui.chat.formatChatListTime
 import com.example.pet.ui.components.InitialsAvatar
+import com.example.pet.ui.components.NotificationPermissionPrompt
 import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.cardSurface
 
@@ -62,6 +68,8 @@ fun ChatScreen(
 ) {
     val allChats by remember(role) { AppContainer.chats.chats(role) }.collectAsStateWithLifecycle()
     val chats = allChats.filter { it.lastMessage != null }
+
+    NotificationPermissionPrompt()
 
     Column(
         modifier = modifier
@@ -107,7 +115,7 @@ private fun ChatRow(
     modifier: Modifier = Modifier
 ) {
     val last = chat.lastMessage ?: return
-    val mine = last.senderRole == role
+    val mine = last.senderRole == role && last.event == null
     val hasUnread = chat.unreadCount > 0
 
     Row(
@@ -134,6 +142,16 @@ private fun ChatRow(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
+                if (chat.blocked) {
+                    Icon(
+                        imageVector = Icons.Default.Block,
+                        contentDescription = stringResource(R.string.text_10_31),
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier
+                            .padding(start = 6.dp)
+                            .size(16.dp)
+                    )
+                }
                 Spacer(Modifier.width(8.dp))
                 if (mine) {
                     MessageStatusIcon(
@@ -158,8 +176,34 @@ private fun ChatRow(
             )
 
             Row(verticalAlignment = Alignment.CenterVertically) {
+                val attachment = last.attachment
+                if (attachment != null) {
+                    Icon(
+                        imageVector = when (attachment.kind) {
+                            AttachmentKind.Image -> Icons.Default.Image
+                            AttachmentKind.Pdf -> Icons.Default.PictureAsPdf
+                        },
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .padding(end = 4.dp)
+                            .size(16.dp)
+                    )
+                }
+                val event = last.event
+                val preview = if (event != null) {
+                    chatEventText(event, role)
+                } else {
+                    last.text.ifBlank {
+                        when (attachment?.kind) {
+                            AttachmentKind.Image -> stringResource(R.string.text_10_16)
+                            AttachmentKind.Pdf -> attachment?.name.orEmpty()
+                            null -> ""
+                        }
+                    }
+                }
                 Text(
-                    text = if (mine) stringResource(R.string.text_10_6, last.text) else last.text,
+                    text = if (mine) stringResource(R.string.text_10_6, preview) else preview,
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (hasUnread) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

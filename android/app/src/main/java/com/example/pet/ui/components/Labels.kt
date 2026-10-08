@@ -15,12 +15,15 @@ import androidx.compose.material.icons.filled.Window
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.pet.R
 import com.example.pet.data.AcceptedPet
+import com.example.pet.data.ChatEvent
 import com.example.pet.data.HomeConditionGroup
 import com.example.pet.data.HomeConditionType
 import com.example.pet.data.MyResponseStatus
 import com.example.pet.data.PetTrait
 import com.example.pet.data.PetTraitGroup
+import com.example.pet.data.ReportReason
 import com.example.pet.data.RequestStatus
+import com.example.pet.data.UserRole
 
 @get:StringRes
 val PetTrait.label: Int
@@ -112,5 +115,24 @@ val MyResponseStatus.label: Int
         MyResponseStatus.Pending -> R.string.text_12_38
         MyResponseStatus.Chosen -> R.string.text_12_39
         MyResponseStatus.NotChosen -> R.string.text_12_40
+        MyResponseStatus.Expired -> R.string.text_12_49
         MyResponseStatus.Completed -> R.string.text_12_41
     }
+
+@get:StringRes
+val ReportReason.label: Int
+    get() = when (this) {
+        ReportReason.Spam -> R.string.text_10_41
+        ReportReason.Rude -> R.string.text_10_42
+        ReportReason.Fraud -> R.string.text_10_43
+        ReportReason.Inappropriate -> R.string.text_10_44
+        ReportReason.Other -> R.string.text_10_45
+    }
+
+@StringRes
+fun ChatEvent.labelFor(role: UserRole): Int = when (this) {
+    ChatEvent.VolunteerChosen -> if (role == UserRole.Owner) R.string.text_10_26 else R.string.text_10_27
+    ChatEvent.ChoiceCancelled -> if (role == UserRole.Owner) R.string.text_10_28 else R.string.text_10_29
+    ChatEvent.Completed -> R.string.text_10_30
+    ChatEvent.VolunteerWithdrew -> if (role == UserRole.Owner) R.string.text_10_54 else R.string.text_10_55
+}

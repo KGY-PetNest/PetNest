@@ -24,6 +24,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,6 +45,7 @@ import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.clearFocusOnTap
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private const val RESEND_SECONDS = 60
 
@@ -52,9 +55,12 @@ fun EmailConfirmScreen(
     onSuccess: () -> Unit,
     onResend: () -> Unit,
     modifier: Modifier = Modifier,
+    verify: (suspend (String) -> Result<Unit>)? = null,
     message: String? = null
 ) {
     val focusManager = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
+    var checking by remember { mutableStateOf(false) }
 
     var code by rememberSaveable { mutableStateOf("") }
     var isError by rememberSaveable { mutableStateOf(false) }
@@ -68,11 +74,22 @@ fun EmailConfirmScreen(
     }
 
     fun submit() {
-        if (code.length == FormRules.CODE_LENGTH) {
-            focusManager.clearFocus()
-            onSuccess()
-        } else {
+        if (checking) return
+        if (code.length != FormRules.CODE_LENGTH) {
             isError = true
+            return
+        }
+        focusManager.clearFocus()
+        val check = verify
+        if (check == null) {
+            onSuccess()
+            return
+        }
+        scope.launch {
+            checking = true
+            val result = check(code)
+            checking = false
+            if (result.isSuccess) onSuccess() else isError = true
         }
     }
 
@@ -127,6 +144,7 @@ fun EmailConfirmScreen(
 
                 PrimaryButton(
                     text = stringResource(R.string.text_6_5),
+                    loading = checking,
                     onClick = { submit() }
                 )
 

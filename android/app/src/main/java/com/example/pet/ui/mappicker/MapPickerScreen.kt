@@ -81,6 +81,7 @@ import com.yandex.mapkit.Animation
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.CameraListener
+import com.yandex.mapkit.map.CameraUpdateReason
 import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.VisibleRegionUtils
 import com.yandex.mapkit.mapview.MapView
@@ -223,8 +224,10 @@ fun MapPickerScreen(
         }
     }
 
+    val userMoved = remember { mutableStateOf(false) }
     val cameraListener = remember {
-        CameraListener { _, position, _, finished ->
+        CameraListener { _, position, reason, finished ->
+            if (reason == CameraUpdateReason.GESTURES) userMoved.value = true
             if (!finished) {
                 isMoving = true
                 return@CameraListener
@@ -245,6 +248,7 @@ fun MapPickerScreen(
 
     fun selectSuggestion(suggestion: AddressSuggestion) {
         focusManager.clearFocus()
+        userMoved.value = true
         query = ""
         suggestions = emptyList()
         noSuggestions = false
@@ -269,7 +273,9 @@ fun MapPickerScreen(
     LaunchedEffect(Unit) {
         session = searchManager.submit(initialPoint, initialZoom.roundToInt(), searchOptions, searchListener)
         if (startPoint == null) {
-            fetchLocationSilently(context) { point -> point?.let(::moveTo) }
+            fetchLocationSilently(context) { point ->
+                if (point != null && !userMoved.value) moveTo(point)
+            }
         }
     }
 

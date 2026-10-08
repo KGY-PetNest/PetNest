@@ -27,6 +27,9 @@ enum class Screen {
     ResetPassword,
     Settings,
     Conversation,
+    ChatInfo,
+    Attachment,
+    AppGuide,
 }
 
 object Routes {
@@ -37,6 +40,8 @@ object Routes {
     const val TARGET_ARG = "target"
     const val FOR_VOLUNTEER_ARG = "forVolunteer"
     const val CHAT_ID_ARG = "chatId"
+    const val MESSAGE_ID_ARG = "messageId"
+    const val FIRST_RUN_ARG = "firstRun"
 
     val MAIN = "${Screen.Main.name}/{$ROLE_ARG}"
     fun main(role: UserRole) = "${Screen.Main.name}/${role.name}"
@@ -69,6 +74,16 @@ object Routes {
 
     val CONVERSATION = "${Screen.Conversation.name}/{$ROLE_ARG}/{$CHAT_ID_ARG}"
     fun conversation(chatId: String, role: UserRole) = "${Screen.Conversation.name}/${role.name}/$chatId"
+
+    val CHAT_INFO = "${Screen.ChatInfo.name}/{$ROLE_ARG}/{$CHAT_ID_ARG}"
+    fun chatInfo(chatId: String, role: UserRole) = "${Screen.ChatInfo.name}/${role.name}/$chatId"
+
+    val ATTACHMENT = "${Screen.Attachment.name}/{$CHAT_ID_ARG}/{$MESSAGE_ID_ARG}"
+    fun attachment(chatId: String, messageId: String) = "${Screen.Attachment.name}/$chatId/$messageId"
+
+    val APP_GUIDE = "${Screen.AppGuide.name}/{$ROLE_ARG}?$FIRST_RUN_ARG={$FIRST_RUN_ARG}"
+    fun appGuide(role: UserRole, firstRun: Boolean = false) =
+        if (firstRun) "${Screen.AppGuide.name}/${role.name}?$FIRST_RUN_ARG=true" else "${Screen.AppGuide.name}/${role.name}"
 
     val MAP_PICKER = "${Screen.MapPicker.name}?$FOR_VOLUNTEER_ARG={$FOR_VOLUNTEER_ARG}"
     fun mapPicker(forVolunteer: Boolean = false) =

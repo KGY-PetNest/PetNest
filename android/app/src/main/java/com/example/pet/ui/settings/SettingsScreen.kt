@@ -12,9 +12,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,6 +28,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -37,6 +40,7 @@ import com.example.pet.ui.components.SectionTitle
 import com.example.pet.ui.components.SegmentedToggle
 import com.example.pet.ui.components.SettingsRow
 import com.example.pet.ui.components.adaptiveContentWidth
+import com.example.pet.ui.components.openNotificationSettings
 
 private val themeOptions = listOf(
     ThemeMode.System to R.string.text_22_6,
@@ -49,9 +53,11 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onEditProfile: () -> Unit,
     onChangePassword: () -> Unit,
+    onOpenGuide: () -> Unit,
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     var showLogoutDialog by rememberSaveable { mutableStateOf(false) }
     val themeMode by AppContainer.settings.themeMode.collectAsStateWithLifecycle()
 
@@ -91,6 +97,11 @@ fun SettingsScreen(
                         text = stringResource(R.string.text_16_3),
                         onClick = onChangePassword
                     )
+                    SettingsRow(
+                        icon = Icons.Default.Notifications,
+                        text = stringResource(R.string.text_22_9),
+                        onClick = { openNotificationSettings(context) }
+                    )
                 }
 
                 Spacer(Modifier.height(28.dp))
@@ -103,6 +114,18 @@ fun SettingsScreen(
                     options = themeOptions.map { stringResource(it.second) },
                     selectedIndex = themeOptions.indexOfFirst { it.first == themeMode },
                     onSelect = { index -> AppContainer.settings.setThemeMode(themeOptions[index].first) }
+                )
+
+                Spacer(Modifier.height(28.dp))
+
+                SectionTitle(stringResource(R.string.text_22_11))
+
+                Spacer(Modifier.height(12.dp))
+
+                SettingsRow(
+                    icon = Icons.AutoMirrored.Filled.HelpOutline,
+                    text = stringResource(R.string.text_22_10),
+                    onClick = onOpenGuide
                 )
 
                 Spacer(Modifier.height(28.dp))

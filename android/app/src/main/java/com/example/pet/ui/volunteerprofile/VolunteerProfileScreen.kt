@@ -108,7 +108,7 @@ fun VolunteerProfileScreen(
                 Spacer(Modifier.height(12.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    InitialsAvatar(name = volunteer.name, photoUri = volunteer.avatarUri, size = 96.dp)
+                    InitialsAvatar(name = volunteer.name, photoUri = volunteer.avatarUri, size = 96.dp, zoomable = true)
                     Column(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.padding(start = 16.dp)

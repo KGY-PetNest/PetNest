@@ -58,6 +58,46 @@ class PrefsSettingsRepository(context: Context) : SettingsRepository {
         }
     }
 
+    override val notificationsPrompted: Boolean
+        get() = prefs.getBoolean(KEY_NOTIFICATIONS_PROMPTED, false)
+
+    override fun markNotificationsPrompted() {
+        prefs.edit { putBoolean(KEY_NOTIFICATIONS_PROMPTED, true) }
+    }
+
+    override fun guideSeen(role: UserRole): Boolean =
+        prefs.getBoolean(KEY_GUIDE_SEEN_PREFIX + role.name, false)
+
+    override fun markGuideSeen(role: UserRole) {
+        prefs.edit { putBoolean(KEY_GUIDE_SEEN_PREFIX + role.name, true) }
+    }
+
+    override val lastRole: UserRole?
+        get() = prefs.getString(KEY_LAST_ROLE, null)
+            ?.let { name -> UserRole.entries.firstOrNull { it.name == name } }
+
+    override fun setLastRole(role: UserRole) {
+        prefs.edit { putString(KEY_LAST_ROLE, role.name) }
+    }
+
+    override val onboardingSeen: Boolean
+        get() = prefs.getBoolean(KEY_ONBOARDING_SEEN, false)
+
+    override fun markOnboardingSeen() {
+        prefs.edit { putBoolean(KEY_ONBOARDING_SEEN, true) }
+    }
+
+    override fun clearVolunteerLocation() {
+        location.value = null
+        prefs.edit {
+            remove(KEY_LOCATION_LAT)
+            remove(KEY_LOCATION_LON)
+            remove(KEY_LOCATION_LABEL)
+            remove(KEY_LOCATION_AUTO)
+            remove(KEY_LOCATION_PROMPTED)
+        }
+    }
+
     private fun readLocation(): SavedLocation? {
         val lat = prefs.getString(KEY_LOCATION_LAT, null)?.toDoubleOrNull() ?: return null
         val lon = prefs.getString(KEY_LOCATION_LON, null)?.toDoubleOrNull() ?: return null
@@ -77,5 +117,9 @@ class PrefsSettingsRepository(context: Context) : SettingsRepository {
         const val KEY_LOCATION_AUTO = "volunteer_location_auto"
         const val KEY_LOCATION_PROMPTED = "volunteer_location_prompted"
         const val KEY_SESSION_ROLE = "session_role"
+        const val KEY_NOTIFICATIONS_PROMPTED = "notifications_prompted"
+        const val KEY_GUIDE_SEEN_PREFIX = "guide_seen_"
+        const val KEY_LAST_ROLE = "last_role"
+        const val KEY_ONBOARDING_SEEN = "onboarding_seen"
     }
 }

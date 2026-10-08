@@ -18,7 +18,10 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -62,6 +66,18 @@ import java.util.UUID
 private const val FAB_COLLAPSE_SCROLL_PX = 48
 private val FAB_CLEARANCE = 88.dp
 
+private fun PetRequest.feedRank(): Int = when {
+    status == RequestStatus.VolunteerChosen -> 0
+    status == RequestStatus.Open && !isExpired -> 1
+    status == RequestStatus.Open -> 2
+    else -> 3
+}
+
+private val OwnerRequestOrder = compareBy<PetRequest>(
+    { it.feedRank() },
+    { if (it.status == RequestStatus.Completed) -it.start.toEpochDay() else it.start.toEpochDay() }
+)
+
 @Composable
 fun FeedScreen(
     onCreateClick: () -> Unit,
@@ -73,7 +89,9 @@ fun FeedScreen(
     val reviews by AppContainer.reviews.reviews.collectAsStateWithLifecycle()
     val volunteers by AppContainer.volunteers.volunteers.collectAsStateWithLifecycle()
     val pets by AppContainer.pets.pets.collectAsStateWithLifecycle()
+    val responses by AppContainer.requests.responses.collectAsStateWithLifecycle()
     val reviewedRequestIds = reviews.mapNotNull { it.requestId }.toSet()
+    val sortedRequests = remember(requests) { requests.sortedWith(OwnerRequestOrder) }
 
     var reviewRequestId by rememberSaveable { mutableStateOf<String?>(null) }
     val reviewRequest = requests.firstOrNull { it.id == reviewRequestId }
@@ -113,28 +131,37 @@ fun FeedScreen(
                 onBack = onBack
             )
 
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(scrollState)
-            ) {
-                Spacer(Modifier.height(20.dp))
+            if (requests.isEmpty()) {
+                EmptyFeed(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(scrollState)
+                ) {
+                    Spacer(Modifier.height(20.dp))
 
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    requests.forEach { request ->
-                        RequestCard(
-                            request = request,
-                            photoUri = pets.firstOrNull { it.id == request.petId }?.photoUri ?: request.petPhotoUri,
-                            responsesCount = AppContainer.volunteers.responsesFor(request.id).size,
-                            reviewed = request.id in reviewedRequestIds,
-                            onClick = { onRequestClick(request.id) },
-                            onLeaveReview = { reviewRequestId = request.id }
-                        )
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        sortedRequests.forEach { request ->
+                            RequestCard(
+                                request = request,
+                                photoUri = pets.firstOrNull { it.id == request.petId }?.photoUri ?: request.petPhotoUri,
+                                responsesCount = responses[request.id].orEmpty().size,
+                                volunteerName = volunteers.firstOrNull { it.id == request.chosenVolunteerId }?.name,
+                                reviewed = request.id in reviewedRequestIds,
+                                onClick = { onRequestClick(request.id) },
+                                onLeaveReview = { reviewRequestId = request.id }
+                            )
+                        }
                     }
-                }
 
-                Spacer(Modifier.height(FAB_CLEARANCE))
+                    Spacer(Modifier.height(FAB_CLEARANCE))
+                }
             }
         }
 
@@ -158,10 +185,41 @@ fun FeedScreen(
 }
 
 @Composable
+private fun EmptyFeed(modifier: Modifier = Modifier) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = modifier.padding(horizontal = 24.dp, vertical = 24.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Pets,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(56.dp)
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = stringResource(R.string.text_8_4),
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = stringResource(R.string.text_8_5),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(FAB_CLEARANCE))
+    }
+}
+
+@Composable
 private fun RequestCard(
     request: PetRequest,
     photoUri: String?,
     responsesCount: Int,
+    volunteerName: String?,
     reviewed: Boolean,
     onClick: () -> Unit,
     onLeaveReview: () -> Unit
@@ -192,11 +250,38 @@ private fun RequestCard(
                             .weight(1f)
                             .padding(end = 8.dp)
                     )
-                    StatusChip(request.status)
+                    if (request.isExpired) {
+                        TagChip(
+                            text = stringResource(R.string.text_8_7),
+                            containerColor = MaterialTheme.colorScheme.outline,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        StatusChip(request.status)
+                    }
                 }
                 IconLine(icon = Icons.Default.DateRange, text = request.dates, maxLines = 1)
                 IconLine(icon = Icons.Default.LocationOn, text = request.place, maxLines = 1)
-                if (request.status == RequestStatus.Open) {
+                if (volunteerName != null && request.status != RequestStatus.Open) {
+                    IconLine(
+                        icon = Icons.Default.Person,
+                        text = stringResource(R.string.text_8_6, shortPersonName(volunteerName)),
+                        maxLines = 1
+                    )
+                }
+                if (request.isExpired) {
+                    IconLine(
+                        icon = Icons.Default.Info,
+                        text = stringResource(R.string.text_8_8),
+                        textColor = MaterialTheme.colorScheme.error
+                    )
+                } else if (request.status == RequestStatus.VolunteerChosen && !LocalDate.now().isBefore(request.end)) {
+                    IconLine(
+                        icon = Icons.Default.Info,
+                        text = stringResource(R.string.text_8_9),
+                        textColor = MaterialTheme.colorScheme.primary
+                    )
+                } else if (request.status == RequestStatus.Open) {
                     IconLine(
                         icon = Icons.Default.Groups,
                         text = if (responsesCount > 0) {

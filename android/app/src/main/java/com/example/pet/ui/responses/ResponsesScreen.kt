@@ -34,9 +34,14 @@ import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -64,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pet.R
 import com.example.pet.data.AppContainer
+import com.example.pet.data.DayMonthFormat
 import com.example.pet.data.RequestStatus
 import com.example.pet.data.Review
 import com.example.pet.data.UserRole
@@ -86,6 +92,12 @@ import com.example.pet.ui.main.StatusChip
 import java.time.LocalDate
 import java.util.UUID
 import kotlinx.coroutines.launch
+import android.content.Intent
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
+import com.example.pet.data.phoneForDial
+import com.example.pet.ui.components.formatPhone
 
 @Composable
 fun ResponsesScreen(
@@ -97,26 +109,40 @@ fun ResponsesScreen(
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val requests by AppContainer.requests.ownerRequests.collectAsStateWithLifecycle()
     val allReviews by AppContainer.reviews.reviews.collectAsStateWithLifecycle()
     val volunteers by AppContainer.volunteers.volunteers.collectAsStateWithLifecycle()
     val pets by AppContainer.pets.pets.collectAsStateWithLifecycle()
+    val responseIds by AppContainer.requests.responses.collectAsStateWithLifecycle()
+    val favoriteIds by AppContainer.requests.favorites.collectAsStateWithLifecycle()
 
     var tab by rememberSaveable { mutableIntStateOf(0) }
-    var favorites by rememberSaveable { mutableStateOf(emptySet<String>()) }
     var completing by remember { mutableStateOf(false) }
+    var choosing by remember { mutableStateOf(false) }
     var openingChat by remember { mutableStateOf(false) }
     var showReview by rememberSaveable { mutableStateOf(false) }
     var confirmComplete by rememberSaveable { mutableStateOf(false) }
-    val responses = remember(volunteers, requestId) { AppContainer.volunteers.responsesFor(requestId) }
+    var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    var menuOpen by remember { mutableStateOf(false) }
+    var removed by remember { mutableStateOf(false) }
+    var pendingChoice by remember { mutableStateOf<Volunteer?>(null) }
+    val responses = remember(volunteers, responseIds, requestId) {
+        responseIds[requestId].orEmpty().mapNotNull { id -> volunteers.firstOrNull { it.id == id } }
+    }
+    val favorites = favoriteIds[requestId].orEmpty()
 
     val request = requests.firstOrNull { it.id == requestId }
     if (request == null) {
-        NotFoundScreen(title = stringResource(R.string.text_14_1), onBack = onBack, modifier = modifier)
+        if (removed) {
+            Box(modifier = modifier.fillMaxSize())
+        } else {
+            NotFoundScreen(title = stringResource(R.string.text_14_1), onBack = onBack, modifier = modifier)
+        }
         return
     }
     val petPhotoUri = pets.firstOrNull { it.id == request.petId }?.photoUri ?: request.petPhotoUri
-    val chosen = responses.firstOrNull { it.id == request.chosenVolunteerId }
+    val chosen = volunteers.firstOrNull { it.id == request.chosenVolunteerId }
 
     val shown = when {
         request.status == RequestStatus.Completed -> listOfNotNull(chosen)
@@ -128,8 +154,8 @@ fun ResponsesScreen(
 
     fun openChat(volunteerId: String) {
         if (openingChat) return
+        openingChat = true
         scope.launch {
-            openingChat = true
             AppContainer.chats.openChat(UserRole.Owner, request.id, volunteerId)
                 .onSuccess { onOpenChat(it.id) }
             openingChat = false
@@ -147,9 +173,8 @@ fun ResponsesScreen(
                         confirmComplete = false
                         scope.launch {
                             completing = true
-                            AppContainer.requests.complete(request.id)
+                            AppContainer.requests.complete(request.id).onSuccess { showReview = true }
                             completing = false
-                            showReview = true
                         }
                     }
                 ) {
@@ -158,6 +183,80 @@ fun ResponsesScreen(
             },
             dismissButton = {
                 TextButton(onClick = { confirmComplete = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        )
+    }
+
+    pendingChoice?.let { volunteer ->
+        val unselect = request.chosenVolunteerId == volunteer.id
+        val replaced = chosen?.takeIf { !unselect }
+        AlertDialog(
+            onDismissRequest = { pendingChoice = null },
+            title = { Text(stringResource(if (unselect) R.string.text_14_13 else R.string.text_14_11)) },
+            text = {
+                Text(
+                    when {
+                        unselect -> stringResource(R.string.text_14_14, shortPersonName(volunteer.name))
+                        replaced != null -> stringResource(
+                            R.string.text_14_19,
+                            shortPersonName(replaced.name),
+                            shortPersonName(volunteer.name)
+                        )
+                        else -> stringResource(R.string.text_14_12, shortPersonName(volunteer.name))
+                    }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingChoice = null
+                        if (!choosing) {
+                            scope.launch {
+                                choosing = true
+                                AppContainer.requests.chooseVolunteer(request.id, if (unselect) null else volunteer.id)
+                                choosing = false
+                            }
+                        }
+                    }
+                ) {
+                    Text(stringResource(if (unselect) R.string.text_14_17 else R.string.text_14_4))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingChoice = null }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        )
+    }
+
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text(stringResource(R.string.text_14_15)) },
+            text = { Text(stringResource(R.string.text_14_16, request.title)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmDelete = false
+                        scope.launch {
+                            AppContainer.requests.delete(request.id).onSuccess {
+                                removed = true
+                                onBack()
+                            }
+                        }
+                    }
+                ) {
+                    Text(
+                        text = stringResource(R.string.common_delete),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) {
                     Text(stringResource(R.string.common_cancel))
                 }
             }
@@ -199,12 +298,46 @@ fun ResponsesScreen(
                 onBack = onBack,
                 actions = if (request.status == RequestStatus.Open) {
                     {
-                        IconButton(onClick = { onEditRequest(request.id) }) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = stringResource(R.string.text_5_26),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
+                        Box {
+                            IconButton(onClick = { menuOpen = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = menuOpen,
+                                onDismissRequest = { menuOpen = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.text_5_26)) },
+                                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                                    onClick = {
+                                        menuOpen = false
+                                        onEditRequest(request.id)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = stringResource(R.string.text_14_15),
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    onClick = {
+                                        menuOpen = false
+                                        confirmDelete = true
+                                    }
+                                )
+                            }
                         }
                     }
                 } else {
@@ -250,6 +383,16 @@ fun ResponsesScreen(
                 }
             }
 
+            if (request.isExpired) {
+                IconLine(
+                    icon = Icons.Default.Info,
+                    text = stringResource(R.string.text_14_20),
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                    textColor = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 12.dp)
+                )
+            }
+
             Spacer(Modifier.height(16.dp))
 
             AnimatedVisibility(
@@ -284,18 +427,18 @@ fun ResponsesScreen(
                         reviewsCount = allReviews.count { it.volunteerId == volunteer.id },
                         isFavorite = volunteer.id in favorites,
                         isSelected = volunteer.id == request.chosenVolunteerId,
-                        selectable = request.status != RequestStatus.Completed,
-                        onFavoriteToggle = {
-                            favorites = if (volunteer.id in favorites) favorites - volunteer.id else favorites + volunteer.id
+                        phone = volunteer.phone.takeIf {
+                            it.isNotBlank() && volunteer.id == request.chosenVolunteerId &&
+                                    request.status != RequestStatus.Open
                         },
-                        onSelect = {
-                            scope.launch {
-                                AppContainer.requests.chooseVolunteer(
-                                    request.id,
-                                    if (request.chosenVolunteerId == volunteer.id) null else volunteer.id
-                                )
-                            }
+                        onCall = { number ->
+                            val intent = Intent(Intent.ACTION_DIAL, "tel:${phoneForDial(number)}".toUri())
+                            runCatching { context.startActivity(intent) }
                         },
+                        selectable = request.status != RequestStatus.Completed &&
+                                (volunteer.id == request.chosenVolunteerId || !request.start.isBefore(LocalDate.now())),
+                        onFavoriteToggle = { AppContainer.requests.toggleFavorite(request.id, volunteer.id) },
+                        onSelect = { pendingChoice = volunteer },
                         onChat = { openChat(volunteer.id) },
                         onClick = { onVolunteerClick(volunteer.id) },
                         modifier = Modifier.animateItem()
@@ -322,10 +465,21 @@ fun ResponsesScreen(
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
-                Column {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    val canComplete = !LocalDate.now().isBefore(request.start)
+                    if (!canComplete) {
+                        Text(
+                            text = stringResource(R.string.text_14_18, request.start.format(DayMonthFormat)),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
                     PrimaryButton(
                         text = stringResource(R.string.text_14_10),
                         loading = completing,
+                        enabled = canComplete,
                         onClick = { confirmComplete = true }
                     )
                     Spacer(Modifier.height(32.dp))
@@ -366,6 +520,8 @@ private fun ResponseCard(
     reviewsCount: Int,
     isFavorite: Boolean,
     isSelected: Boolean,
+    phone: String?,
+    onCall: (String) -> Unit,
     selectable: Boolean,
     onFavoriteToggle: () -> Unit,
     onSelect: () -> Unit,
@@ -399,6 +555,24 @@ private fun ResponseCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (phone != null) {
+                    IconLine(
+                        icon = Icons.Default.Phone,
+                        text = formatPhone(phone),
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                        textColor = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            if (phone != null) {
+                IconButton(onClick = { onCall(phone) }) {
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = stringResource(R.string.text_23_5),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
 
             IconButton(onClick = onChat) {
@@ -409,7 +583,7 @@ private fun ResponseCard(
                 )
             }
 
-            if (selectable) {
+            if (selectable && phone == null) {
                 FavoriteButton(isFavorite = isFavorite, onToggle = onFavoriteToggle)
             }
         }

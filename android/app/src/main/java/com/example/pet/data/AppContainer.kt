@@ -4,6 +4,7 @@ import android.content.Context
 import com.example.pet.data.repository.AuthRepository
 import com.example.pet.data.repository.ChatRepository
 import com.example.pet.data.repository.FakeAuthRepository
+import com.example.pet.data.repository.FakePushRepository
 import com.example.pet.data.repository.InMemoryChatRepository
 import com.example.pet.data.repository.InMemoryPetRepository
 import com.example.pet.data.repository.InMemoryProfileRepository
@@ -13,6 +14,7 @@ import com.example.pet.data.repository.InMemoryVolunteerRepository
 import com.example.pet.data.repository.PetRepository
 import com.example.pet.data.repository.PrefsSettingsRepository
 import com.example.pet.data.repository.ProfileRepository
+import com.example.pet.data.repository.PushRepository
 import com.example.pet.data.repository.RequestRepository
 import com.example.pet.data.repository.ReviewRepository
 import com.example.pet.data.repository.SettingsRepository
@@ -21,11 +23,13 @@ import com.example.pet.data.repository.VolunteerRepository
 object AppContainer {
     val auth: AuthRepository = FakeAuthRepository()
     val profiles: ProfileRepository = InMemoryProfileRepository()
-    val pets: PetRepository = InMemoryPetRepository()
-    val requests: RequestRepository = InMemoryRequestRepository()
+    private val requestStore = InMemoryRequestRepository()
+    val requests: RequestRepository = requestStore
+    val pets: PetRepository = InMemoryPetRepository(requestStore)
     val volunteers: VolunteerRepository = InMemoryVolunteerRepository()
     val reviews: ReviewRepository = InMemoryReviewRepository()
     val chats: ChatRepository = InMemoryChatRepository(requests, volunteers)
+    val push: PushRepository = FakePushRepository()
 
     lateinit var settings: SettingsRepository
         private set
