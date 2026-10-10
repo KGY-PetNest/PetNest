@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,12 +43,12 @@ import com.example.pet.data.AppContainer
 import com.example.pet.data.Pet
 import com.example.pet.data.UserRole
 import com.example.pet.ui.components.IconLine
-import com.example.pet.ui.components.InitialsAvatar
 import com.example.pet.ui.components.PetThumbnail
 import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.SectionTitle
 import com.example.pet.ui.components.formatPhone
 import com.example.pet.ui.components.pressScale
+import com.example.pet.ui.components.ProfileHeader
 
 private const val TILES_PER_ROW = 4
 private val TILE_AVATAR = 64.dp
@@ -89,36 +90,32 @@ fun ProfileScreen(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
         ) {
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            ProfileHeader(
+                name = profile.name,
+                photoUri = profile.avatarUri,
                 modifier = Modifier.padding(horizontal = 8.dp)
             ) {
-                InitialsAvatar(name = profile.name, photoUri = profile.avatarUri, size = 80.dp, zoomable = true)
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(start = 16.dp)
-                ) {
-                    Text(
-                        text = profile.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    IconLine(
-                        icon = Icons.Default.Phone,
-                        text = formatPhone(profile.phone),
-                        textStyle = MaterialTheme.typography.bodyMedium
-                    )
-                    IconLine(
-                        icon = Icons.Default.Email,
-                        text = profile.email,
-                        textStyle = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                IconLine(
+                    icon = Icons.Default.Phone,
+                    text = formatPhone(profile.phone),
+                    textStyle = MaterialTheme.typography.bodyMedium
+                )
+                IconLine(
+                    icon = Icons.Default.Email,
+                    text = profile.email,
+                    textStyle = MaterialTheme.typography.bodyMedium
+                )
             }
 
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(24.dp))
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+            Spacer(Modifier.height(20.dp))
 
             SectionTitle(
                 text = stringResource(R.string.text_9_2),

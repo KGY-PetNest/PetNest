@@ -68,6 +68,9 @@ import com.example.pet.ui.theme.PetStar
 import com.example.pet.ui.theme.extraColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.layout.Placeable
 
 private val CardShape = RoundedCornerShape(16.dp)
 
@@ -349,9 +352,14 @@ fun SettingsRow(
 fun PetTraitChips(
     traits: List<PetTrait>,
     modifier: Modifier = Modifier,
-    large: Boolean = false
+    large: Boolean = false,
+    singleLine: Boolean = false
 ) {
     if (traits.isEmpty()) return
+    if (singleLine) {
+        SingleLineChips(labels = traits.map { stringResource(it.label) }, modifier = modifier)
+        return
+    }
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -560,3 +568,127 @@ fun rememberPhoto(photoUri: String?): ImageBitmap? {
     }
     return photo
 }
+
+val ProfileAvatarSize = 96.dp
+val ListThumbnailSize = 64.dp
+
+@Composable
+fun ProfileHeader(
+    name: String,
+    photoUri: String?,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit = {}
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        InitialsAvatar(name = name, photoUri = photoUri, size = ProfileAvatarSize, zoomable = true)
+        Column(
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 16.dp)
+        ) {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            content()
+        }
+    }
+}
+
+@Composable
+fun SingleLineChips(labels: List<String>, modifier: Modifier = Modifier) {
+    val counterContainer = MaterialTheme.colorScheme.outline
+    val counterContent = MaterialTheme.colorScheme.onSurfaceVariant
+    SubcomposeLayout(modifier = modifier.fillMaxWidth()) { constraints ->
+        val spacing = 6.dp.roundToPx()
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val chips = labels.mapIndexed { index, label ->
+            subcompose("chip$index") { TagChip(text = label) }.first().measure(loose)
+        }
+        val maxWidth = if (constraints.hasBoundedWidth) constraints.maxWidth else Int.MAX_VALUE
+        fun rowWidth(count: Int): Int =
+            chips.take(count).sumOf { it.width } + spacing * (count - 1).coerceAtLeast(0)
+
+        var shown = chips.size
+        var counter: Placeable? = null
+        if (rowWidth(shown) > maxWidth) {
+            shown = chips.size - 1
+            while (true) {
+                val hidden = chips.size - shown
+                val measured = subcompose("more$shown") {
+                    TagChip(text = "+$hidden", containerColor = counterContainer, contentColor = counterContent)
+                }.first().measure(loose)
+                val gap = if (shown > 0) spacing else 0
+                if (shown == 0 || rowWidth(shown) + gap + measured.width <= maxWidth) {
+                    counter = measured
+                    break
+                }
+                shown--
+            }
+        }
+        val visible = chips.take(shown)
+        val more = counter
+        val gapBeforeMore = if (visible.isNotEmpty()) spacing else 0
+        val height = (visible.map { it.height } + listOfNotNull(more?.height)).maxOrNull() ?: 0
+        val width = (rowWidth(visible.size) + (more?.let { gapBeforeMore + it.width } ?: 0))
+            .coerceAtMost(if (constraints.hasBoundedWidth) constraints.maxWidth else Int.MAX_VALUE)
+        layout(width, height) {
+            var x = 0
+            visible.forEach { placeable ->
+                placeable.placeRelative(x, (height - placeable.height) / 2)
+                x += placeable.width + spacing
+            }
+            if (more != null) {
+                more.placeRelative(rowWidth(visible.size) + gapBeforeMore, (height - more.height) / 2)
+            }
+        }
+    }
+}
+
+@Composable
+fun StatTile(
+    value: String,
+    caption: String,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    iconTint: Color = MaterialTheme.colorScheme.primary,
+    onClick: (() -> Unit)? = null
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = modifier
+            .cardSurface(onClick)
+            .padding(vertical = 12.dp, horizontal = 8.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(4.dp))
+            }
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
+        }
+        Text(
+            text = caption,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1
+        )
+    }
+}
+

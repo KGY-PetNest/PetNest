@@ -98,6 +98,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
 import com.example.pet.data.phoneForDial
 import com.example.pet.ui.components.formatPhone
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import com.example.pet.ui.components.ListThumbnailSize
 
 @Composable
 fun ResponsesScreen(
@@ -354,7 +358,7 @@ fun ResponsesScreen(
                     .cardSurface()
                     .padding(12.dp)
             ) {
-                PetThumbnail(photoUri = petPhotoUri, size = 56.dp)
+                PetThumbnail(photoUri = petPhotoUri, size = ListThumbnailSize)
                 Column(
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                     modifier = Modifier
@@ -536,7 +540,7 @@ private fun ResponseCard(
             .padding(12.dp)
     ) {
         Row(verticalAlignment = Alignment.Top) {
-            InitialsAvatar(name = volunteer.name, photoUri = volunteer.avatarUri, size = 56.dp)
+            InitialsAvatar(name = volunteer.name, photoUri = volunteer.avatarUri, size = ListThumbnailSize)
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(3.dp),
@@ -556,22 +560,30 @@ private fun ResponseCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (phone != null) {
-                    IconLine(
-                        icon = Icons.Default.Phone,
-                        text = formatPhone(phone),
-                        textStyle = MaterialTheme.typography.bodyMedium,
-                        textColor = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-
-            if (phone != null) {
-                IconButton(onClick = { onCall(phone) }) {
-                    Icon(
-                        imageVector = Icons.Default.Phone,
-                        contentDescription = stringResource(R.string.text_23_5),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .clickable { onCall(phone) }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Phone,
+                            contentDescription = stringResource(R.string.text_23_5),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = formatPhone(phone),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
                 }
             }
 

@@ -30,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pet.R
@@ -38,9 +37,7 @@ import com.example.pet.data.AppContainer
 import com.example.pet.data.HomeConditionGroup
 import com.example.pet.data.HomeConditionType
 import com.example.pet.data.averageRating
-import com.example.pet.ui.components.InitialsAvatar
 import com.example.pet.ui.components.NotFoundScreen
-import com.example.pet.ui.components.RatingLabel
 import com.example.pet.ui.components.ReviewCard
 import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.SectionTitle
@@ -48,6 +45,18 @@ import com.example.pet.ui.components.TagChip
 import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.icon
 import com.example.pet.ui.components.label
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.runtime.remember
+import com.example.pet.data.UserRole
+import com.example.pet.ui.components.IconLine
+import com.example.pet.ui.components.formatPhone
+import com.example.pet.ui.components.ProfileHeader
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.ui.res.pluralStringResource
+import com.example.pet.ui.components.StatTile
+import com.example.pet.ui.theme.PetStar
 
 private const val REVIEWS_PREVIEW_COUNT = 2
 
@@ -61,6 +70,8 @@ fun VolunteerProfileScreen(
 ) {
     val volunteers by AppContainer.volunteers.volunteers.collectAsStateWithLifecycle()
     val allReviews by AppContainer.reviews.reviews.collectAsStateWithLifecycle()
+    val ownProfile by remember { AppContainer.profiles.profile(UserRole.Volunteer) }.collectAsStateWithLifecycle()
+    val isOwn = onOpenSettings != null
     val primary = MaterialTheme.colorScheme.primary
     val bodyStyle = MaterialTheme.typography.bodyLarge
     val volunteer = volunteers.firstOrNull { it.id == volunteerId }
@@ -107,27 +118,53 @@ fun VolunteerProfileScreen(
             ) {
                 Spacer(Modifier.height(12.dp))
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    InitialsAvatar(name = volunteer.name, photoUri = volunteer.avatarUri, size = 96.dp, zoomable = true)
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(start = 16.dp)
-                    ) {
-                        Text(
-                            text = volunteer.name,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
+                ProfileHeader(name = volunteer.name, photoUri = volunteer.avatarUri) {
+                    if (isOwn) {
+                        IconLine(
+                            icon = Icons.Default.Phone,
+                            text = formatPhone(volunteer.phone.ifBlank { ownProfile.phone }),
+                            textStyle = MaterialTheme.typography.bodyMedium
                         )
-                        RatingLabel(
-                            rating = reviews.averageRating(),
-                            reviewsCount = reviews.size,
-                            large = true
-                        )
-                        TagChip(
-                            text = stringResource(R.string.text_13_2, volunteer.experience),
-                            large = true
+                        IconLine(
+                            icon = Icons.Default.Email,
+                            text = ownProfile.email,
+                            textStyle = MaterialTheme.typography.bodyMedium
                         )
                     }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    StatTile(
+                        value = if (reviews.isEmpty()) {
+                            stringResource(R.string.text_13_12)
+                        } else {
+                            stringResource(R.string.text_15_2, reviews.averageRating())
+                        },
+                        caption = if (reviews.isEmpty()) {
+                            stringResource(R.string.text_13_9)
+                        } else {
+                            pluralStringResource(R.plurals.reviews_count, reviews.size, reviews.size)
+                        },
+                        icon = Icons.Default.Star,
+                        iconTint = PetStar,
+                        onClick = if (reviews.isNotEmpty()) {
+                            { onAllReviews(volunteer.id) }
+                        } else {
+                            null
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatTile(
+                        value = volunteer.experience,
+                        caption = stringResource(R.string.text_13_11),
+                        icon = Icons.Default.WorkspacePremium,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
 
                 Section(title = stringResource(R.string.text_13_4)) {

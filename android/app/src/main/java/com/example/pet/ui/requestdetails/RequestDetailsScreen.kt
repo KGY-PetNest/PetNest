@@ -80,6 +80,7 @@ import com.example.pet.ui.components.cardSurface
 import com.example.pet.ui.components.formatPhone
 import com.example.pet.ui.theme.extraColors
 import kotlinx.coroutines.launch
+import com.example.pet.ui.components.ProfileAvatarSize
 
 @Composable
 fun RequestDetailsScreen(
@@ -191,7 +192,7 @@ fun RequestDetailsScreen(
                 Spacer(Modifier.height(12.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    PetThumbnail(photoUri = request.petPhotoUri, size = 88.dp, zoomTitle = request.title, zoomable = true)
+                    PetThumbnail(photoUri = request.petPhotoUri, size = ProfileAvatarSize, zoomTitle = request.title, zoomable = true)
                     Column(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier

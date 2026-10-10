@@ -67,6 +67,29 @@ import com.example.pet.ui.components.SectionTitle
 import com.example.pet.ui.components.SegmentedToggle
 import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.cardSurface
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.tappableElement
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
+import com.example.pet.ui.components.TagChip
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.foundation.layout.offset
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
 
 private data class GuideStep(
     val icon: ImageVector,
@@ -143,44 +166,65 @@ fun AppGuideScreen(
                 onBack = if (firstRun) null else onBack
             )
 
-            Column(
+            val scrollState = rememberScrollState()
+            val hintThresholdPx = with(LocalDensity.current) { 48.dp.toPx() }
+            val showScrollHint by remember {
+                derivedStateOf { scrollState.canScrollForward && scrollState.value < hintThresholdPx }
+            }
+            Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
             ) {
-                Spacer(Modifier.height(12.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                ) {
+                    Spacer(Modifier.height(12.dp))
 
-                if (firstRun) {
-                    FirstRunHint()
-                    Spacer(Modifier.height(16.dp))
-                }
+                    if (firstRun) {
+                        FirstRunHint()
+                        Spacer(Modifier.height(16.dp))
+                    }
 
-                SegmentedToggle(
-                    options = listOf(
-                        stringResource(R.string.text_26_2),
-                        stringResource(R.string.text_26_3)
-                    ),
-                    selectedIndex = tab,
-                    onSelect = { tab = it }
-                )
-
-                Spacer(Modifier.height(20.dp))
-
-                Crossfade(
-                    targetState = tab,
-                    animationSpec = tween(200),
-                    label = "guideTab"
-                ) { index ->
-                    val isOwner = index == 0
-                    GuideContent(
-                        intro = stringResource(if (isOwner) R.string.text_26_4 else R.string.text_26_5),
-                        steps = if (isOwner) ownerSteps else volunteerSteps,
-                        questions = (if (isOwner) ownerQuestions else volunteerQuestions) + commonQuestions
+                    SegmentedToggle(
+                        options = listOf(
+                            stringResource(R.string.text_26_2),
+                            stringResource(R.string.text_26_3)
+                        ),
+                        selectedIndex = tab,
+                        onSelect = { tab = it }
                     )
+
+                    Spacer(Modifier.height(20.dp))
+
+                    Crossfade(
+                        targetState = tab,
+                        animationSpec = tween(200),
+                        label = "guideTab"
+                    ) { index ->
+                        val isOwner = index == 0
+                        GuideContent(
+                            intro = stringResource(if (isOwner) R.string.text_26_4 else R.string.text_26_5),
+                            steps = if (isOwner) ownerSteps else volunteerSteps,
+                            questions = (if (isOwner) ownerQuestions else volunteerQuestions) + commonQuestions
+                        )
+                    }
+
+                    Spacer(Modifier.height(24.dp))
                 }
 
-                Spacer(Modifier.height(24.dp))
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showScrollHint,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 12.dp)
+                ) {
+                    ScrollHint()
+                }
             }
 
             if (firstRun) {
@@ -245,6 +289,10 @@ private fun GuideContent(
         }
 
         Spacer(Modifier.height(16.dp))
+
+        NavigationHelp()
+
+        Spacer(Modifier.height(24.dp))
 
         SectionTitle(stringResource(R.string.text_26_30))
 
@@ -380,5 +428,270 @@ private fun QuestionItem(
                 modifier = Modifier.padding(top = 8.dp)
             )
         }
+    }
+}
+
+private enum class NavKey { Back, Home, Recents }
+
+@Composable
+private fun NavigationHelp() {
+    val density = LocalDensity.current
+    val usesButtons = WindowInsets.tappableElement.getBottom(density) > 0
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        SectionTitle(stringResource(R.string.text_26_53))
+
+        Row(
+            verticalAlignment = Alignment.Top,
+            modifier = Modifier
+                .fillMaxWidth()
+                .cardSurface()
+                .padding(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Apps,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = stringResource(R.string.text_26_54),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = stringResource(R.string.text_26_55),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .cardSurface()
+                .padding(16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.Top) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = stringResource(R.string.text_26_56),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = stringResource(R.string.text_26_57),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Max)
+            ) {
+                NavModeTile(
+                    title = stringResource(R.string.text_26_58),
+                    caption = stringResource(R.string.text_26_59),
+                    current = !usesButtons,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                ) {
+                    GesturePhone()
+                }
+                NavModeTile(
+                    title = stringResource(R.string.text_26_60),
+                    caption = stringResource(R.string.text_26_61),
+                    current = usesButtons,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        NavKeysBar(listOf(NavKey.Back, NavKey.Home, NavKey.Recents))
+                        NavKeysBar(listOf(NavKey.Recents, NavKey.Home, NavKey.Back))
+                    }
+                }
+            }
+
+            Text(
+                text = stringResource(R.string.text_26_63),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun NavModeTile(
+    title: String,
+    caption: String,
+    current: Boolean,
+    modifier: Modifier = Modifier,
+    illustration: @Composable () -> Unit
+) {
+    val borderColor = if (current) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .border(if (current) 2.dp else 1.dp, borderColor, RoundedCornerShape(16.dp))
+            .padding(12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (current) {
+                Spacer(Modifier.width(6.dp))
+                TagChip(text = stringResource(R.string.text_26_62))
+            }
+        }
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.height(96.dp)
+        ) {
+            illustration()
+        }
+        Text(
+            text = caption,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun GesturePhone() {
+    val frame = MaterialTheme.colorScheme.onSurfaceVariant
+    val accent = MaterialTheme.colorScheme.primary
+    Box(
+        modifier = Modifier
+            .size(width = 60.dp, height = 96.dp)
+            .border(2.dp, frame, RoundedCornerShape(12.dp))
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            contentDescription = null,
+            tint = accent,
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(start = 2.dp)
+                .size(20.dp)
+        )
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = null,
+            tint = accent,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 2.dp)
+                .size(20.dp)
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 6.dp)
+                .size(width = 22.dp, height = 3.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(frame)
+        )
+    }
+}
+
+@Composable
+private fun NavKeysBar(keys: List<NavKey>) {
+    val accent = MaterialTheme.colorScheme.primary
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        keys.forEach { key ->
+            Canvas(modifier = Modifier.size(16.dp)) {
+                val stroke = Stroke(width = 2.dp.toPx())
+                val color = if (key == NavKey.Back) accent else muted
+                val inset = 2.dp.toPx()
+                when (key) {
+                    NavKey.Back -> {
+                        val path = Path().apply {
+                            moveTo(size.width - inset, inset)
+                            lineTo(inset, size.height / 2)
+                            lineTo(size.width - inset, size.height - inset)
+                            close()
+                        }
+                        drawPath(path = path, color = color, style = stroke)
+                    }
+                    NavKey.Home -> drawCircle(color = color, radius = size.minDimension / 2 - inset, style = stroke)
+                    NavKey.Recents -> drawRoundRect(
+                        color = color,
+                        topLeft = Offset(inset, inset),
+                        size = Size(size.width - inset * 2, size.height - inset * 2),
+                        cornerRadius = CornerRadius(2.dp.toPx()),
+                        style = stroke
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScrollHint() {
+    val transition = rememberInfiniteTransition(label = "scrollHint")
+    val bounce by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 4f,
+        animationSpec = infiniteRepeatable(tween(600), RepeatMode.Reverse),
+        label = "scrollHintBounce"
+    )
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.primary)
+            .padding(start = 16.dp, end = 10.dp, top = 8.dp, bottom = 8.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.text_26_64),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onPrimary
+        )
+        Spacer(Modifier.width(4.dp))
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowDown,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier
+                .size(20.dp)
+                .offset(y = bounce.dp)
+        )
     }
 }

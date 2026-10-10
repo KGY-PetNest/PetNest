@@ -169,6 +169,12 @@
     <string name="text_8_7">Даты прошли</string>
     <string name="text_8_8">Волонтёр так и не выбран. Измените даты или удалите заявку</string>
     <string name="text_8_9">Передержка закончилась — завершите её и оставьте отзыв</string>
+    <plurals name="reviews_count">
+        <item quantity="one">%d отзыв</item>
+        <item quantity="few">%d отзыва</item>
+        <item quantity="many">%d отзывов</item>
+        <item quantity="other">%d отзыва</item>
+    </plurals>
     <plurals name="responses_count">
         <item quantity="one">%d отклик</item>
         <item quantity="few">%d отклика</item>
@@ -288,6 +294,8 @@
     <string name="text_13_8">%1$.1f (%2$d)</string>
     <string name="text_13_9">Пока нет отзывов</string>
     <string name="text_13_10">Не указаны</string>
+    <string name="text_13_11">Опыт</string>
+    <string name="text_13_12">—</string>
     <string name="text_14_1">Отклики волонтёров</string>
     <string name="text_14_2">Все отклики</string>
     <string name="text_14_3">Избранные</string>
@@ -447,6 +455,18 @@
     <string name="text_26_50">Настройки → «Уведомления» и разрешите их для PetNest. На некоторых телефонах ещё нужно отключить экономию батареи для приложения</string>
     <string name="text_26_51">Начать</string>
     <string name="text_26_52">Это займёт минуту. Открыть гайд снова можно в Настройках</string>
+    <string name="text_26_53">Как перемещаться</string>
+    <string name="text_26_54">Нижнее меню</string>
+    <string name="text_26_55">Заявки, Чат, Справочник и Профиль всегда внизу экрана. Нажмите на раздел, чтобы перейти в него — подсвеченный раздел открыт сейчас</string>
+    <string name="text_26_56">Назад</string>
+    <string name="text_26_57">Стрелка ← вверху экрана возвращает на предыдущий шаг. Ещё можно вернуться так — зависит от настроек телефона:</string>
+    <string name="text_26_58">Жесты</string>
+    <string name="text_26_59">Проведите пальцем от левого или правого края экрана к центру</string>
+    <string name="text_26_60">Кнопки</string>
+    <string name="text_26_61">Нажмите треугольник внизу экрана. На одних телефонах он слева, на других — справа</string>
+    <string name="text_26_62">У вас</string>
+    <string name="text_26_63">В разделах нижнего меню «назад» ведёт на «Заявки», а с «Заявок» сворачивает приложение</string>
+    <string name="text_26_64">Листайте вниз</string>
     <string name="text_27_1">Фото</string>
     <string name="text_27_2">Закрыть</string>
 </resources>
