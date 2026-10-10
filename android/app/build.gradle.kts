@@ -9,6 +9,13 @@ if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
 }
 
+val appVersionCode = 8
+val appVersionName = "6.0"
+
+base {
+    archivesName = "PetNest-$appVersionName"
+}
+
 val mapkitApiKey: String = providers
     .fileContents(rootProject.layout.projectDirectory.file("local.properties"))
     .asText
@@ -30,8 +37,8 @@ android {
         applicationId = "com.example.pet"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         buildConfigField("String", "MAPKIT_API_KEY", "\"$mapkitApiKey\"")
 

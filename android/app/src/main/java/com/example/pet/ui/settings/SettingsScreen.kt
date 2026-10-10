@@ -30,8 +30,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.pet.BuildConfig
 import com.example.pet.R
 import com.example.pet.data.AppContainer
 import com.example.pet.data.ThemeMode
@@ -139,6 +141,16 @@ fun SettingsScreen(
 
                 Spacer(Modifier.height(32.dp))
             }
+
+            Text(
+                text = stringResource(R.string.text_22_12, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp, bottom = 16.dp)
+            )
         }
     }
 
