@@ -1,5 +1,13 @@
 package com.example.pet.ui.requestdetails
 
+import com.example.pet.ui.components.ScreenContentInset
+import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.data.shortPersonName
+import com.example.pet.data.displayPersonName
+import com.example.pet.ui.components.careFormatText
+import com.example.pet.ui.components.icon
+import com.example.pet.ui.components.PinnedBarGap
+import com.example.pet.ui.components.PinnedBarDivider
 import android.content.Intent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -81,6 +89,7 @@ import com.example.pet.ui.components.formatPhone
 import com.example.pet.ui.theme.extraColors
 import kotlinx.coroutines.launch
 import com.example.pet.ui.components.ProfileAvatarSize
+import com.example.pet.ui.components.showRequestError
 
 @Composable
 fun RequestDetailsScreen(
@@ -99,6 +108,8 @@ fun RequestDetailsScreen(
     var openingChat by remember { mutableStateOf(false) }
     var closedError by remember { mutableStateOf(false) }
     var confirmWithdraw by rememberSaveable { mutableStateOf(false) }
+    var chatLocked by rememberSaveable { mutableStateOf(false) }
+    var confirmCancel by rememberSaveable { mutableStateOf(false) }
     val bodyStyle = MaterialTheme.typography.bodyLarge
     val request = feed.firstOrNull { it.id == requestId }
     if (request == null) {
@@ -126,6 +137,7 @@ fun RequestDetailsScreen(
                         scope.launch {
                             busy = true
                             AppContainer.requests.withdraw(request.id)
+                                .onFailure { showRequestError(context) }
                             busy = false
                         }
                     }
@@ -144,12 +156,73 @@ fun RequestDetailsScreen(
         )
     }
 
+    if (confirmCancel) {
+        AlertDialog(
+            onDismissRequest = { confirmCancel = false },
+            title = { Text(stringResource(R.string.text_21_22)) },
+            text = { Text(stringResource(R.string.text_21_23)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmCancel = false
+                        scope.launch {
+                            busy = true
+                            AppContainer.requests.cancelResponse(request.id)
+                                .onFailure { showRequestError(context) }
+                            busy = false
+                        }
+                    }
+                ) {
+                    Text(
+                        text = stringResource(R.string.text_21_5),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmCancel = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        )
+    }
+
+    if (chatLocked) {
+        AlertDialog(
+            onDismissRequest = { chatLocked = false },
+            title = { Text(stringResource(R.string.text_21_20)) },
+            text = { Text(stringResource(R.string.text_21_21)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        chatLocked = false
+                        scope.launch {
+                            busy = true
+                            closedError = false
+                            AppContainer.requests.respond(request.id)
+                                .onFailure { closedError = it is RequestClosedException }
+                            busy = false
+                        }
+                    }
+                ) {
+                    Text(stringResource(R.string.text_21_3))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { chatLocked = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        )
+    }
+
     fun openChat() {
         if (openingChat) return
         openingChat = true
         scope.launch {
             AppContainer.chats.openChat(UserRole.Volunteer, request.id, MockData.CURRENT_VOLUNTEER_ID)
                 .onSuccess { onOpenChat(it.id) }
+                .onFailure { showRequestError(context) }
             openingChat = false
         }
     }
@@ -162,14 +235,14 @@ fun RequestDetailsScreen(
             modifier = Modifier
                 .fillMaxHeight()
                 .adaptiveContentWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = ScreenHorizontalPadding)
         ) {
             ScreenHeader(
                 title = stringResource(R.string.text_21_1),
                 onBack = onBack,
-                actions = if (canChat) {
+                actions = if (canChat || (myStatus == null && request.acceptsResponses)) {
                     {
-                        IconButton(onClick = { openChat() }) {
+                        IconButton(onClick = { if (canChat) openChat() else chatLocked = true }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.Chat,
                                 contentDescription = stringResource(R.string.text_10_14),
@@ -182,12 +255,13 @@ fun RequestDetailsScreen(
                 }
             )
 
+            val scrollState = rememberScrollState()
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 8.dp)
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = ScreenContentInset)
             ) {
                 Spacer(Modifier.height(12.dp))
 
@@ -267,6 +341,13 @@ fun RequestDetailsScreen(
                         textColor = MaterialTheme.colorScheme.onSurface
                     )
                     IconLine(
+                        icon = request.format.icon,
+                        text = careFormatText(request, forOwner = false),
+                        iconSize = 22.dp,
+                        textStyle = bodyStyle,
+                        textColor = MaterialTheme.colorScheme.onSurface
+                    )
+                    IconLine(
                         icon = Icons.Default.LocationOn,
                         text = when {
                             isMine -> listOf(request.address, request.addressDetails)
@@ -286,7 +367,10 @@ fun RequestDetailsScreen(
                     if (request.ownerName.isNotBlank()) {
                         IconLine(
                             icon = Icons.Default.Person,
-                            text = stringResource(R.string.text_21_2, request.ownerName),
+                            text = stringResource(
+                                R.string.text_21_2,
+                                if (isMine) displayPersonName(request.ownerName) else shortPersonName(request.ownerName)
+                            ),
                             iconSize = 22.dp,
                             textStyle = bodyStyle,
                             textColor = MaterialTheme.colorScheme.onSurface
@@ -361,12 +445,8 @@ fun RequestDetailsScreen(
             val hasBottomBar = myStatus == null || myStatus == MyResponseStatus.Pending ||
                     myStatus == MyResponseStatus.Chosen
             if (hasBottomBar) {
-                HorizontalDivider(
-                    thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
-                Spacer(Modifier.height(16.dp))
+                PinnedBarDivider(visible = scrollState.canScrollForward)
+                Spacer(Modifier.height(PinnedBarGap))
             }
 
             if (myStatus == MyResponseStatus.Chosen) {
@@ -422,13 +502,7 @@ fun RequestDetailsScreen(
                         Spacer(Modifier.height(4.dp))
                         TextButton(
                             enabled = !busy,
-                            onClick = {
-                                scope.launch {
-                                    busy = true
-                                    AppContainer.requests.cancelResponse(request.id)
-                                    busy = false
-                                }
-                            }
+                            onClick = { confirmCancel = true }
                         ) {
                             Text(
                                 text = stringResource(R.string.text_21_5),

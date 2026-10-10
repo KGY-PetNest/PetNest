@@ -1,5 +1,12 @@
 package com.example.pet.ui.components
 
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.ui.graphics.graphicsLayer
+import com.example.pet.data.displayPersonName
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.animation.animateColorAsState
@@ -157,14 +164,15 @@ fun InitialsAvatar(
     photoUri: String? = null,
     zoomable: Boolean = false
 ) {
-    val initials = name.split(" ")
+    val shownName = displayPersonName(name)
+    val initials = shownName.split(" ")
         .filter { it.isNotBlank() }
         .take(2)
         .joinToString("") { it.first().uppercase() }
     val photo = rememberPhoto(photoUri)
     var viewerOpen by rememberSaveable { mutableStateOf(false) }
     if (viewerOpen && photoUri != null) {
-        PhotoViewerDialog(photoUri = photoUri, title = name, onDismiss = { viewerOpen = false })
+        PhotoViewerDialog(photoUri = photoUri, title = shownName, onDismiss = { viewerOpen = false })
     }
 
     Box(
@@ -306,6 +314,64 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
         fontWeight = FontWeight.SemiBold,
         modifier = modifier
     )
+}
+
+@Composable
+fun CollapsibleSection(
+    title: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        CollapsibleSectionHeader(title = title, expanded = expanded, onToggle = onToggle)
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.padding(top = 4.dp),
+                content = content
+            )
+        }
+    }
+}
+
+@Composable
+fun CollapsibleSectionHeader(
+    title: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val rotation by animateFloatAsState(targetValue = if (expanded) 90f else 0f, label = "sectionChevron")
+    val interaction = remember { MutableInteractionSource() }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(interactionSource = interaction, indication = null, onClick = onToggle)
+            .padding(horizontal = 4.dp, vertical = 10.dp)
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .size(22.dp)
+                .graphicsLayer { rotationZ = rotation }
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 
 @Composable
@@ -569,8 +635,9 @@ fun rememberPhoto(photoUri: String?): ImageBitmap? {
     return photo
 }
 
-val ProfileAvatarSize = 96.dp
+val ProfileAvatarSize = 88.dp
 val ListThumbnailSize = 64.dp
+val PersonThumbnailSize = 52.dp
 
 @Composable
 fun ProfileHeader(
@@ -591,7 +658,7 @@ fun ProfileHeader(
                 .padding(start = 16.dp)
         ) {
             Text(
-                text = name,
+                text = displayPersonName(name),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -637,6 +704,7 @@ fun SingleLineChips(labels: List<String>, modifier: Modifier = Modifier) {
         val height = (visible.map { it.height } + listOfNotNull(more?.height)).maxOrNull() ?: 0
         val width = (rowWidth(visible.size) + (more?.let { gapBeforeMore + it.width } ?: 0))
             .coerceAtMost(if (constraints.hasBoundedWidth) constraints.maxWidth else Int.MAX_VALUE)
+            .coerceAtLeast(constraints.minWidth)
         layout(width, height) {
             var x = 0
             visible.forEach { placeable ->
@@ -680,14 +748,16 @@ fun StatTile(
                 text = value,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                maxLines = 1
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
         Text(
             text = caption,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

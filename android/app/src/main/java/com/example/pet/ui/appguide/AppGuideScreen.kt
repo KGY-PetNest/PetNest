@@ -1,5 +1,7 @@
 package com.example.pet.ui.appguide
 
+import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.PinnedBarDivider
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
@@ -61,6 +63,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.pet.R
 import com.example.pet.data.UserRole
+import com.example.pet.ui.components.PinnedBarGap
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.SectionTitle
@@ -124,7 +127,8 @@ private val ownerQuestions = listOf(
     GuideQuestion(R.string.text_26_31, R.string.text_26_32),
     GuideQuestion(R.string.text_26_33, R.string.text_26_34),
     GuideQuestion(R.string.text_26_35, R.string.text_26_36),
-    GuideQuestion(R.string.text_26_37, R.string.text_26_38)
+    GuideQuestion(R.string.text_26_37, R.string.text_26_38),
+    GuideQuestion(R.string.text_26_65, R.string.text_26_66)
 )
 
 private val volunteerQuestions = listOf(
@@ -135,6 +139,8 @@ private val volunteerQuestions = listOf(
 )
 
 private val commonQuestions = listOf(
+    GuideQuestion(R.string.text_26_67, R.string.text_26_68),
+    GuideQuestion(R.string.text_26_69, R.string.text_26_70),
     GuideQuestion(R.string.text_26_47, R.string.text_26_48),
     GuideQuestion(R.string.text_26_49, R.string.text_26_50)
 )
@@ -159,7 +165,7 @@ fun AppGuideScreen(
             modifier = Modifier
                 .fillMaxHeight()
                 .adaptiveContentWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = ScreenHorizontalPadding)
         ) {
             ScreenHeader(
                 title = stringResource(R.string.text_26_1),
@@ -228,10 +234,11 @@ fun AppGuideScreen(
             }
 
             if (firstRun) {
+                PinnedBarDivider(visible = scrollState.canScrollForward)
                 PrimaryButton(
                     text = stringResource(R.string.text_26_51),
                     onClick = onFinish,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
+                    modifier = Modifier.padding(top = PinnedBarGap, bottom = 16.dp)
                 )
             }
         }
@@ -695,3 +702,4 @@ private fun ScrollHint() {
         )
     }
 }
+

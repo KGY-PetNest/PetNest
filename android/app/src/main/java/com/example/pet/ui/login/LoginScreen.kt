@@ -1,5 +1,6 @@
 package com.example.pet.ui.login
 
+import com.example.pet.ui.components.ScreenTextPadding
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,7 +19,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.pet.R
 import kotlinx.coroutines.launch
@@ -37,15 +38,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.material3.TextButton
 import com.example.pet.data.UserRole
+import com.example.pet.data.repository.AccountNotFoundException
 import com.example.pet.ui.components.AppTextField
 import com.example.pet.ui.components.AuthFooterLink
 import com.example.pet.ui.components.FormRules
 import com.example.pet.ui.components.PasswordField
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.PrivacyPolicyLink
-import com.example.pet.ui.components.SegmentedToggle
 import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.clearFocusOnTap
+
+private const val DEMO_PASSWORD = "demo1234"
 
 @Composable
 fun LoginScreen(
@@ -58,9 +61,7 @@ fun LoginScreen(
     val scope = rememberCoroutineScope()
     var loading by remember { mutableStateOf(false) }
 
-    var selectedRole by rememberSaveable {
-        mutableIntStateOf(if (AppContainer.settings.lastRole == UserRole.Volunteer) 1 else 0)
-    }
+    val demoLogin = remember { AppContainer.auth.demoLogin }
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
 
@@ -78,16 +79,19 @@ fun LoginScreen(
 
         if (emailError == null && passwordError == null) {
             focusManager.clearFocus()
-            val role = if (selectedRole == 1) UserRole.Volunteer else UserRole.Owner
             scope.launch {
                 loading = true
-                val result = AppContainer.auth.login(email.trim(), password, role)
+                val result = AppContainer.auth.login(email.trim(), password)
                 loading = false
-                if (result.isSuccess) {
-                    onSuccess(role)
-                } else {
-                    passwordError = R.string.text_2_15
-                }
+                result
+                    .onSuccess { role -> onSuccess(role) }
+                    .onFailure { error ->
+                        if (error is AccountNotFoundException) {
+                            emailError = R.string.text_2_17
+                        } else {
+                            passwordError = R.string.text_2_15
+                        }
+                    }
             }
         }
     }
@@ -102,23 +106,12 @@ fun LoginScreen(
             modifier = Modifier
                 .adaptiveContentWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 24.dp)
+                .padding(horizontal = ScreenTextPadding, vertical = 24.dp)
         ) {
             Text(
                 text = stringResource(R.string.text_2_1),
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(start = 8.dp)
-            )
-
-            Spacer(Modifier.height(20.dp))
-
-            SegmentedToggle(
-                options = listOf(
-                    stringResource(R.string.text_2_2),
-                    stringResource(R.string.text_2_3)
-                ),
-                selectedIndex = selectedRole,
-                onSelect = { selectedRole = it }
             )
 
             Spacer(Modifier.height(24.dp))
@@ -187,6 +180,30 @@ fun LoginScreen(
                 Spacer(Modifier.height(4.dp))
 
                 PrivacyPolicyLink()
+
+                if (demoLogin != null) {
+                    Spacer(Modifier.height(12.dp))
+
+                    TextButton(
+                        enabled = !loading,
+                        onClick = {
+                            email = demoLogin
+                            password = DEMO_PASSWORD
+                            emailError = null
+                            passwordError = null
+                            submit()
+                        }
+                    ) {
+                        Text(stringResource(R.string.text_2_18))
+                    }
+
+                    Text(
+                        text = stringResource(R.string.text_2_19, demoLogin),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }

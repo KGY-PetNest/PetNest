@@ -1,5 +1,9 @@
 package com.example.pet.ui.editprofile
 
+import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.icon
+import com.example.pet.ui.components.serviceLabel
+import com.example.pet.data.CareFormat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +48,7 @@ import com.example.pet.data.HomeConditionType
 import com.example.pet.data.MockData
 import com.example.pet.data.UserProfile
 import com.example.pet.data.UserRole
+import com.example.pet.data.repository.AccountExistsException
 import com.example.pet.data.toggled
 import com.example.pet.ui.components.AppTextField
 import com.example.pet.ui.components.AvatarPicker
@@ -59,18 +64,23 @@ import com.example.pet.ui.components.clearFocusOnTap
 import com.example.pet.ui.components.label
 import kotlinx.coroutines.launch
 import com.example.pet.ui.components.rememberLeaveGuard
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 
 @Composable
 fun EditProfileScreen(
     role: UserRole,
     onBack: () -> Unit,
     onSaved: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    becomeVolunteer: Boolean = false
 ) {
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
 
-    val profile = remember(role) { AppContainer.profiles.profile(role).value }
+    val profile = remember(role, becomeVolunteer) {
+        AppContainer.profiles.profile(if (becomeVolunteer) UserRole.Owner else role).value
+    }
     val volunteer = remember(role) {
         if (role == UserRole.Volunteer) {
             AppContainer.volunteers.volunteers.value.firstOrNull { it.id == MockData.CURRENT_VOLUNTEER_ID }
@@ -78,15 +88,23 @@ fun EditProfileScreen(
             null
         }
     }
+    val filled = volunteer.takeUnless { becomeVolunteer }
+    val startAvatar = filled?.avatarUri ?: profile.avatarUri
+    val startExperience = filled?.experience.orEmpty()
+    val startAbout = filled?.about.orEmpty()
+    val startHome = filled?.homeConditions?.toSet() ?: emptySet()
+    val startAccepted = filled?.acceptedPets?.toSet() ?: emptySet()
+    val startFormats = filled?.formats?.toSet() ?: emptySet()
 
     var name by rememberSaveable { mutableStateOf(profile.name) }
-    var avatarUri by rememberSaveable { mutableStateOf(volunteer?.avatarUri ?: profile.avatarUri) }
+    var avatarUri by rememberSaveable { mutableStateOf(startAvatar) }
     var phone by rememberSaveable { mutableStateOf(profile.phone) }
     var email by rememberSaveable { mutableStateOf(profile.email) }
-    var experience by rememberSaveable { mutableStateOf(volunteer?.experience.orEmpty()) }
-    var about by rememberSaveable { mutableStateOf(volunteer?.about.orEmpty()) }
-    var homeConditions by rememberSaveable { mutableStateOf(volunteer?.homeConditions?.toSet() ?: emptySet()) }
-    var acceptedPets by rememberSaveable { mutableStateOf(volunteer?.acceptedPets?.toSet() ?: emptySet()) }
+    var experience by rememberSaveable { mutableStateOf(startExperience) }
+    var about by rememberSaveable { mutableStateOf(startAbout) }
+    var homeConditions by rememberSaveable { mutableStateOf(startHome) }
+    var acceptedPets by rememberSaveable { mutableStateOf(startAccepted) }
+    var formats by rememberSaveable { mutableStateOf(startFormats) }
 
     var nameError by rememberSaveable { mutableStateOf<Int?>(null) }
     var phoneError by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -94,20 +112,24 @@ fun EditProfileScreen(
     var experienceError by rememberSaveable { mutableStateOf<Int?>(null) }
     var aboutError by rememberSaveable { mutableStateOf<Int?>(null) }
     var acceptedError by rememberSaveable { mutableStateOf(false) }
+    var formatsError by rememberSaveable { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     var saveError by remember { mutableStateOf(false) }
 
     val hasChanges = name != profile.name ||
-            avatarUri != (volunteer?.avatarUri ?: profile.avatarUri) ||
+            avatarUri != startAvatar ||
             phone != profile.phone ||
             email != profile.email ||
-            experience != volunteer?.experience.orEmpty() ||
-            about != volunteer?.about.orEmpty() ||
-            homeConditions != (volunteer?.homeConditions?.toSet() ?: emptySet<HomeConditionType>()) ||
-            acceptedPets != (volunteer?.acceptedPets?.toSet() ?: emptySet<AcceptedPet>())
+            experience != startExperience ||
+            about != startAbout ||
+            homeConditions != startHome ||
+            acceptedPets != startAccepted ||
+            formats != startFormats
     val leave = rememberLeaveGuard(hasChanges = hasChanges && !saving, onLeave = onBack)
 
-    fun submit() {
+    var confirmEmail by rememberSaveable { mutableStateOf(false) }
+
+    fun submit(emailConfirmed: Boolean = false) {
         if (saving) return
         saveError = false
         nameError = FormRules.fullNameError(name)
@@ -121,14 +143,33 @@ fun EditProfileScreen(
             experienceError = if (experience.isBlank()) R.string.text_17_6 else null
             aboutError = FormRules.descriptionError(about, R.string.text_17_7)
             acceptedError = acceptedPets.isEmpty()
+            formatsError = formats.isEmpty()
         }
         val hasErrors = listOf(nameError, phoneError, emailError, experienceError, aboutError).any { it != null } ||
-                acceptedError
+                acceptedError || formatsError
         if (hasErrors) return
+        if (!emailConfirmed && email.trim() != profile.email) {
+            confirmEmail = true
+            return
+        }
 
         focusManager.clearFocus()
         scope.launch {
             saving = true
+            val emailResult = if (email.trim() != profile.email) {
+                AppContainer.auth.changeEmail(email.trim())
+            } else {
+                Result.success(Unit)
+            }
+            if (emailResult.isFailure) {
+                saving = false
+                if (emailResult.exceptionOrNull() is AccountExistsException) {
+                    emailError = R.string.text_17_20
+                } else {
+                    saveError = true
+                }
+                return@launch
+            }
             val profileResult = AppContainer.profiles.updateProfile(
                 role,
                 UserProfile(
@@ -138,6 +179,11 @@ fun EditProfileScreen(
                     avatarUri = avatarUri
                 )
             )
+            val otherRole = if (role == UserRole.Owner) UserRole.Volunteer else UserRole.Owner
+            if (profileResult.isSuccess && email.trim() != profile.email) {
+                val other = AppContainer.profiles.profile(otherRole).value
+                AppContainer.profiles.updateProfile(otherRole, other.copy(email = email.trim()))
+            }
             val volunteerResult = if (volunteer != null && profileResult.isSuccess) {
                 AppContainer.volunteers.update(
                     volunteer.copy(
@@ -146,19 +192,52 @@ fun EditProfileScreen(
                         avatarUri = avatarUri,
                         experience = experience.trim(),
                         about = about.trim(),
-                        homeConditions = HomeConditionType.entries.filter { it in homeConditions },
-                        acceptedPets = AcceptedPet.entries.filter { it in acceptedPets }
+                        homeConditions = if (CareFormat.AtVolunteer in formats) {
+                            HomeConditionType.entries.filter { it in homeConditions }
+                        } else {
+                            emptyList()
+                        },
+                        acceptedPets = AcceptedPet.entries.filter { it in acceptedPets },
+                        formats = CareFormat.entries.filter { it in formats }
                     )
                 )
             } else {
                 profileResult
             }
+            val result = if (becomeVolunteer && volunteerResult.isSuccess) {
+                AppContainer.auth.addRole(UserRole.Volunteer)
+            } else {
+                volunteerResult
+            }
             saving = false
-            if (volunteerResult.isSuccess) onSaved() else saveError = true
+            if (result.isSuccess) onSaved() else saveError = true
         }
     }
 
     val nextField = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
+
+    if (confirmEmail) {
+        AlertDialog(
+            onDismissRequest = { confirmEmail = false },
+            title = { Text(stringResource(R.string.text_17_15)) },
+            text = { Text(stringResource(R.string.text_17_16, email.trim())) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmEmail = false
+                        submit(emailConfirmed = true)
+                    }
+                ) {
+                    Text(stringResource(R.string.text_4_7))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmEmail = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        )
+    }
 
     Box(
         modifier = modifier
@@ -170,16 +249,20 @@ fun EditProfileScreen(
             modifier = Modifier
                 .fillMaxHeight()
                 .adaptiveContentWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = ScreenHorizontalPadding)
         ) {
-            ScreenHeader(title = stringResource(R.string.text_17_1), onBack = leave)
+            ScreenHeader(
+                title = stringResource(if (becomeVolunteer) R.string.text_17_17 else R.string.text_17_1),
+                onBack = leave
+            )
 
+            val scrollState = rememberScrollState()
             PinnedBottomBarLayout(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
+                dividerVisible = scrollState.canScrollForward,
                 bottomBar = {
-                    Spacer(Modifier.height(8.dp))
                     if (saveError) {
                         Text(
                             text = stringResource(R.string.common_request_error),
@@ -189,7 +272,7 @@ fun EditProfileScreen(
                         )
                     }
                     PrimaryButton(
-                        text = stringResource(R.string.text_4_7),
+                        text = stringResource(if (becomeVolunteer) R.string.common_become_volunteer else R.string.text_4_7),
                         loading = saving,
                         onClick = { submit() }
                     )
@@ -200,10 +283,18 @@ fun EditProfileScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier
                         .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
+                        .verticalScroll(scrollState)
                         .padding(vertical = 8.dp)
                         .animateContentSize()
                 ) {
+                    if (becomeVolunteer) {
+                        Text(
+                            text = stringResource(R.string.text_17_18),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+                    }
                     AvatarPicker(
                         name = name,
                         photoUri = avatarUri,
@@ -261,6 +352,7 @@ fun EditProfileScreen(
 
                     if (volunteer != null) {
                         FieldTitle(stringResource(R.string.text_17_2))
+                        FieldHint(stringResource(R.string.text_17_19))
                         AppTextField(
                             value = experience,
                             onValueChange = {
@@ -287,12 +379,35 @@ fun EditProfileScreen(
                             modifier = Modifier.height(140.dp)
                         )
 
-                        FieldTitle(stringResource(R.string.text_13_5))
-                        FieldHint(stringResource(R.string.text_17_14))
-                        HomeConditionSelector(
-                            selected = homeConditions,
-                            onToggle = { item -> homeConditions = homeConditions.toggled(item) }
+                        FieldTitle(stringResource(R.string.text_13_18))
+                        SelectableChips(
+                            items = CareFormat.entries,
+                            selected = formats,
+                            label = { stringResource(it.serviceLabel) },
+                            icon = { it.icon },
+                            onToggle = { item ->
+                                formats = if (item in formats) formats - item else formats + item
+                                formatsError = false
+                            }
                         )
+                        AnimatedVisibility(visible = formatsError) {
+                            Text(
+                                text = stringResource(R.string.text_17_10),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+
+                        AnimatedVisibility(visible = CareFormat.AtVolunteer in formats) {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                FieldTitle(stringResource(R.string.text_13_5))
+                                FieldHint(stringResource(R.string.text_17_14))
+                                HomeConditionSelector(
+                                    selected = homeConditions,
+                                    onToggle = { item -> homeConditions = homeConditions.toggled(item) }
+                                )
+                            }
+                        }
 
                         FieldTitle(stringResource(R.string.text_13_6))
                         SelectableChips(
@@ -313,7 +428,7 @@ fun EditProfileScreen(
                         }
                     }
 
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(16.dp))
                 }
             }
         }

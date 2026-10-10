@@ -1,5 +1,11 @@
 package com.example.pet.ui.components
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.filled.Key
+import com.example.pet.data.PetRequest
+import com.example.pet.data.CareFormat
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
@@ -19,6 +25,7 @@ import com.example.pet.data.ChatEvent
 import com.example.pet.data.HomeConditionGroup
 import com.example.pet.data.HomeConditionType
 import com.example.pet.data.MyResponseStatus
+import com.example.pet.data.PetKind
 import com.example.pet.data.PetTrait
 import com.example.pet.data.PetTraitGroup
 import com.example.pet.data.ReportReason
@@ -99,6 +106,40 @@ val AcceptedPet.label: Int
         AcceptedPet.Rodents -> R.string.common_accept_rodents
         AcceptedPet.Birds -> R.string.common_accept_birds
         AcceptedPet.Other -> R.string.common_accept_other
+    }
+
+val CareFormat.icon: ImageVector
+    get() = when (this) {
+        CareFormat.AtVolunteer -> Icons.Default.Home
+        CareFormat.AtOwner -> Icons.Default.Key
+    }
+
+@get:StringRes
+val CareFormat.serviceLabel: Int
+    get() = when (this) {
+        CareFormat.AtVolunteer -> R.string.common_format_service_at_volunteer
+        CareFormat.AtOwner -> R.string.common_format_service_at_owner
+    }
+
+@Composable
+fun careFormatText(request: PetRequest, forOwner: Boolean): String = when (request.format) {
+    CareFormat.AtVolunteer -> stringResource(
+        if (forOwner) R.string.common_format_owner_at_volunteer else R.string.common_format_volunteer_at_volunteer
+    )
+    CareFormat.AtOwner -> stringResource(
+        if (forOwner) R.string.common_format_owner_at_owner else R.string.common_format_volunteer_at_owner,
+        pluralStringResource(R.plurals.visits_per_day, request.visitsPerDay, request.visitsPerDay)
+    )
+}
+
+@get:StringRes
+val PetKind.label: Int
+    get() = when (this) {
+        PetKind.Cat -> R.string.common_kind_cat
+        PetKind.Dog -> R.string.common_kind_dog
+        PetKind.Rodent -> R.string.common_kind_rodent
+        PetKind.Bird -> R.string.common_kind_bird
+        PetKind.Other -> R.string.common_kind_other
     }
 
 @get:StringRes

@@ -34,6 +34,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.pet.R
+import android.content.Context
+import android.widget.Toast
 
 object FormRules {
     const val PHONE_LENGTH = 10
@@ -169,4 +171,8 @@ fun PasswordField(
 fun formatPhone(digits: String): String {
     if (digits.length != FormRules.PHONE_LENGTH || !digits.all(Char::isDigit)) return digits
     return "+7 (${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6, 8)}-${digits.substring(8, 10)}"
+}
+
+fun showRequestError(context: Context, @StringRes message: Int = R.string.common_request_error) {
+    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 }

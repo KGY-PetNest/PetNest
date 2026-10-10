@@ -1,5 +1,8 @@
 package com.example.pet.ui.main
 
+import com.example.pet.ui.components.ScreenTextPadding
+import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.PersonThumbnailSize
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.fadeIn
@@ -74,7 +77,7 @@ fun ChatScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = ScreenHorizontalPadding)
     ) {
         ScreenHeader(title = stringResource(R.string.text_10_1), onBack = onBack)
 
@@ -125,7 +128,7 @@ private fun ChatRow(
             .cardSurface(onClick)
             .padding(12.dp)
     ) {
-        InitialsAvatar(name = chat.companionName, photoUri = chat.companionAvatarUri, size = 52.dp)
+        InitialsAvatar(name = chat.companionName, photoUri = chat.companionAvatarUri, size = PersonThumbnailSize)
 
         Column(
             verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -248,7 +251,7 @@ private fun EmptyChats(role: UserRole) {
         verticalArrangement = Arrangement.Center,
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp)
+            .padding(horizontal = ScreenTextPadding)
     ) {
         Icon(
             imageVector = Icons.AutoMirrored.Outlined.Chat,

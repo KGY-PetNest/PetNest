@@ -1,5 +1,14 @@
 package com.example.pet.ui.volunteerprofile
 
+import com.example.pet.ui.components.ScreenContentInset
+import com.example.pet.ui.components.ScreenHorizontalPadding
+import java.util.Locale
+import java.time.format.DateTimeFormatter
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.example.pet.ui.components.serviceLabel
+import com.example.pet.data.CareFormat
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,7 +23,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
@@ -53,12 +61,17 @@ import com.example.pet.ui.components.IconLine
 import com.example.pet.ui.components.formatPhone
 import com.example.pet.ui.components.ProfileHeader
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material.icons.filled.TaskAlt
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.ui.res.pluralStringResource
 import com.example.pet.ui.components.StatTile
 import com.example.pet.ui.theme.PetStar
 
 private const val REVIEWS_PREVIEW_COUNT = 2
+private const val FACT_COLUMNS = 2
+
+private val MonthYearFormat: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("MMMM yyyy", Locale.forLanguageTag("ru"))
 
 @Composable
 fun VolunteerProfileScreen(
@@ -89,7 +102,7 @@ fun VolunteerProfileScreen(
             modifier = Modifier
                 .fillMaxHeight()
                 .adaptiveContentWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = ScreenHorizontalPadding)
         ) {
             ScreenHeader(
                 title = stringResource(R.string.text_13_1),
@@ -114,11 +127,16 @@ fun VolunteerProfileScreen(
                     .weight(1f)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 8.dp)
+                    .padding(horizontal = ScreenContentInset)
             ) {
                 Spacer(Modifier.height(12.dp))
 
                 ProfileHeader(name = volunteer.name, photoUri = volunteer.avatarUri) {
+                    IconLine(
+                        icon = Icons.Default.CalendarMonth,
+                        text = stringResource(R.string.text_13_19, volunteer.joinedAt.format(MonthYearFormat)),
+                        textStyle = MaterialTheme.typography.bodyMedium
+                    )
                     if (isOwn) {
                         IconLine(
                             icon = Icons.Default.Phone,
@@ -136,7 +154,7 @@ fun VolunteerProfileScreen(
                 Spacer(Modifier.height(16.dp))
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     StatTile(
@@ -146,7 +164,7 @@ fun VolunteerProfileScreen(
                             stringResource(R.string.text_15_2, reviews.averageRating())
                         },
                         caption = if (reviews.isEmpty()) {
-                            stringResource(R.string.text_13_9)
+                            stringResource(R.string.text_13_17)
                         } else {
                             pluralStringResource(R.plurals.reviews_count, reviews.size, reviews.size)
                         },
@@ -160,19 +178,37 @@ fun VolunteerProfileScreen(
                         modifier = Modifier.weight(1f)
                     )
                     StatTile(
-                        value = volunteer.experience,
-                        caption = stringResource(R.string.text_13_11),
-                        icon = Icons.Default.WorkspacePremium,
+                        value = volunteer.completedCount.toString(),
+                        caption = pluralStringResource(R.plurals.completed_caption, volunteer.completedCount),
+                        icon = Icons.Default.TaskAlt,
                         modifier = Modifier.weight(1f)
                     )
                 }
 
                 Section(title = stringResource(R.string.text_13_4)) {
                     Text(text = volunteer.about, style = bodyStyle)
+                    if (volunteer.experience.isNotBlank()) {
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            text = stringResource(R.string.text_13_16, volunteer.experience),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
-                Section(title = stringResource(R.string.text_13_5)) {
-                    HomeConditionsByGroup(volunteer.homeConditions)
+                Section(title = stringResource(R.string.text_13_18)) {
+                    FactGrid(
+                        items = volunteer.formats.map { format ->
+                            format.icon to stringResource(format.serviceLabel)
+                        }
+                    )
+                }
+
+                if (CareFormat.AtVolunteer in volunteer.formats) {
+                    Section(title = stringResource(R.string.text_13_5)) {
+                        HomeConditionsGrid(volunteer.homeConditions)
+                    }
                 }
 
                 Section(title = stringResource(R.string.text_13_6)) {
@@ -213,7 +249,7 @@ fun VolunteerProfileScreen(
 }
 
 @Composable
-private fun HomeConditionsByGroup(conditions: List<HomeConditionType>) {
+private fun HomeConditionsGrid(conditions: List<HomeConditionType>) {
     if (conditions.isEmpty()) {
         Text(
             text = stringResource(R.string.text_13_10),
@@ -222,48 +258,49 @@ private fun HomeConditionsByGroup(conditions: List<HomeConditionType>) {
         )
         return
     }
+    val ordered = HomeConditionGroup.entries.flatMap { group -> conditions.filter { it.group == group } }
+    FactGrid(items = ordered.map { it.icon to stringResource(it.label) })
+}
+
+@Composable
+private fun FactGrid(items: List<Pair<ImageVector, String>>) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        HomeConditionGroup.entries.forEach { group ->
-            val items = conditions.filter { it.group == group }
-            if (items.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = stringResource(group.label),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items.forEach { HomeConditionChip(it) }
-                    }
-                }
+        items.chunked(FACT_COLUMNS).forEach { row ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                row.forEach { (icon, text) -> FactItem(icon, text, Modifier.weight(1f)) }
+                repeat(FACT_COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }
 }
 
 @Composable
-private fun HomeConditionChip(condition: HomeConditionType) {
+private fun FactItem(icon: ImageVector, text: String, modifier: Modifier = Modifier) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+        modifier = modifier
     ) {
-        Icon(
-            imageVector = condition.icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(18.dp)
-        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(Modifier.width(10.dp))
         Text(
-            text = stringResource(condition.label),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary
+            text = text,
+            style = MaterialTheme.typography.bodyMedium
         )
     }
 }

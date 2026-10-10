@@ -19,6 +19,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -61,6 +62,7 @@ import com.example.pet.ui.reviews.ReviewsScreen
 import com.example.pet.ui.settings.SettingsScreen
 import com.example.pet.ui.volunteerprofile.VolunteerProfileScreen
 import com.example.pet.ui.welcome.WelcomeScreen
+import kotlinx.coroutines.launch
 
 private const val PICKED_ADDRESS_KEY = "picked_address"
 private const val ADDED_PET_KEY = "added_pet"
@@ -146,6 +148,13 @@ private fun NavHostController.logout(context: Context) {
     }
 }
 
+private fun NavHostController.enterRole(role: UserRole) {
+    navigate(entryRouteFor(role)) {
+        popUpTo(graph.id) { inclusive = true }
+        launchSingleTop = true
+    }
+}
+
 private fun NavHostController.openLogin() {
     if (!popBackStack(Screen.Login.name, inclusive = false)) {
         navigate(Screen.Login.name) {
@@ -161,6 +170,7 @@ fun NavGraph(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val linkScope = rememberCoroutineScope()
     val pendingLink by PendingChatLink.link.collectAsState()
     val currentEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentEntry?.destination?.route
@@ -172,10 +182,22 @@ fun NavGraph(
             return@LaunchedEffect
         }
         PendingChatLink.consume()
-        if (AppContainer.settings.sessionRole != link.role) return@LaunchedEffect
-        val sameChat = currentRoute == Routes.CONVERSATION &&
-                currentEntry?.arguments?.getString(Routes.CHAT_ID_ARG) == link.chatId
-        if (!sameChat) {
+        if (AppContainer.settings.sessionRole == link.role) {
+            val sameChat = currentRoute == Routes.CONVERSATION &&
+                    currentEntry?.arguments?.getString(Routes.CHAT_ID_ARG) == link.chatId
+            if (!sameChat) {
+                navController.navigate(Routes.conversation(link.chatId, link.role))
+            }
+            return@LaunchedEffect
+        }
+        if (!ChatNotifier.acceptsRole(link.role)) return@LaunchedEffect
+        linkScope.launch {
+            if (AppContainer.auth.switchRole(link.role).isFailure) return@launch
+            AppContainer.settings.setSessionRole(link.role)
+            navController.navigate(Routes.main(link.role)) {
+                popUpTo(navController.graph.id) { inclusive = true }
+                launchSingleTop = true
+            }
             navController.navigate(Routes.conversation(link.chatId, link.role))
         }
     }
@@ -209,13 +231,11 @@ fun NavGraph(
                     },
                     onRegister = {
                         entry.ifResumed {
-                            AppContainer.settings.markOnboardingSeen()
                             navController.navigate(Screen.Registration.name) { launchSingleTop = true }
                         }
                     },
                     onLogin = {
                         entry.ifResumed {
-                            AppContainer.settings.markOnboardingSeen()
                             navController.navigate(Screen.Login.name) { launchSingleTop = true }
                         }
                     }
@@ -237,15 +257,10 @@ fun NavGraph(
                         }
                     },
                     onSuccess = { role ->
+                        AppContainer.settings.markOnboardingSeen()
                         AppContainer.settings.setSessionRole(role)
-                        AppContainer.settings.setLastRole(role)
                         PushRegistrar.register(context)
-                        entry.ifTop(navController) {
-                            navController.navigate(entryRouteFor(role)) {
-                                popUpTo(navController.graph.id) { inclusive = true }
-                                launchSingleTop = true
-                            }
-                        }
+                        entry.ifTop(navController) { navController.enterRole(role) }
                     }
                 )
             }
@@ -257,8 +272,8 @@ fun NavGraph(
                     onLoginClick = {
                         entry.ifResumed { navController.openLogin() }
                     },
-                    onSuccess = { role ->
-                        AppContainer.settings.setLastRole(role)
+                    onSuccess = {
+                        AppContainer.settings.markOnboardingSeen()
                         entry.ifTop(navController) {
                             navController.navigate(Screen.EmailConfirm.name) { launchSingleTop = true }
                         }
@@ -350,7 +365,19 @@ fun NavGraph(
             val role = entry.roleArg()
             BottomInsetsPane {
                 SettingsScreen(
+                    role = role,
                     onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onBecomeVolunteer = {
+                        entry.ifResumed {
+                            navController.navigate(Routes.editProfile(UserRole.Volunteer, become = true)) {
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                    onRoleChanged = { newRole ->
+                        AppContainer.settings.setSessionRole(newRole)
+                        entry.ifTop(navController) { navController.enterRole(newRole) }
+                    },
                     onEditProfile = {
                         entry.ifResumed {
                             navController.navigate(Routes.editProfile(role)) { launchSingleTop = true }
@@ -406,13 +433,29 @@ fun NavGraph(
 
         composable(
             route = Routes.EDIT_PROFILE,
-            arguments = listOf(navArgument(Routes.ROLE_ARG) { type = NavType.StringType })
+            arguments = listOf(
+                navArgument(Routes.ROLE_ARG) { type = NavType.StringType },
+                navArgument(Routes.BECOME_ARG) {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
         ) { entry ->
+            val role = entry.roleArg()
+            val become = entry.arguments?.getBoolean(Routes.BECOME_ARG) ?: false
             BottomInsetsPane(includeIme = false) {
                 EditProfileScreen(
-                    role = entry.roleArg(),
+                    role = role,
+                    becomeVolunteer = become,
                     onBack = { entry.ifResumed { navController.popBackStack() } },
-                    onSaved = { entry.ifTop(navController) { navController.popBackStack() } }
+                    onSaved = {
+                        if (become) {
+                            AppContainer.settings.setSessionRole(role)
+                            entry.ifTop(navController) { navController.enterRole(role) }
+                        } else {
+                            entry.ifTop(navController) { navController.popBackStack() }
+                        }
+                    }
                 )
             }
         }

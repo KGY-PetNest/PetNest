@@ -1,5 +1,7 @@
 package com.example.pet.ui.settings
 
+import com.example.pet.ui.components.ScreenContentInset
+import com.example.pet.ui.components.ScreenHorizontalPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +19,9 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.VolunteerActivism
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,6 +29,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -37,12 +44,15 @@ import com.example.pet.BuildConfig
 import com.example.pet.R
 import com.example.pet.data.AppContainer
 import com.example.pet.data.ThemeMode
+import com.example.pet.data.UserRole
 import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.SectionTitle
 import com.example.pet.ui.components.SegmentedToggle
 import com.example.pet.ui.components.SettingsRow
 import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.openNotificationSettings
+import com.example.pet.ui.components.showRequestError
+import kotlinx.coroutines.launch
 
 private val themeOptions = listOf(
     ThemeMode.System to R.string.text_22_6,
@@ -52,7 +62,10 @@ private val themeOptions = listOf(
 
 @Composable
 fun SettingsScreen(
+    role: UserRole,
     onBack: () -> Unit,
+    onBecomeVolunteer: () -> Unit,
+    onRoleChanged: (UserRole) -> Unit,
     onEditProfile: () -> Unit,
     onChangePassword: () -> Unit,
     onOpenGuide: () -> Unit,
@@ -60,8 +73,27 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var showLogoutDialog by rememberSaveable { mutableStateOf(false) }
+    var showBecomeOwnerDialog by rememberSaveable { mutableStateOf(false) }
+    var changingRole by remember { mutableStateOf(false) }
     val themeMode by AppContainer.settings.themeMode.collectAsStateWithLifecycle()
+    val account by AppContainer.auth.account.collectAsStateWithLifecycle()
+    val otherRole = if (role == UserRole.Owner) UserRole.Volunteer else UserRole.Owner
+    val hasOtherRole = account?.roles.orEmpty().contains(otherRole)
+
+    fun changeRole(target: UserRole, add: Boolean) {
+        if (changingRole) return
+        changingRole = true
+        scope.launch {
+            if (add) {
+                AppContainer.profiles.updateProfile(target, AppContainer.profiles.profile(role).value)
+            }
+            val result = if (add) AppContainer.auth.addRole(target) else AppContainer.auth.switchRole(target)
+            changingRole = false
+            if (result.isSuccess) onRoleChanged(target) else showRequestError(context)
+        }
+    }
 
     Box(
         modifier = modifier.fillMaxSize(),
@@ -71,7 +103,7 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxHeight()
                 .adaptiveContentWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = ScreenHorizontalPadding)
         ) {
             ScreenHeader(title = stringResource(R.string.text_16_2), onBack = onBack)
 
@@ -80,9 +112,43 @@ fun SettingsScreen(
                     .weight(1f)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 8.dp)
+                    .padding(horizontal = ScreenContentInset)
             ) {
                 Spacer(Modifier.height(16.dp))
+
+                SectionTitle(stringResource(R.string.text_22_13))
+
+                Spacer(Modifier.height(4.dp))
+
+                Text(
+                    text = stringResource(if (role == UserRole.Owner) R.string.text_22_14 else R.string.text_22_15),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                when {
+                    hasOtherRole -> SettingsRow(
+                        icon = Icons.Default.SwapHoriz,
+                        text = stringResource(
+                            if (otherRole == UserRole.Volunteer) R.string.text_22_16 else R.string.text_22_17
+                        ),
+                        onClick = { changeRole(otherRole, add = false) }
+                    )
+                    otherRole == UserRole.Volunteer -> SettingsRow(
+                        icon = Icons.Default.VolunteerActivism,
+                        text = stringResource(R.string.common_become_volunteer),
+                        onClick = { if (!changingRole) onBecomeVolunteer() }
+                    )
+                    else -> SettingsRow(
+                        icon = Icons.Default.Pets,
+                        text = stringResource(R.string.common_become_owner),
+                        onClick = { if (!changingRole) showBecomeOwnerDialog = true }
+                    )
+                }
+
+                Spacer(Modifier.height(28.dp))
 
                 SectionTitle(stringResource(R.string.text_22_1))
 
@@ -152,6 +218,29 @@ fun SettingsScreen(
                     .padding(top = 8.dp, bottom = 16.dp)
             )
         }
+    }
+
+    if (showBecomeOwnerDialog) {
+        AlertDialog(
+            onDismissRequest = { showBecomeOwnerDialog = false },
+            title = { Text(stringResource(R.string.text_22_18)) },
+            text = { Text(stringResource(R.string.text_22_19)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showBecomeOwnerDialog = false
+                        changeRole(UserRole.Owner, add = true)
+                    }
+                ) {
+                    Text(stringResource(R.string.common_become_owner))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBecomeOwnerDialog = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        )
     }
 
     if (showLogoutDialog) {

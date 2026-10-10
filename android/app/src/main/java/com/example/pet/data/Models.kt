@@ -17,7 +17,11 @@ enum class UserRole { Owner, Volunteer }
 
 enum class ThemeMode { System, Light, Dark }
 
-enum class PetKind { Cat, Dog, Other }
+enum class PetKind { Cat, Dog, Rodent, Bird, Other }
+
+enum class CareFormat { AtVolunteer, AtOwner }
+
+const val DEFAULT_VISITS_PER_DAY = 2
 
 enum class PetTraitGroup { Health, Care, Behavior }
 
@@ -81,6 +85,12 @@ fun Set<HomeConditionType>.toggled(item: HomeConditionType): Set<HomeConditionTy
 
 enum class AcceptedPet { Cats, SmallDogs, LargeDogs, Rodents, Birds, Other }
 
+data class Account(
+    val email: String,
+    val roles: Set<UserRole>,
+    val lastRole: UserRole
+)
+
 data class UserProfile(
     val name: String,
     val phone: String,
@@ -95,11 +105,9 @@ data class Pet(
     val age: Int,
     val traits: List<PetTrait>,
     val features: String,
-    val photoUri: String? = null
+    val photoUri: String? = null,
+    val kind: PetKind = kindFromAnimal(animal)
 ) {
-    val kind: PetKind
-        get() = kindFromAnimal(animal)
-
     val info: String
         get() = "$animal, ${yearsText(age)}"
 }
@@ -123,7 +131,9 @@ data class PetRequest(
     val status: RequestStatus = RequestStatus.Open,
     val chosenVolunteerId: String? = null,
     val ownerName: String = "",
-    val ownerPhone: String = ""
+    val ownerPhone: String = "",
+    val format: CareFormat = CareFormat.AtVolunteer,
+    val visitsPerDay: Int = DEFAULT_VISITS_PER_DAY
 ) {
     val days: Int
         get() = ChronoUnit.DAYS.between(start, end).toInt().coerceAtLeast(1)
@@ -161,7 +171,10 @@ data class Volunteer(
     val homeConditions: List<HomeConditionType>,
     val acceptedPets: List<AcceptedPet>,
     val avatarUri: String? = null,
-    val phone: String = ""
+    val phone: String = "",
+    val completedCount: Int = 0,
+    val joinedAt: LocalDate = LocalDate.now(),
+    val formats: List<CareFormat> = CareFormat.entries
 )
 
 data class Review(
@@ -226,16 +239,37 @@ val DayMonthFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM", Lo
 
 val DayMonthYearFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.forLanguageTag("ru"))
 
-fun kindFromAnimal(animal: String): PetKind {
+private val RodentWords = listOf(
+    "хомя", "крыс", "мыш", "морск", "свинк", "шиншил", "песчан", "дегу", "крол", "бурундук", "белк", "hamster"
+)
+
+private val BirdWords = listOf(
+    "попуг", "канар", "кенар", "птиц", "амадин", "корелл", "неразлуч", "щегол", "parrot", "bird"
+)
+
+private val DogWords = listOf(
+    "пёс", "пес", "собак", "щен", "овчар", "терьер", "такс", "лабрадор", "ретривер", "хаски", "корги",
+    "шпиц", "мопс", "бульдог", "чихуа", "спаниел", "пудел", "дворняж", "dog", "puppy"
+)
+
+private val CatWords = listOf("кот", "кош", "сфинкс", "мейн-кун", "мейнкун", "cat", "kitten")
+
+fun recognizedKind(animal: String): PetKind? {
     val text = animal.lowercase(Locale.forLanguageTag("ru"))
     return when {
-        listOf("кот", "кош", "cat").any { it in text } -> PetKind.Cat
-        listOf("пёс", "пес", "собак", "щен", "dog").any { it in text } -> PetKind.Dog
-        else -> PetKind.Other
+        text.isBlank() -> null
+        RodentWords.any { it in text } -> PetKind.Rodent
+        BirdWords.any { it in text } -> PetKind.Bird
+        DogWords.any { it in text } -> PetKind.Dog
+        CatWords.any { it in text } -> PetKind.Cat
+        else -> null
     }
 }
 
+fun kindFromAnimal(animal: String): PetKind = recognizedKind(animal) ?: PetKind.Other
+
 fun yearsText(years: Int): String {
+    if (years <= 0) return "меньше года"
     val mod10 = years % 10
     val mod100 = years % 100
     val word = when {
@@ -244,6 +278,11 @@ fun yearsText(years: Int): String {
         else -> "лет"
     }
     return "$years $word"
+}
+
+fun displayPersonName(fullName: String): String {
+    val words = fullName.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+    return if (words.size >= 2) "${words[1]} ${words[0]}" else fullName.trim()
 }
 
 fun shortPersonName(fullName: String): String {

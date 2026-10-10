@@ -1,5 +1,7 @@
 package com.example.pet.ui.petprofile
 
+import com.example.pet.ui.components.ScreenContentInset
+import com.example.pet.ui.components.ScreenHorizontalPadding
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -68,6 +70,8 @@ import androidx.compose.ui.unit.dp
 import com.example.pet.R
 import com.example.pet.data.AppContainer
 import com.example.pet.data.Pet
+import com.example.pet.data.PetKind
+import com.example.pet.data.recognizedKind
 import com.example.pet.data.repository.PetInUseException
 import com.example.pet.data.PetTrait
 import com.example.pet.data.RequestStatus
@@ -77,6 +81,8 @@ import com.example.pet.ui.components.PetTraitSelector
 import com.example.pet.ui.components.PinnedBottomBarLayout
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.ScreenHeader
+import com.example.pet.ui.components.SelectableChips
+import com.example.pet.ui.components.label
 import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.clearFocusOnTap
 import com.example.pet.ui.components.pressScale
@@ -105,6 +111,10 @@ fun PetProfileScreen(
     var pendingUri by rememberSaveable { mutableStateOf<Uri?>(null) }
     var name by rememberSaveable { mutableStateOf(existing?.name.orEmpty()) }
     var animal by rememberSaveable { mutableStateOf(existing?.animal.orEmpty()) }
+    var kind by rememberSaveable { mutableStateOf(existing?.kind) }
+    var kindManual by rememberSaveable {
+        mutableStateOf(existing != null && existing.kind != recognizedKind(existing.animal))
+    }
     var age by rememberSaveable { mutableStateOf(existing?.age?.toString().orEmpty()) }
     var features by rememberSaveable { mutableStateOf(existing?.features.orEmpty()) }
     var traits by rememberSaveable { mutableStateOf(existing?.traits?.toSet() ?: emptySet()) }
@@ -113,6 +123,7 @@ fun PetProfileScreen(
     val hasChanges = photoUri?.toString() != existing?.photoUri ||
             name != existing?.name.orEmpty() ||
             animal != existing?.animal.orEmpty() ||
+            kind != existing?.kind ||
             age != existing?.age?.toString().orEmpty() ||
             features != existing?.features.orEmpty() ||
             traits != (existing?.traits?.toSet() ?: emptySet<PetTrait>())
@@ -121,6 +132,7 @@ fun PetProfileScreen(
 
     var nameError by rememberSaveable { mutableStateOf(false) }
     var animalError by rememberSaveable { mutableStateOf(false) }
+    var kindError by rememberSaveable { mutableStateOf(false) }
     var ageError by rememberSaveable { mutableStateOf(false) }
     var featuresError by rememberSaveable { mutableStateOf<Int?>(null) }
 
@@ -128,9 +140,11 @@ fun PetProfileScreen(
         if (saving) return
         nameError = name.isBlank()
         animalError = animal.isBlank()
+        kindError = kind == null
         ageError = age.isBlank()
         featuresError = FormRules.descriptionError(features, R.string.text_4_13)
-        if (!nameError && !animalError && !ageError && featuresError == null) {
+        val selectedKind = kind
+        if (!nameError && !animalError && selectedKind != null && !ageError && featuresError == null) {
             focusManager.clearFocus()
             val pet = Pet(
                 id = existing?.id ?: UUID.randomUUID().toString(),
@@ -139,7 +153,8 @@ fun PetProfileScreen(
                 age = age.toIntOrNull() ?: 0,
                 traits = PetTrait.entries.filter { it in traits },
                 features = features.trim(),
-                photoUri = photoUri?.toString()
+                photoUri = photoUri?.toString(),
+                kind = selectedKind
             )
             saving = true
             scope.launch {
@@ -239,7 +254,7 @@ fun PetProfileScreen(
             modifier = Modifier
                 .fillMaxHeight()
                 .adaptiveContentWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = ScreenHorizontalPadding)
         ) {
             ScreenHeader(
                 title = stringResource(if (existing != null) R.string.text_4_15 else R.string.text_4_1),
@@ -259,10 +274,12 @@ fun PetProfileScreen(
                 }
             )
 
+            val scrollState = rememberScrollState()
             PinnedBottomBarLayout(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
+                dividerVisible = scrollState.canScrollForward,
                 bottomBar = {
                     PrimaryButton(
                         text = stringResource(R.string.text_4_7),
@@ -272,7 +289,6 @@ fun PetProfileScreen(
                     Spacer(Modifier.height(32.dp))
                 }
             ) { imeOverlap ->
-                val scrollState = rememberScrollState()
                 val density = LocalDensity.current
                 var topContentHeightDp by remember { mutableStateOf(0.dp) }
 
@@ -380,11 +396,44 @@ fun PetProfileScreen(
                                     onValueChange = {
                                         animal = it
                                         animalError = false
+                                        if (!kindManual) kind = recognizedKind(it)
+                                        if (kind != null) kindError = false
                                     },
                                     errorText = if (animalError) stringResource(R.string.text_4_11) else null,
                                     placeholder = stringResource(R.string.text_4_19),
                                     keyboardActions = nextField
                                 )
+                                Column(modifier = Modifier.padding(horizontal = ScreenContentInset)) {
+                                    FieldLabel(
+                                        text = stringResource(R.string.text_4_28),
+                                        required = true,
+                                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.text_4_29),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 8.dp)
+                                    )
+                                    SelectableChips(
+                                        items = PetKind.entries,
+                                        selected = setOfNotNull(kind),
+                                        label = { stringResource(it.label) },
+                                        onToggle = { item ->
+                                            kind = item
+                                            kindManual = true
+                                            kindError = false
+                                        }
+                                    )
+                                    if (kindError) {
+                                        Text(
+                                            text = stringResource(R.string.text_4_30),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                                        )
+                                    }
+                                }
                                 LabeledField(
                                     label = stringResource(R.string.text_4_5),
                                     required = true,
@@ -419,7 +468,7 @@ fun PetProfileScreen(
                                 onToggle = { trait ->
                                     traits = if (trait in traits) traits - trait else traits + trait
                                 },
-                                modifier = Modifier.padding(horizontal = 8.dp)
+                                modifier = Modifier.padding(horizontal = ScreenContentInset)
                             )
 
                             Spacer(Modifier.height(12.dp))
@@ -441,11 +490,11 @@ fun PetProfileScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 8.dp)
+                                .padding(horizontal = ScreenContentInset)
                                 .height(dynamicFeaturesHeight)
                         )
 
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(16.dp))
                     }
                 }
             }
@@ -491,7 +540,7 @@ private fun LabeledField(
     placeholder: String? = null,
     maxLength: Int = FormRules.SHORT_TEXT_MAX_LENGTH
 ) {
-    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+    Column(modifier = modifier.fillMaxWidth().padding(horizontal = ScreenContentInset)) {
         FieldLabel(
             text = label,
             required = required,

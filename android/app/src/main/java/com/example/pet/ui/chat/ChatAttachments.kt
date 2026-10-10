@@ -158,6 +158,15 @@ fun rememberAttachmentImage(uri: String, maxSidePx: Int): ImageBitmap? =
 
 object ChatDrafts {
     private val pending = HashMap<String, List<ChatAttachment>>()
+    private val texts = HashMap<String, String>()
+
+    fun text(chatId: String): String = synchronized(pending) { texts[chatId].orEmpty() }
+
+    fun setText(chatId: String, text: String) {
+        synchronized(pending) {
+            if (text.isBlank()) texts.remove(chatId) else texts[chatId] = text
+        }
+    }
 
     fun pending(chatId: String): List<ChatAttachment> = synchronized(pending) { pending[chatId].orEmpty() }
 
@@ -171,6 +180,7 @@ object ChatDrafts {
         val all = synchronized(pending) {
             val values = pending.values.flatten()
             pending.clear()
+            texts.clear()
             values
         }
         all.forEach { attachmentFile(it.uri)?.delete() }

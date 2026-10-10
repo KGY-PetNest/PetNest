@@ -1,5 +1,12 @@
 package com.example.pet.ui.responses
 
+import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.careFormatText
+import com.example.pet.ui.components.icon
+import com.example.pet.ui.components.PinnedBarDivider
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.example.pet.ui.components.PersonThumbnailSize
+import com.example.pet.data.displayPersonName
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
@@ -61,6 +68,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -80,6 +88,7 @@ import com.example.pet.ui.components.IconLine
 import com.example.pet.ui.components.InitialsAvatar
 import com.example.pet.ui.components.NotFoundScreen
 import com.example.pet.ui.components.PetThumbnail
+import com.example.pet.ui.components.PinnedBarGap
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.RatingLabel
 import com.example.pet.ui.components.ReviewSheet
@@ -102,6 +111,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
 import com.example.pet.ui.components.ListThumbnailSize
+import com.example.pet.ui.components.showRequestError
+import com.example.pet.data.repository.RequestClosedException
 
 @Composable
 fun ResponsesScreen(
@@ -122,6 +133,7 @@ fun ResponsesScreen(
     val favoriteIds by AppContainer.requests.favorites.collectAsStateWithLifecycle()
 
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    val listState = rememberLazyListState()
     var completing by remember { mutableStateOf(false) }
     var choosing by remember { mutableStateOf(false) }
     var openingChat by remember { mutableStateOf(false) }
@@ -129,6 +141,7 @@ fun ResponsesScreen(
     var confirmComplete by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
+    var showLocked by rememberSaveable { mutableStateOf(false) }
     var removed by remember { mutableStateOf(false) }
     var pendingChoice by remember { mutableStateOf<Volunteer?>(null) }
     val responses = remember(volunteers, responseIds, requestId) {
@@ -147,6 +160,7 @@ fun ResponsesScreen(
     }
     val petPhotoUri = pets.firstOrNull { it.id == request.petId }?.photoUri ?: request.petPhotoUri
     val chosen = volunteers.firstOrNull { it.id == request.chosenVolunteerId }
+    val finishesEarly = LocalDate.now().isBefore(request.end)
 
     val shown = when {
         request.status == RequestStatus.Completed -> listOfNotNull(chosen)
@@ -162,6 +176,7 @@ fun ResponsesScreen(
         scope.launch {
             AppContainer.chats.openChat(UserRole.Owner, request.id, volunteerId)
                 .onSuccess { onOpenChat(it.id) }
+                .onFailure { showRequestError(context) }
             openingChat = false
         }
     }
@@ -169,15 +184,29 @@ fun ResponsesScreen(
     if (confirmComplete) {
         AlertDialog(
             onDismissRequest = { confirmComplete = false },
-            title = { Text(stringResource(R.string.text_15_11)) },
-            text = { Text(stringResource(R.string.text_15_12)) },
+            title = { Text(stringResource(if (finishesEarly) R.string.text_15_17 else R.string.text_15_11)) },
+            text = {
+                Text(
+                    if (finishesEarly) {
+                        stringResource(
+                            R.string.text_15_16,
+                            request.end.format(DayMonthFormat),
+                            chosen?.let { shortPersonName(it.name) }.orEmpty()
+                        )
+                    } else {
+                        stringResource(R.string.text_15_12)
+                    }
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
                         confirmComplete = false
                         scope.launch {
                             completing = true
-                            AppContainer.requests.complete(request.id).onSuccess { showReview = true }
+                            AppContainer.requests.complete(request.id)
+                                .onSuccess { showReview = true }
+                                .onFailure { showRequestError(context) }
                             completing = false
                         }
                     }
@@ -202,6 +231,8 @@ fun ResponsesScreen(
             text = {
                 Text(
                     when {
+                        unselect && request.start.isBefore(LocalDate.now()) ->
+                            stringResource(R.string.text_14_23, shortPersonName(volunteer.name))
                         unselect -> stringResource(R.string.text_14_14, shortPersonName(volunteer.name))
                         replaced != null -> stringResource(
                             R.string.text_14_19,
@@ -220,6 +251,12 @@ fun ResponsesScreen(
                             scope.launch {
                                 choosing = true
                                 AppContainer.requests.chooseVolunteer(request.id, if (unselect) null else volunteer.id)
+                                    .onFailure {
+                                        showRequestError(
+                                            context,
+                                            if (it is RequestClosedException) R.string.text_14_24 else R.string.common_request_error
+                                        )
+                                    }
                                 choosing = false
                             }
                         }
@@ -231,6 +268,36 @@ fun ResponsesScreen(
             dismissButton = {
                 TextButton(onClick = { pendingChoice = null }) {
                     Text(stringResource(R.string.common_cancel))
+                }
+            }
+        )
+    }
+
+    if (showLocked) {
+        AlertDialog(
+            onDismissRequest = { showLocked = false },
+            title = { Text(stringResource(R.string.text_14_21)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.text_14_22,
+                        chosen?.let { shortPersonName(it.name) }.orEmpty()
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLocked = false
+                        pendingChoice = chosen
+                    }
+                ) {
+                    Text(stringResource(R.string.text_14_17))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLocked = false }) {
+                    Text(stringResource(R.string.common_ok))
                 }
             }
         )
@@ -249,7 +316,7 @@ fun ResponsesScreen(
                             AppContainer.requests.delete(request.id).onSuccess {
                                 removed = true
                                 onBack()
-                            }
+                            }.onFailure { showRequestError(context) }
                         }
                     }
                 ) {
@@ -295,12 +362,12 @@ fun ResponsesScreen(
             modifier = Modifier
                 .fillMaxHeight()
                 .adaptiveContentWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = ScreenHorizontalPadding)
         ) {
             ScreenHeader(
                 title = stringResource(R.string.text_14_1),
                 onBack = onBack,
-                actions = if (request.status == RequestStatus.Open) {
+                actions = if (request.status != RequestStatus.Completed) {
                     {
                         Box {
                             IconButton(onClick = { menuOpen = true }) {
@@ -319,7 +386,7 @@ fun ResponsesScreen(
                                     leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
                                     onClick = {
                                         menuOpen = false
-                                        onEditRequest(request.id)
+                                        if (request.status == RequestStatus.Open) onEditRequest(request.id) else showLocked = true
                                     }
                                 )
                                 DropdownMenuItem(
@@ -338,7 +405,7 @@ fun ResponsesScreen(
                                     },
                                     onClick = {
                                         menuOpen = false
-                                        confirmDelete = true
+                                        if (request.status == RequestStatus.Open) confirmDelete = true else showLocked = true
                                     }
                                 )
                             }
@@ -384,6 +451,7 @@ fun ResponsesScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     IconLine(icon = Icons.Default.DateRange, text = request.dates, maxLines = 1)
+                    IconLine(icon = request.format.icon, text = careFormatText(request, forOwner = true), maxLines = 1)
                 }
             }
 
@@ -418,6 +486,7 @@ fun ResponsesScreen(
             }
 
             LazyColumn(
+                state = listState,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(bottom = 16.dp),
                 modifier = Modifier
@@ -441,6 +510,7 @@ fun ResponsesScreen(
                         },
                         selectable = request.status != RequestStatus.Completed &&
                                 (volunteer.id == request.chosenVolunteerId || !request.start.isBefore(LocalDate.now())),
+                        canFavorite = request.status != RequestStatus.Completed,
                         onFavoriteToggle = { AppContainer.requests.toggleFavorite(request.id, volunteer.id) },
                         onSelect = { pendingChoice = volunteer },
                         onChat = { openChat(volunteer.id) },
@@ -466,14 +536,21 @@ fun ResponsesScreen(
 
             AnimatedVisibility(
                 visible = request.status == RequestStatus.VolunteerChosen,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
+                enter = fadeIn() + expandVertically(clip = false),
+                exit = fadeOut() + shrinkVertically(clip = false)
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    PinnedBarDivider(visible = listState.canScrollForward)
+                    Spacer(Modifier.height(PinnedBarGap))
                     val canComplete = !LocalDate.now().isBefore(request.start)
-                    if (!canComplete) {
+                    val hint = when {
+                        !canComplete -> stringResource(R.string.text_14_18, request.start.format(DayMonthFormat))
+                        finishesEarly -> stringResource(R.string.text_14_28, request.end.format(DayMonthFormat))
+                        else -> null
+                    }
+                    if (hint != null) {
                         Text(
-                            text = stringResource(R.string.text_14_18, request.start.format(DayMonthFormat)),
+                            text = hint,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -481,7 +558,9 @@ fun ResponsesScreen(
                         )
                     }
                     PrimaryButton(
-                        text = stringResource(R.string.text_14_10),
+                        text = stringResource(
+                            if (canComplete && finishesEarly) R.string.text_14_27 else R.string.text_14_10
+                        ),
                         loading = completing,
                         enabled = canComplete,
                         onClick = { confirmComplete = true }
@@ -492,10 +571,12 @@ fun ResponsesScreen(
 
             AnimatedVisibility(
                 visible = request.status == RequestStatus.Completed,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
+                enter = fadeIn() + expandVertically(clip = false),
+                exit = fadeOut() + shrinkVertically(clip = false)
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    PinnedBarDivider(visible = listState.canScrollForward)
+                    Spacer(Modifier.height(PinnedBarGap))
                     if (reviewed) {
                         IconLine(
                             icon = Icons.Default.CheckCircle,
@@ -527,6 +608,7 @@ private fun ResponseCard(
     phone: String?,
     onCall: (String) -> Unit,
     selectable: Boolean,
+    canFavorite: Boolean,
     onFavoriteToggle: () -> Unit,
     onSelect: () -> Unit,
     onChat: () -> Unit,
@@ -539,51 +621,39 @@ private fun ResponseCard(
             .cardSurface(onClick)
             .padding(12.dp)
     ) {
-        Row(verticalAlignment = Alignment.Top) {
-            InitialsAvatar(name = volunteer.name, photoUri = volunteer.avatarUri, size = ListThumbnailSize)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            InitialsAvatar(name = volunteer.name, photoUri = volunteer.avatarUri, size = PersonThumbnailSize)
 
             Column(
-                verticalArrangement = Arrangement.spacedBy(3.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 12.dp)
             ) {
                 Text(
-                    text = volunteer.name,
+                    text = displayPersonName(volunteer.name),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                RatingLabel(rating = rating, reviewsCount = reviewsCount)
-                Text(
-                    text = stringResource(R.string.text_13_2, volunteer.experience),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (phone != null) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .padding(top = 4.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                            .clickable { onCall(phone) }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Phone,
-                            contentDescription = stringResource(R.string.text_23_5),
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            text = formatPhone(phone),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RatingLabel(rating = rating, reviewsCount = reviewsCount)
+                    Text(
+                        text = stringResource(
+                            R.string.text_14_26,
+                            if (volunteer.completedCount > 0) {
+                                pluralStringResource(R.plurals.completed_count, volunteer.completedCount, volunteer.completedCount)
+                            } else {
+                                stringResource(R.string.text_14_25)
+                            }
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
                 }
             }
 
@@ -595,8 +665,35 @@ private fun ResponseCard(
                 )
             }
 
-            if (selectable && phone == null) {
+            if (canFavorite) {
                 FavoriteButton(isFavorite = isFavorite, onToggle = onFavoriteToggle)
+            }
+        }
+
+        if (phone != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .padding(start = PersonThumbnailSize + 12.dp, top = 8.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .clickable { onCall(phone) }
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Phone,
+                    contentDescription = stringResource(R.string.text_23_5),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = formatPhone(phone),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    softWrap = false
+                )
             }
         }
 
@@ -648,7 +745,7 @@ private fun SelectButton(isSelected: Boolean, onClick: () -> Unit) {
         colors = ButtonDefaults.buttonColors(containerColor = container, contentColor = content),
         modifier = Modifier
             .fillMaxWidth()
-            .height(42.dp)
+            .height(40.dp)
             .pressScale(interaction)
     ) {
         AnimatedVisibility(

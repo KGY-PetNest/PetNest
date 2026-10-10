@@ -1,5 +1,6 @@
 package com.example.pet.ui.welcome
 
+import com.example.pet.ui.components.ScreenTextPadding
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -120,7 +121,7 @@ fun WelcomeScreen(
                 .fillMaxHeight()
                 .adaptiveContentWidth()
                 .align(Alignment.TopCenter)
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = ScreenTextPadding)
         ) {
             Spacer(Modifier.height(32.dp))
 

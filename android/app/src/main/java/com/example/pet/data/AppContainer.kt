@@ -21,12 +21,12 @@ import com.example.pet.data.repository.SettingsRepository
 import com.example.pet.data.repository.VolunteerRepository
 
 object AppContainer {
-    val auth: AuthRepository = FakeAuthRepository()
     val profiles: ProfileRepository = InMemoryProfileRepository()
-    private val requestStore = InMemoryRequestRepository()
+    private val volunteerStore = InMemoryVolunteerRepository()
+    val volunteers: VolunteerRepository = volunteerStore
+    private val requestStore = InMemoryRequestRepository(volunteerStore)
     val requests: RequestRepository = requestStore
     val pets: PetRepository = InMemoryPetRepository(requestStore)
-    val volunteers: VolunteerRepository = InMemoryVolunteerRepository()
     val reviews: ReviewRepository = InMemoryReviewRepository()
     val chats: ChatRepository = InMemoryChatRepository(requests, volunteers)
     val push: PushRepository = FakePushRepository()
@@ -34,7 +34,12 @@ object AppContainer {
     lateinit var settings: SettingsRepository
         private set
 
+    lateinit var auth: AuthRepository
+        private set
+
     fun init(context: Context) {
-        settings = PrefsSettingsRepository(context.applicationContext)
+        val appContext = context.applicationContext
+        settings = PrefsSettingsRepository(appContext)
+        auth = FakeAuthRepository(appContext, settings.sessionRole)
     }
 }

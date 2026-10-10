@@ -1,5 +1,6 @@
 package com.example.pet.ui.chat
 
+import com.example.pet.ui.components.ScreenHorizontalPadding
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
@@ -82,7 +83,7 @@ fun AttachmentViewerScreen(
                 AttachmentKind.Pdf -> attachment.name
             },
             onBack = onBack,
-            modifier = Modifier.padding(horizontal = 16.dp)
+            modifier = Modifier.padding(horizontal = ScreenHorizontalPadding)
         )
         Box(
             modifier = Modifier

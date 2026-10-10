@@ -1,5 +1,7 @@
 package com.example.pet.ui.main
 
+import com.example.pet.ui.components.ScreenContentInset
+import com.example.pet.ui.components.ScreenHorizontalPadding
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -68,7 +70,7 @@ fun ProfileScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = ScreenHorizontalPadding)
     ) {
         ScreenHeader(
             title = stringResource(R.string.text_9_1),
@@ -95,7 +97,7 @@ fun ProfileScreen(
             ProfileHeader(
                 name = profile.name,
                 photoUri = profile.avatarUri,
-                modifier = Modifier.padding(horizontal = 8.dp)
+                modifier = Modifier.padding(horizontal = ScreenContentInset)
             ) {
                 IconLine(
                     icon = Icons.Default.Phone,
@@ -113,7 +115,7 @@ fun ProfileScreen(
             HorizontalDivider(
                 thickness = 1.dp,
                 color = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.padding(horizontal = 8.dp)
+                modifier = Modifier.padding(horizontal = ScreenContentInset)
             )
             Spacer(Modifier.height(20.dp))
 
