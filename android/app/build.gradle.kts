@@ -9,8 +9,8 @@ if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
 }
 
-val appVersionCode = 8
-val appVersionName = "6.0"
+val appVersionCode = 10
+val appVersionName = "6.1"
 
 base {
     archivesName = "PetNest-$appVersionName"

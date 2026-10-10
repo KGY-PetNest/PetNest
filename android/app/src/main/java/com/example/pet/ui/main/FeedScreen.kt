@@ -62,6 +62,7 @@ import com.example.pet.ui.components.label
 import com.example.pet.ui.theme.extraColors
 import java.time.LocalDate
 import java.util.UUID
+import com.example.pet.ui.components.ListThumbnailSize
 
 private const val FAB_COLLAPSE_SCROLL_PX = 48
 private val FAB_CLEARANCE = 88.dp
@@ -231,7 +232,7 @@ private fun RequestCard(
             .padding(12.dp)
     ) {
         Row(verticalAlignment = Alignment.Top) {
-            PetThumbnail(photoUri = photoUri, size = 56.dp)
+            PetThumbnail(photoUri = photoUri, size = ListThumbnailSize)
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(2.dp),

@@ -101,6 +101,7 @@ import com.example.pet.ui.components.toUtcMillis
 import com.example.pet.ui.components.utcMillisToLocalDate
 import java.time.LocalDate
 import kotlinx.coroutines.launch
+import com.example.pet.ui.components.ListThumbnailSize
 
 private enum class FeedSort(@param:StringRes val label: Int) {
     Soonest(R.string.text_12_14),
@@ -599,7 +600,7 @@ private fun VolunteerRequestCard(
             .cardSurface(onClick)
             .padding(12.dp)
     ) {
-        PetThumbnail(photoUri = request.petPhotoUri, size = 72.dp)
+        PetThumbnail(photoUri = request.petPhotoUri, size = ListThumbnailSize)
 
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -650,6 +651,7 @@ private fun VolunteerRequestCard(
             if (status == null) {
                 PetTraitChips(
                     traits = request.traits,
+                    singleLine = true,
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }

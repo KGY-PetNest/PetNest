@@ -65,15 +65,14 @@ fun BottomNavGraph(
             AdaptivePane {
                 ChatScreen(
                     role = role,
-                    onOpenChat = actions.onOpenChat,
-                    onBack = actions.onBackToFeed
+                    onOpenChat = actions.onOpenChat
                 )
             }
         }
 
         composable(Screen.Guide.name) {
             AdaptivePane {
-                GuideScreen(onBack = actions.onBackToFeed)
+                GuideScreen()
             }
         }
 
@@ -81,14 +80,12 @@ fun BottomNavGraph(
             AdaptivePane {
                 when (role) {
                     UserRole.Owner -> ProfileScreen(
-                        onBack = actions.onBackToFeed,
                         onOpenSettings = actions.onOpenSettings,
                         onAddPetClick = actions.onAddPet,
                         onPetClick = actions.onEditPet
                     )
                     UserRole.Volunteer -> VolunteerProfileScreen(
                         volunteerId = MockData.CURRENT_VOLUNTEER_ID,
-                        onBack = actions.onBackToFeed,
                         onAllReviews = actions.onOpenReviews,
                         onOpenSettings = actions.onOpenSettings
                     )
