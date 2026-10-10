@@ -42,6 +42,7 @@ object Routes {
     const val CHAT_ID_ARG = "chatId"
     const val MESSAGE_ID_ARG = "messageId"
     const val FIRST_RUN_ARG = "firstRun"
+    const val BECOME_ARG = "become"
 
     val MAIN = "${Screen.Main.name}/{$ROLE_ARG}"
     fun main(role: UserRole) = "${Screen.Main.name}/${role.name}"
@@ -66,8 +67,9 @@ object Routes {
     fun createRequest(requestId: String? = null) =
         if (requestId == null) Screen.CreateRequest.name else "${Screen.CreateRequest.name}?$REQUEST_ID_ARG=$requestId"
 
-    val EDIT_PROFILE = "${Screen.EditProfile.name}/{$ROLE_ARG}"
-    fun editProfile(role: UserRole) = "${Screen.EditProfile.name}/${role.name}"
+    val EDIT_PROFILE = "${Screen.EditProfile.name}/{$ROLE_ARG}?$BECOME_ARG={$BECOME_ARG}"
+    fun editProfile(role: UserRole, become: Boolean = false) =
+        if (become) "${Screen.EditProfile.name}/${role.name}?$BECOME_ARG=true" else "${Screen.EditProfile.name}/${role.name}"
 
     val SETTINGS = "${Screen.Settings.name}/{$ROLE_ARG}"
     fun settings(role: UserRole) = "${Screen.Settings.name}/${role.name}"

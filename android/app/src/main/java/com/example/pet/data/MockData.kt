@@ -59,7 +59,7 @@ object MockData {
             address = "Москва, ул. Пушкина, 48", comment = "Ключи у соседки из 12 квартиры",
             traits = listOf(PetTrait.Medication, PetTrait.FearsNoise),
             features = "Таблетка утром вместе с едой, боится пылесоса",
-            location = GeoPoint(55.7655, 37.605)
+            location = GeoPoint(55.7655, 37.605), format = CareFormat.AtOwner, visitsPerDay = 2
         ),
         PetRequest(
             id = "o2", petId = "p2", title = "Муся", petInfo = "Кошка, 1 год", kind = PetKind.Cat,
@@ -68,7 +68,7 @@ object MockData {
             traits = listOf(PetTrait.Calm, PetTrait.SpecialDiet),
             features = "Ест только влажный корм, очень ласковая",
             location = GeoPoint(55.779, 37.615),
-            status = RequestStatus.VolunteerChosen, chosenVolunteerId = "u3"
+            status = RequestStatus.VolunteerChosen, chosenVolunteerId = "u3", format = CareFormat.AtOwner, visitsPerDay = 2
         ),
         PetRequest(
             id = "o3", petId = "p3", title = "Памперс", petInfo = "Пёс, 5 лет", kind = PetKind.Dog,
@@ -77,7 +77,7 @@ object MockData {
             traits = listOf(PetTrait.Active, PetTrait.NeedsWalks),
             features = "Гулять два раза в день, тянет поводок",
             location = GeoPoint(55.73, 37.61),
-            status = RequestStatus.Completed, chosenVolunteerId = "u2"
+            status = RequestStatus.Completed, chosenVolunteerId = "u2", format = CareFormat.AtVolunteer
         )
     )
 
@@ -89,7 +89,7 @@ object MockData {
             traits = listOf(PetTrait.Medication, PetTrait.FearsNoise),
             features = "Таблетка от давления утром, прячется при громких звуках",
             location = GeoPoint(55.7616, 37.609),
-            ownerName = "Анна", ownerPhone = "9031112233"
+            ownerName = "Смирнова Анна Викторовна", ownerPhone = "9031112233", format = CareFormat.AtOwner, visitsPerDay = 2
         ),
         PetRequest(
             id = "v2", petId = "x2", title = "Собака, 5 лет", petInfo = "Собака, 5 лет", kind = PetKind.Dog,
@@ -98,7 +98,7 @@ object MockData {
             traits = listOf(PetTrait.Active, PetTrait.NeedsWalks),
             features = "Очень энергичный, нужно минимум два часа прогулок в день",
             location = GeoPoint(55.7801, 37.5912),
-            ownerName = "Игорь", ownerPhone = "9054445566"
+            ownerName = "Кузнецов Игорь Андреевич", ownerPhone = "9054445566", format = CareFormat.AtVolunteer
         ),
         PetRequest(
             id = "v3", petId = "x3", title = "Кошка, 2 года", petInfo = "Кошка, 2 года", kind = PetKind.Cat,
@@ -107,7 +107,7 @@ object MockData {
             traits = listOf(PetTrait.Calm),
             features = "Спокойная, любит сидеть на подоконнике, не берите на руки",
             location = GeoPoint(55.781, 37.633),
-            ownerName = "Ольга", ownerPhone = "9067778899"
+            ownerName = "Морозова Ольга Петровна", ownerPhone = "9067778899", format = CareFormat.AtOwner, visitsPerDay = 1
         ),
         PetRequest(
             id = "v4", petId = "x4", title = "Кот, 4 года", petInfo = "Кот, 4 года", kind = PetKind.Cat,
@@ -116,16 +116,16 @@ object MockData {
             traits = listOf(PetTrait.Medication, PetTrait.Senior),
             features = "Пожилой, лекарство вечером в паштете, мало двигается",
             location = GeoPoint(55.764, 37.587),
-            ownerName = "Дмитрий", ownerPhone = "9161239876"
+            ownerName = "Волков Дмитрий Сергеевич", ownerPhone = "9161239876", format = CareFormat.AtOwner, visitsPerDay = 2
         ),
         PetRequest(
-            id = "v5", petId = "x5", title = "Хомяк, 1 год", petInfo = "Хомяк, 1 год", kind = PetKind.Other,
+            id = "v5", petId = "x5", title = "Хомяк, 1 год", petInfo = "Хомяк, 1 год", kind = PetKind.Rodent,
             start = inDays(14), end = inDays(21), district = "",
             address = "Москва, ул. Арбат, 15", comment = "Клетку привезу сам",
             traits = listOf(PetTrait.Calm, PetTrait.SpecialDiet),
             features = "Корм только специальный, зерновую смесь не давать",
             location = GeoPoint(55.752, 37.593),
-            ownerName = "Света", ownerPhone = "9257654321"
+            ownerName = "Лебедева Светлана Игоревна", ownerPhone = "9257654321", format = CareFormat.AtVolunteer
         ),
         PetRequest(
             id = "v6", petId = "x6", title = "Пёс, 7 лет", petInfo = "Пёс, 7 лет", kind = PetKind.Dog,
@@ -134,7 +134,7 @@ object MockData {
             traits = listOf(PetTrait.NotFriendlyWithAnimals, PetTrait.NeedsWalks),
             features = "Агрессивно реагирует на других собак, гулять на коротком поводке",
             location = GeoPoint(55.748, 37.565),
-            ownerName = "Павел", ownerPhone = "9268887766"
+            ownerName = "Новиков Павел Олегович", ownerPhone = "9268887766", format = CareFormat.AtVolunteer
         ),
         PetRequest(
             id = "v7", petId = "x7", title = "Кошка, 6 лет", petInfo = "Кошка, 6 лет", kind = PetKind.Cat,
@@ -144,7 +144,7 @@ object MockData {
             traits = listOf(PetTrait.Calm, PetTrait.SpecialDiet),
             features = "Ест только по расписанию, очень спокойная",
             location = GeoPoint(55.7835, 37.6),
-            status = RequestStatus.VolunteerChosen, chosenVolunteerId = CURRENT_VOLUNTEER_ID, ownerName = "Наталья", ownerPhone = "9165553311"
+            status = RequestStatus.VolunteerChosen, chosenVolunteerId = CURRENT_VOLUNTEER_ID, ownerName = "Ковалёва Наталья Дмитриевна", ownerPhone = "9165553311", format = CareFormat.AtOwner, visitsPerDay = 2
         ),
         PetRequest(
             id = "v8", petId = "x8", title = "Пёс, 2 года", petInfo = "Пёс, 2 года", kind = PetKind.Dog,
@@ -153,7 +153,7 @@ object MockData {
             traits = listOf(PetTrait.Active, PetTrait.NeedsWalks),
             features = "Молодой и игривый, любит мяч",
             location = GeoPoint(55.79, 37.56),
-            status = RequestStatus.VolunteerChosen, chosenVolunteerId = "u2", ownerName = "Сергей", ownerPhone = "9031234455"
+            status = RequestStatus.VolunteerChosen, chosenVolunteerId = "u2", ownerName = "Фёдоров Сергей Николаевич", ownerPhone = "9031234455", format = CareFormat.AtVolunteer
         ),
         PetRequest(
             id = "v9", petId = "x9", title = "Кот, 8 лет", petInfo = "Кот, 8 лет", kind = PetKind.Cat,
@@ -162,7 +162,7 @@ object MockData {
             traits = listOf(PetTrait.Medication, PetTrait.Senior),
             features = "Пожилой, таблетка утром в корме",
             location = GeoPoint(55.768, 37.599),
-            status = RequestStatus.Completed, chosenVolunteerId = CURRENT_VOLUNTEER_ID, ownerName = "Ольга", ownerPhone = "9269991122"
+            status = RequestStatus.Completed, chosenVolunteerId = CURRENT_VOLUNTEER_ID, ownerName = "Белова Ольга Александровна", ownerPhone = "9269991122", format = CareFormat.AtOwner, visitsPerDay = 1
         )
     )
 
@@ -179,7 +179,9 @@ object MockData {
                 HomeConditionType.CanGiveMedication
             ),
             acceptedPets = listOf(AcceptedPet.Cats, AcceptedPet.SmallDogs),
-            phone = "9267654321"
+            phone = "9267654321",
+            completedCount = 4,
+            joinedAt = today.minusMonths(14)
         ),
         Volunteer(
             id = "u2", name = "Иванов Алексей Петрович", experience = "5 лет",
@@ -192,7 +194,10 @@ object MockData {
                 HomeConditionType.CanWalk
             ),
             acceptedPets = listOf(AcceptedPet.SmallDogs, AcceptedPet.LargeDogs, AcceptedPet.Cats),
-            phone = "9035557788"
+            phone = "9035557788",
+            completedCount = 7,
+            joinedAt = today.minusMonths(26),
+            formats = listOf(CareFormat.AtVolunteer)
         ),
         Volunteer(
             id = "u3", name = "Соколова Екатерина Олеговна", experience = "2 года",
@@ -204,7 +209,9 @@ object MockData {
                 HomeConditionType.NoKids
             ),
             acceptedPets = listOf(AcceptedPet.Cats, AcceptedPet.Rodents),
-            phone = "9154442211"
+            phone = "9154442211",
+            completedCount = 1,
+            joinedAt = today.minusMonths(3)
         )
     )
 
@@ -220,7 +227,7 @@ object MockData {
     val respondedIds = setOf("v2", "v7", "v8", "v9")
 
     val ownerResponses = mapOf(
-        "o1" to listOf("u1", "u2", "u3"),
+        "o1" to listOf("u1", "u3"),
         "o2" to listOf("u3", "u1"),
         "o3" to listOf("u2")
     )

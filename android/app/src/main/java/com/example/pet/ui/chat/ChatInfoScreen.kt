@@ -1,5 +1,9 @@
 package com.example.pet.ui.chat
 
+import com.example.pet.ui.components.ProfileAvatarSize
+import com.example.pet.ui.components.ScreenContentInset
+import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.data.displayPersonName
 import android.content.Intent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -26,6 +30,7 @@ import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -112,6 +117,10 @@ fun ChatInfoScreen(
             request != null && request.chosenVolunteerId == chat.volunteerId && request.status != RequestStatus.Open
         }
     }?.takeIf { it.isNotBlank() }
+    val phoneLater = companionPhone == null && when (role) {
+        UserRole.Volunteer -> myStatus == MyResponseStatus.Pending
+        UserRole.Owner -> request != null && request.status == RequestStatus.Open && !request.isExpired
+    }
     val media = remember(messages) {
         messages.filter { it.attachment != null }.sortedByDescending { it.sentAt }
     }
@@ -129,7 +138,7 @@ fun ChatInfoScreen(
             modifier = Modifier
                 .fillMaxHeight()
                 .adaptiveContentWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = ScreenHorizontalPadding)
         ) {
             ScreenHeader(title = stringResource(R.string.text_23_1), onBack = onBack)
 
@@ -138,7 +147,7 @@ fun ChatInfoScreen(
                     .weight(1f)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 8.dp)
+                    .padding(horizontal = ScreenContentInset)
             ) {
                 Spacer(Modifier.height(12.dp))
 
@@ -146,10 +155,10 @@ fun ChatInfoScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    InitialsAvatar(name = chat.companionName, photoUri = chat.companionAvatarUri, size = 96.dp, zoomable = true)
+                    InitialsAvatar(name = chat.companionName, photoUri = chat.companionAvatarUri, size = ProfileAvatarSize, zoomable = true)
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        text = chat.companionName,
+                        text = displayPersonName(chat.companionName),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
@@ -165,6 +174,15 @@ fun ChatInfoScreen(
                             icon = Icons.Default.Phone,
                             text = formatPhone(companionPhone),
                             textStyle = MaterialTheme.typography.bodyMedium
+                        )
+                    } else if (phoneLater) {
+                        Spacer(Modifier.height(6.dp))
+                        IconLine(
+                            icon = Icons.Default.Lock,
+                            text = stringResource(
+                                if (role == UserRole.Owner) R.string.text_23_9 else R.string.text_21_13
+                            ),
+                            textStyle = MaterialTheme.typography.bodySmall
                         )
                     }
                 }

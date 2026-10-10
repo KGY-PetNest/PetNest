@@ -1,5 +1,6 @@
 package com.example.pet.ui.chat
 
+import com.example.pet.ui.components.ScreenTextPadding
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -170,7 +171,7 @@ private fun ReportSheet(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
+                        .padding(horizontal = ScreenTextPadding)
                 ) {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
@@ -205,7 +206,7 @@ private fun ReportSheet(
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
                         .imePadding()
-                        .padding(horizontal = 24.dp)
+                        .padding(horizontal = ScreenTextPadding)
                 ) {
                     Text(
                         text = stringResource(R.string.text_10_32),

@@ -278,7 +278,7 @@ fun ReviewSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = ScreenTextPadding)
         ) {
             Text(
                 text = stringResource(R.string.text_15_4),

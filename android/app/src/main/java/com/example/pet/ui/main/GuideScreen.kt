@@ -1,12 +1,12 @@
 package com.example.pet.ui.main
 
+import com.example.pet.ui.components.ScreenHorizontalPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import com.example.pet.R
 import com.example.pet.ui.components.ScreenHeader
 
@@ -18,7 +18,7 @@ fun GuideScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = ScreenHorizontalPadding)
     ) {
         ScreenHeader(title = stringResource(R.string.text_11_1), onBack = onBack)
     }

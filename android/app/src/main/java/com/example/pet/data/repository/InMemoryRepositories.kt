@@ -33,49 +33,9 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
-private const val FAKE_NETWORK_DELAY_MS = 400L
+internal const val FAKE_NETWORK_DELAY_MS = 400L
 private const val FAKE_READ_DELAY_MS = 1500L
 private const val FAKE_REPLY_DELAY_MS = 2500L
-
-class FakeAuthRepository : AuthRepository {
-    override suspend fun login(email: String, password: String, role: UserRole): Result<Unit> {
-        delay(FAKE_NETWORK_DELAY_MS)
-        return Result.success(Unit)
-    }
-
-    override suspend fun register(
-        name: String,
-        phone: String,
-        email: String,
-        password: String,
-        role: UserRole
-    ): Result<Unit> {
-        delay(FAKE_NETWORK_DELAY_MS)
-        return Result.success(Unit)
-    }
-
-    override suspend fun confirmCode(code: String): Result<Unit> {
-        delay(FAKE_NETWORK_DELAY_MS)
-        return Result.success(Unit)
-    }
-
-    override suspend fun requestPasswordReset(target: String): Result<Unit> {
-        delay(FAKE_NETWORK_DELAY_MS)
-        return Result.success(Unit)
-    }
-
-    override suspend fun resetPassword(newPassword: String): Result<Unit> {
-        delay(FAKE_NETWORK_DELAY_MS)
-        return Result.success(Unit)
-    }
-
-    override suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> {
-        delay(FAKE_NETWORK_DELAY_MS)
-        return Result.success(Unit)
-    }
-
-    override suspend fun logout() = Unit
-}
 
 class InMemoryProfileRepository : ProfileRepository {
     private val owner = MutableStateFlow(MockData.ownerProfile)
@@ -118,7 +78,9 @@ class InMemoryPetRepository(private val requests: InMemoryRequestRepository) : P
     }
 }
 
-class InMemoryRequestRepository : RequestRepository {
+class InMemoryRequestRepository(
+    private val volunteers: InMemoryVolunteerRepository
+) : RequestRepository {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val owner = MutableStateFlow(MockData.ownerRequests)
     private val feedState = MutableStateFlow(MockData.volunteerFeed)
@@ -157,7 +119,8 @@ class InMemoryRequestRepository : RequestRepository {
             }
         }
         val termsChanged = current != null &&
-                (current.petId != request.petId || current.start != request.start || current.end != request.end)
+                (current.petId != request.petId || current.start != request.start || current.end != request.end ||
+                        current.format != request.format)
         if (termsChanged) {
             responsesState.update { it - request.id }
             favoritesState.update { it - request.id }
@@ -231,6 +194,7 @@ class InMemoryRequestRepository : RequestRepository {
         }
         delay(FAKE_NETWORK_DELAY_MS)
         updateOwnerRequest(requestId) { it.copy(status = RequestStatus.Completed) }
+        request.chosenVolunteerId?.let { volunteers.addCompleted(it) }
         return Result.success(Unit)
     }
 
@@ -280,6 +244,11 @@ class InMemoryRequestRepository : RequestRepository {
                 delay(SIMULATED_RESPONSE_DELAY_MS * (index + 1))
                 val request = owner.value.firstOrNull { it.id == requestId } ?: return@launch
                 if (!request.acceptsResponses) return@launch
+                val offersFormat = volunteers.volunteers.value
+                    .firstOrNull { it.id == volunteerId }
+                    ?.formats
+                    ?.contains(request.format) ?: false
+                if (!offersFormat) return@forEachIndexed
                 responsesState.update { map ->
                     val current = map[requestId].orEmpty()
                     if (volunteerId in current) map else map + (requestId to current + volunteerId)
@@ -305,6 +274,12 @@ class InMemoryVolunteerRepository : VolunteerRepository {
         delay(FAKE_NETWORK_DELAY_MS)
         state.update { list -> list.map { if (it.id == volunteer.id) volunteer else it } }
         return Result.success(Unit)
+    }
+
+    fun addCompleted(volunteerId: String) {
+        state.update { list ->
+            list.map { if (it.id == volunteerId) it.copy(completedCount = it.completedCount + 1) else it }
+        }
     }
 }
 

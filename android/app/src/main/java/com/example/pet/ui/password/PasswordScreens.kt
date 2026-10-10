@@ -1,5 +1,7 @@
 package com.example.pet.ui.password
 
+import com.example.pet.ui.components.ScreenContentInset
+import com.example.pet.ui.components.ScreenHorizontalPadding
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.fadeIn
@@ -54,6 +56,10 @@ import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.clearFocusOnTap
 import com.example.pet.ui.components.formatPhone
 import kotlinx.coroutines.launch
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import com.example.pet.data.repository.WrongPasswordException
+import com.example.pet.ui.components.showRequestError
 
 @Composable
 private fun PasswordScaffold(
@@ -72,7 +78,7 @@ private fun PasswordScaffold(
             modifier = Modifier
                 .fillMaxHeight()
                 .adaptiveContentWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = ScreenHorizontalPadding)
         ) {
             ScreenHeader(title = title, onBack = onBack)
             Column(
@@ -97,7 +103,7 @@ private fun Hint(text: String) {
         textAlign = TextAlign.Center,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp)
+            .padding(horizontal = ScreenContentInset)
     )
 }
 
@@ -125,6 +131,7 @@ fun ChangePasswordScreen(
     onChanged: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
 
@@ -148,9 +155,12 @@ fun ChangePasswordScreen(
             val result = AppContainer.auth.changePassword(current, password)
             saving = false
             if (result.isSuccess) {
+                Toast.makeText(context, R.string.text_18_8, Toast.LENGTH_SHORT).show()
                 onChanged()
-            } else {
+            } else if (result.exceptionOrNull() is WrongPasswordException) {
                 currentError = R.string.text_18_6
+            } else {
+                showRequestError(context)
             }
         }
     }

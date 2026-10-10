@@ -1,5 +1,8 @@
 package com.example.pet.ui.main
 
+import com.example.pet.ui.components.ScreenContentInset
+import com.example.pet.ui.components.CollapsibleSection
+import com.example.pet.ui.components.ScreenHorizontalPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,6 +68,7 @@ import java.util.UUID
 import com.example.pet.ui.components.ListThumbnailSize
 
 private const val FAB_COLLAPSE_SCROLL_PX = 48
+private const val ARCHIVE_RANK = 2
 private val FAB_CLEARANCE = 88.dp
 
 private fun PetRequest.feedRank(): Int = when {
@@ -93,6 +97,10 @@ fun FeedScreen(
     val responses by AppContainer.requests.responses.collectAsStateWithLifecycle()
     val reviewedRequestIds = reviews.mapNotNull { it.requestId }.toSet()
     val sortedRequests = remember(requests) { requests.sortedWith(OwnerRequestOrder) }
+    val (activeRequests, archivedRequests) = remember(sortedRequests) {
+        sortedRequests.partition { it.feedRank() < ARCHIVE_RANK }
+    }
+    var archiveExpanded by rememberSaveable { mutableStateOf(false) }
 
     var reviewRequestId by rememberSaveable { mutableStateOf<String?>(null) }
     val reviewRequest = requests.firstOrNull { it.id == reviewRequestId }
@@ -125,7 +133,7 @@ fun FeedScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = ScreenHorizontalPadding)
         ) {
             ScreenHeader(
                 title = stringResource(R.string.text_8_1),
@@ -147,17 +155,36 @@ fun FeedScreen(
                 ) {
                     Spacer(Modifier.height(20.dp))
 
+                    val card: @Composable (PetRequest) -> Unit = { request ->
+                        RequestCard(
+                            request = request,
+                            photoUri = pets.firstOrNull { it.id == request.petId }?.photoUri ?: request.petPhotoUri,
+                            responsesCount = responses[request.id].orEmpty().size,
+                            volunteerName = volunteers.firstOrNull { it.id == request.chosenVolunteerId }?.name,
+                            reviewed = request.id in reviewedRequestIds,
+                            onClick = { onRequestClick(request.id) },
+                            onLeaveReview = { reviewRequestId = request.id }
+                        )
+                    }
+
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        sortedRequests.forEach { request ->
-                            RequestCard(
-                                request = request,
-                                photoUri = pets.firstOrNull { it.id == request.petId }?.photoUri ?: request.petPhotoUri,
-                                responsesCount = responses[request.id].orEmpty().size,
-                                volunteerName = volunteers.firstOrNull { it.id == request.chosenVolunteerId }?.name,
-                                reviewed = request.id in reviewedRequestIds,
-                                onClick = { onRequestClick(request.id) },
-                                onLeaveReview = { reviewRequestId = request.id }
+                        if (activeRequests.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.text_8_10),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = ScreenContentInset)
                             )
+                        }
+                        activeRequests.forEach { request -> card(request) }
+                        if (archivedRequests.isNotEmpty()) {
+                            CollapsibleSection(
+                                title = stringResource(R.string.text_8_11, archivedRequests.size),
+                                expanded = archiveExpanded,
+                                onToggle = { archiveExpanded = !archiveExpanded }
+                            ) {
+                                archivedRequests.forEach { request -> card(request) }
+                            }
                         }
                     }
 

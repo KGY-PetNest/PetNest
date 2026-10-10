@@ -1,5 +1,6 @@
 package com.example.pet.ui.registration
 
+import com.example.pet.ui.components.ScreenTextPadding
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +49,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.text.style.TextAlign
 import com.example.pet.data.AppContainer
 import com.example.pet.data.UserRole
+import com.example.pet.data.repository.AccountExistsException
 import kotlinx.coroutines.launch
 
 @Composable
@@ -110,7 +112,11 @@ fun RegistrationScreen(
                     role = role
                 )
                 loading = false
-                if (result.isSuccess) onSuccess(role) else submitError = true
+                result
+                    .onSuccess { onSuccess(role) }
+                    .onFailure { error ->
+                        if (error is AccountExistsException) emailError = R.string.text_3_14 else submitError = true
+                    }
             }
         }
     }
@@ -127,7 +133,7 @@ fun RegistrationScreen(
             modifier = Modifier
                 .adaptiveContentWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 24.dp)
+                .padding(horizontal = ScreenTextPadding, vertical = 24.dp)
         ) {
             Text(
                 text = stringResource(R.string.text_3_1),
@@ -146,7 +152,14 @@ fun RegistrationScreen(
                 onSelect = { selectedRole = it }
             )
 
-            Spacer(Modifier.height(24.dp))
+            Text(
+                text = stringResource(R.string.text_3_13),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 8.dp, top = 8.dp, end = 8.dp)
+            )
+
+            Spacer(Modifier.height(20.dp))
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),

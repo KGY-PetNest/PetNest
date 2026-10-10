@@ -1,5 +1,7 @@
 package com.example.pet.ui.mappicker
 
+import com.example.pet.ui.components.ScreenContentInset
+import com.example.pet.ui.components.ScreenHorizontalPadding
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
@@ -339,7 +341,7 @@ fun MapPickerScreen(
             modifier = Modifier
                 .fillMaxHeight()
                 .adaptiveContentWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = ScreenHorizontalPadding)
         ) {
             ScreenHeader(
                 title = stringResource(if (forVolunteerLocation) R.string.text_7_5 else R.string.text_7_1),
@@ -475,7 +477,7 @@ fun MapPickerScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
+                    .padding(horizontal = ScreenContentInset)
                     .height(ADDRESS_BAR_HEIGHT)
                     .clip(RoundedCornerShape(16.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp)),

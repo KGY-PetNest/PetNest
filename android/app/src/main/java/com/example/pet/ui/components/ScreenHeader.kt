@@ -152,7 +152,7 @@ fun NotFoundScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = ScreenHorizontalPadding)
     ) {
         ScreenHeader(title = title, onBack = onBack)
         Box(

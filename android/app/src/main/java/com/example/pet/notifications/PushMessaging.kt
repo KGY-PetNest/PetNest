@@ -26,8 +26,8 @@ object PushRegistrar {
 
     fun signOut(context: Context) {
         pushScope.launch {
-            AppContainer.push.unregister()
             AppContainer.auth.logout()
+            AppContainer.push.unregister()
         }
         if (isFirebaseReady(context)) {
             runCatching { FirebaseMessaging.getInstance().deleteToken() }
@@ -52,7 +52,7 @@ class PetMessagingService : FirebaseMessagingService() {
         val role = data[KEY_ROLE]
             ?.let { name -> UserRole.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } }
             ?: return
-        if (AppContainer.settings.sessionRole != role) return
+        if (!ChatNotifier.acceptsRole(role)) return
         if (AppForeground.visible && AppForeground.openChatId == chatId) return
         ChatNotifier.show(
             context = this,

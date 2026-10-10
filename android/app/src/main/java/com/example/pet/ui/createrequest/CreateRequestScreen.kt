@@ -1,5 +1,12 @@
 package com.example.pet.ui.createrequest
 
+import com.example.pet.ui.components.ScreenContentInset
+import com.example.pet.ui.components.ScreenHorizontalPadding
+import androidx.compose.runtime.mutableIntStateOf
+import com.example.pet.ui.components.SelectableChips
+import com.example.pet.ui.components.SegmentedToggle
+import com.example.pet.data.DEFAULT_VISITS_PER_DAY
+import com.example.pet.data.CareFormat
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -93,6 +100,8 @@ import java.util.TimeZone
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.launch
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -148,6 +157,8 @@ fun CreateRequestScreen(
     var address by rememberSaveable { mutableStateOf(existing?.address.orEmpty()) }
     var location by rememberSaveable { mutableStateOf(existing?.location) }
     var addressDetails by rememberSaveable { mutableStateOf(existing?.addressDetails.orEmpty()) }
+    var format by rememberSaveable { mutableStateOf(existing?.format ?: CareFormat.AtVolunteer) }
+    var visitsPerDay by rememberSaveable { mutableIntStateOf(existing?.visitsPerDay ?: DEFAULT_VISITS_PER_DAY) }
 
     LaunchedEffect(addedPetId, pets) {
         if (addedPetId != null && pets.any { it.id == addedPetId }) {
@@ -173,9 +184,12 @@ fun CreateRequestScreen(
     val end = pickerState.selectedEndDateMillis
     val hasDates = start != null && end != null
     val hasChanges = if (existing == null) {
-        selectedPetId != null || hasDates || address.isNotBlank() || addressDetails.isNotBlank() || comment.isNotBlank()
+        selectedPetId != null || hasDates || address.isNotBlank() || addressDetails.isNotBlank() ||
+                comment.isNotBlank() || format != CareFormat.AtVolunteer
     } else {
         selectedPetId != existing.petId ||
+                format != existing.format ||
+                (format == CareFormat.AtOwner && visitsPerDay != existing.visitsPerDay) ||
                 (datesPrefilled && (start != existing.start.toUtcMillis() || end != existing.end.toUtcMillis())) ||
                 address != existing.address ||
                 addressDetails != existing.addressDetails ||
@@ -183,21 +197,23 @@ fun CreateRequestScreen(
     }
     val leave = rememberLeaveGuard(hasChanges = hasChanges && !saving, onLeave = onBack)
     val datesText = if (start != null && end != null) {
-        val format = SimpleDateFormat("d MMMM yyyy", Locale.forLanguageTag("ru")).apply {
+        val dateFormat = SimpleDateFormat("d MMMM yyyy", Locale.forLanguageTag("ru")).apply {
             timeZone = TimeZone.getTimeZone("UTC")
         }
         val days = TimeUnit.MILLISECONDS.toDays(end - start).toInt().coerceAtLeast(1)
         stringResource(
             R.string.text_5_13,
-            format.format(Date(start)),
-            format.format(Date(end)),
+            dateFormat.format(Date(start)),
+            dateFormat.format(Date(end)),
             pluralStringResource(R.plurals.common_days_count, days, days)
         )
     } else {
         stringResource(R.string.text_5_6)
     }
 
-    fun submit() {
+    var confirmReset by rememberSaveable { mutableStateOf(false) }
+
+    fun submit(resetConfirmed: Boolean = false) {
         if (saving) return
         saveError = false
         petError = selectedPet == null
@@ -221,6 +237,13 @@ fun CreateRequestScreen(
         }
         if (overlapError) return
 
+        val termsChanged = existing != null &&
+                (pet.id != existing.petId || startDate != existing.start || endDate != existing.end || format != existing.format)
+        if (hasResponses && termsChanged && !resetConfirmed) {
+            confirmReset = true
+            return
+        }
+
         focusManager.clearFocus()
         val owner = AppContainer.profiles.profile(UserRole.Owner).value
         val request = PetRequest(
@@ -233,7 +256,7 @@ fun CreateRequestScreen(
             end = endDate,
             district = existing?.district.orEmpty(),
             address = address.trim(),
-            addressDetails = addressDetails.trim(),
+            addressDetails = if (format == CareFormat.AtOwner) addressDetails.trim() else "",
             location = location,
             comment = comment.trim(),
             traits = pet.traits,
@@ -242,7 +265,9 @@ fun CreateRequestScreen(
             status = existing?.status ?: RequestStatus.Open,
             chosenVolunteerId = existing?.chosenVolunteerId,
             ownerName = owner.name,
-            ownerPhone = owner.phone
+            ownerPhone = owner.phone,
+            format = format,
+            visitsPerDay = visitsPerDay
         )
         scope.launch {
             saving = true
@@ -252,6 +277,36 @@ fun CreateRequestScreen(
                 .onSuccess { onCreate() }
                 .onFailure { if (it is RequestOverlapException) overlapError = true else saveError = true }
         }
+    }
+
+    if (confirmReset) {
+        AlertDialog(
+            onDismissRequest = { confirmReset = false },
+            title = { Text(stringResource(R.string.text_5_32)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.text_5_33,
+                        existing?.let { responseIds[it.id].orEmpty().size } ?: 0
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmReset = false
+                        submit(resetConfirmed = true)
+                    }
+                ) {
+                    Text(stringResource(R.string.text_4_7))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmReset = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        )
     }
 
     if (showPetPicker) {
@@ -295,17 +350,19 @@ fun CreateRequestScreen(
             modifier = Modifier
                 .fillMaxHeight()
                 .adaptiveContentWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = ScreenHorizontalPadding)
         ) {
             ScreenHeader(
                 title = stringResource(if (existing != null) R.string.text_5_26 else R.string.text_5_1),
                 onBack = leave
             )
 
+            val scrollState = rememberScrollState()
             PinnedBottomBarLayout(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
+                dividerVisible = scrollState.canScrollForward,
                 bottomBar = {
                     if (saveError) {
                         Text(
@@ -323,7 +380,6 @@ fun CreateRequestScreen(
                     Spacer(Modifier.height(32.dp))
                 }
             ) { imeOverlap ->
-                val scrollState = rememberScrollState()
                 val density = LocalDensity.current
                 var topContentHeightDp by remember { mutableStateOf(0.dp) }
 
@@ -364,7 +420,7 @@ fun CreateRequestScreen(
 
                             Spacer(Modifier.height(16.dp))
 
-                            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+                            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenContentInset)) {
                                 SectionLabel(stringResource(R.string.text_5_5))
 
                                 val datesInvalid = datesError || overlapError || pastDatesError
@@ -437,7 +493,50 @@ fun CreateRequestScreen(
 
                             Spacer(Modifier.height(16.dp))
 
-                            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+                            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenContentInset)) {
+                                SectionLabel(stringResource(R.string.text_5_34))
+                                SegmentedToggle(
+                                    options = listOf(
+                                        stringResource(R.string.text_5_35),
+                                        stringResource(R.string.text_5_36)
+                                    ),
+                                    selectedIndex = if (format == CareFormat.AtOwner) 1 else 0,
+                                    onSelect = { index ->
+                                        format = if (index == 1) CareFormat.AtOwner else CareFormat.AtVolunteer
+                                    }
+                                )
+                                Text(
+                                    text = stringResource(
+                                        if (format == CareFormat.AtOwner) R.string.text_5_38 else R.string.text_5_37
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp)
+                                )
+                                AnimatedVisibility(visible = format == CareFormat.AtOwner) {
+                                    Column(modifier = Modifier.padding(top = 12.dp)) {
+                                        SectionLabel(stringResource(R.string.text_5_39))
+                                        SelectableChips(
+                                            items = VisitOptions,
+                                            selected = setOf(visitsPerDay),
+                                            label = { count ->
+                                                pluralStringResource(R.plurals.visits_per_day, count, count)
+                                            },
+                                            onToggle = { visitsPerDay = it }
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.text_5_42),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(16.dp))
+
+                            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenContentInset)) {
                                 SectionLabel(stringResource(R.string.text_5_7))
 
                                 val addressBorder by animateColorAsState(
@@ -492,18 +591,27 @@ fun CreateRequestScreen(
                                     horizontalPadding = 16.dp
                                 )
 
-                                Spacer(Modifier.height(10.dp))
+                                if (format == CareFormat.AtOwner) {
+                                    Spacer(Modifier.height(10.dp))
 
-                                AppTextField(
-                                    value = addressDetails,
-                                    onValueChange = { addressDetails = it },
-                                    placeholder = stringResource(R.string.text_5_27),
-                                    leadingIcon = Icons.Default.Apartment,
-                                    helperText = stringResource(R.string.text_5_28),
-                                    maxLength = FormRules.ADDRESS_DETAILS_MAX_LENGTH,
-                                    imeAction = ImeAction.Done,
-                                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
-                                )
+                                    AppTextField(
+                                        value = addressDetails,
+                                        onValueChange = { addressDetails = it },
+                                        placeholder = stringResource(R.string.text_5_27),
+                                        leadingIcon = Icons.Default.Apartment,
+                                        helperText = stringResource(R.string.text_5_28),
+                                        maxLength = FormRules.ADDRESS_DETAILS_MAX_LENGTH,
+                                        imeAction = ImeAction.Done,
+                                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
+                                    )
+                                } else {
+                                    Text(
+                                        text = stringResource(R.string.text_5_40),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp)
+                                    )
+                                }
                             }
 
                             Spacer(Modifier.height(16.dp))
@@ -523,7 +631,13 @@ fun CreateRequestScreen(
                                 comment = it.take(FormRules.LONG_TEXT_MAX_LENGTH)
                                 commentError = null
                             },
-                            placeholder = { Text(stringResource(R.string.text_5_25)) },
+                            placeholder = {
+                                Text(
+                                    stringResource(
+                                        if (format == CareFormat.AtOwner) R.string.text_5_25 else R.string.text_5_41
+                                    )
+                                )
+                            },
                             isError = commentError != null,
                             supportingText = if (commentErrorText != null) {
                                 { Text(commentErrorText) }
@@ -534,17 +648,19 @@ fun CreateRequestScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 8.dp)
+                                .padding(horizontal = ScreenContentInset)
                                 .height(dynamicCommentHeight)
                         )
 
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(16.dp))
                     }
                 }
             }
         }
     }
 }
+
+private val VisitOptions = listOf(1, 2, 3)
 
 @Composable
 private fun PetCard(
@@ -562,7 +678,7 @@ private fun PetCard(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp)
+            .padding(horizontal = ScreenContentInset)
             .pressScale(interaction, pressedScale = 0.98f)
             .clip(RoundedCornerShape(16.dp))
             .border(1.dp, borderColor, RoundedCornerShape(16.dp))

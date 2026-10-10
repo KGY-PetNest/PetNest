@@ -1,5 +1,12 @@
 package com.example.pet.ui.main
 
+import com.example.pet.ui.components.ScreenContentInset
+import com.example.pet.ui.components.CollapsibleSection
+import com.example.pet.ui.components.ScreenTextPadding
+import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.careFormatText
+import com.example.pet.ui.components.icon
+import com.example.pet.data.CareFormat
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -97,6 +104,7 @@ import com.example.pet.ui.components.openAppSettings
 import com.example.pet.ui.components.openLocationSettings
 import com.example.pet.ui.components.rememberFutureDateRangePickerState
 import com.example.pet.ui.components.rememberLocationRequester
+import com.example.pet.ui.components.showRequestError
 import com.example.pet.ui.components.toUtcMillis
 import com.example.pet.ui.components.utcMillisToLocalDate
 import java.time.LocalDate
@@ -113,7 +121,14 @@ private enum class FeedSort(@param:StringRes val label: Int) {
 private val KindFilters = listOf(
     PetKind.Cat to R.string.text_12_3,
     PetKind.Dog to R.string.text_12_4,
+    PetKind.Rodent to R.string.text_12_50,
+    PetKind.Bird to R.string.text_12_51,
     PetKind.Other to R.string.text_12_9
+)
+
+private val FormatFilters = listOf(
+    CareFormat.AtVolunteer to R.string.text_12_52,
+    CareFormat.AtOwner to R.string.text_12_53
 )
 
 private val RadiusOptionsKm = listOf(1, 3, 5, 10, 20)
@@ -122,6 +137,8 @@ private const val DEFAULT_RADIUS_KM = 5
 private enum class LocationProblem { Denied, Blocked, Off, Failed }
 
 private const val LOCATION_REFRESH_MIN_KM = 0.3
+
+private val ActiveResponseStatuses = setOf(MyResponseStatus.Chosen, MyResponseStatus.Pending)
 
 private val MyResponsesOrder = listOf(
     MyResponseStatus.Chosen,
@@ -146,6 +163,16 @@ fun VolunteerFeedScreen(
 
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var kinds by rememberSaveable { mutableStateOf(emptySet<PetKind>()) }
+    var formats by rememberSaveable {
+        mutableStateOf(
+            AppContainer.volunteers.volunteers.value
+                .firstOrNull { it.id == MockData.CURRENT_VOLUNTEER_ID }
+                ?.formats
+                ?.takeIf { it.size == 1 }
+                ?.toSet()
+                ?: emptySet()
+        )
+    }
     var radiusKm by rememberSaveable { mutableStateOf<Int?>(null) }
     var freeFrom by rememberSaveable { mutableStateOf<LocalDate?>(null) }
     var freeTo by rememberSaveable { mutableStateOf<LocalDate?>(null) }
@@ -218,11 +245,12 @@ fun VolunteerFeedScreen(
         }
     }
 
-    val requests = remember(feed, kinds, radiusKm, distances, freeFrom, freeTo, sort, mustHave, exclude) {
+    val requests = remember(feed, kinds, formats, radiusKm, distances, freeFrom, freeTo, sort, mustHave, exclude) {
         feed
             .filter { it.acceptsResponses }
             .filter { request ->
-                val kindOk = kinds.isEmpty() || request.kind in kinds
+                val kindOk = (kinds.isEmpty() || request.kind in kinds) &&
+                        (formats.isEmpty() || request.format in formats)
                 val radius = radiusKm
                 val distance = distances[request.id]
                 val radiusOk = radius == null || origin == null || (distance != null && distance <= radius)
@@ -251,9 +279,14 @@ fun VolunteerFeedScreen(
             }
             .sortedWith(compareBy({ MyResponsesOrder.indexOf(it.second) }, { it.first.start }))
     }
+    val (activeResponses, archivedResponses) = remember(myResponses) {
+        myResponses.partition { it.second in ActiveResponseStatuses }
+    }
+    var archiveExpanded by rememberSaveable { mutableStateOf(false) }
 
     fun resetFilters() {
         kinds = emptySet()
+        formats = emptySet()
         radiusKm = null
         freeFrom = null
         freeTo = null
@@ -268,6 +301,7 @@ fun VolunteerFeedScreen(
         scope.launch {
             AppContainer.chats.openChat(UserRole.Volunteer, requestId, MockData.CURRENT_VOLUNTEER_ID)
                 .onSuccess { onOpenChat(it.id) }
+                .onFailure { showRequestError(context) }
             openingChat = false
         }
     }
@@ -351,7 +385,7 @@ fun VolunteerFeedScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = ScreenHorizontalPadding)
     ) {
         ScreenHeader(title = stringResource(R.string.text_12_1), onBack = onBack)
 
@@ -381,6 +415,8 @@ fun VolunteerFeedScreen(
                     FeedFilters(
                         kinds = kinds,
                         onKindsChange = { kinds = it },
+                        formats = formats,
+                        onFormatsChange = { formats = it },
                         radiusKm = radiusKm,
                         hasLocation = myLocation != null,
                         onLocationClick = { locationSheetOpen = true },
@@ -447,7 +483,7 @@ fun VolunteerFeedScreen(
                     contentPadding = PaddingValues(bottom = 16.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(myResponses, key = { it.first.id }) { (request, status) ->
+                    val responseCard: @Composable (PetRequest, MyResponseStatus, Modifier) -> Unit = { request, status, cardModifier ->
                         VolunteerRequestCard(
                             request = request,
                             distanceKm = distances[request.id],
@@ -458,8 +494,36 @@ fun VolunteerFeedScreen(
                             } else {
                                 null
                             },
-                            modifier = Modifier.animateItem()
+                            modifier = cardModifier
                         )
+                    }
+                    if (activeResponses.isEmpty() && archivedResponses.isNotEmpty()) {
+                        item(key = "noActive") {
+                            Text(
+                                text = stringResource(R.string.text_12_54),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .padding(horizontal = ScreenContentInset)
+                                    .animateItem()
+                            )
+                        }
+                    }
+                    items(activeResponses, key = { it.first.id }) { (request, status) ->
+                        responseCard(request, status, Modifier.animateItem())
+                    }
+                    if (archivedResponses.isNotEmpty()) {
+                        item(key = "archive") {
+                            CollapsibleSection(
+                                title = stringResource(R.string.text_12_55, archivedResponses.size),
+                                expanded = archiveExpanded,
+                                onToggle = { archiveExpanded = !archiveExpanded }
+                            ) {
+                                archivedResponses.forEach { (request, status) ->
+                                    responseCard(request, status, Modifier)
+                                }
+                            }
+                        }
                     }
                     if (myResponses.isEmpty()) {
                         item(key = "empty") {
@@ -485,6 +549,8 @@ fun VolunteerFeedScreen(
 private fun FeedFilters(
     kinds: Set<PetKind>,
     onKindsChange: (Set<PetKind>) -> Unit,
+    formats: Set<CareFormat>,
+    onFormatsChange: (Set<CareFormat>) -> Unit,
     radiusKm: Int?,
     hasLocation: Boolean,
     onLocationClick: () -> Unit,
@@ -514,6 +580,15 @@ private fun FeedFilters(
             leadingIcon = Icons.Default.NearMe,
             onClick = onLocationClick
         )
+
+        FormatFilters.forEach { (format, label) ->
+            FilterPill(
+                text = stringResource(label),
+                selected = format in formats,
+                leadingIcon = format.icon,
+                onClick = { onFormatsChange(if (formats == setOf(format)) emptySet() else setOf(format)) }
+            )
+        }
 
         FilterPill(
             text = stringResource(R.string.text_12_2),
@@ -648,6 +723,11 @@ private fun VolunteerRequestCard(
                 },
                 maxLines = 1
             )
+            IconLine(
+                icon = request.format.icon,
+                text = careFormatText(request, forOwner = false),
+                maxLines = 1
+            )
             if (status == null) {
                 PetTraitChips(
                     traits = request.traits,
@@ -704,7 +784,7 @@ private fun LocationFilterSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = ScreenTextPadding)
         ) {
             Text(
                 text = stringResource(R.string.text_12_25),
@@ -865,7 +945,7 @@ private fun TraitsFilterSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = ScreenTextPadding)
         ) {
             Text(
                 text = stringResource(R.string.text_12_19),

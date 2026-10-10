@@ -1,5 +1,7 @@
 package com.example.pet.ui.emailconfirm
 
+import com.example.pet.ui.components.ScreenContentInset
+import com.example.pet.ui.components.ScreenHorizontalPadding
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -103,7 +105,7 @@ fun EmailConfirmScreen(
             modifier = Modifier
                 .fillMaxHeight()
                 .adaptiveContentWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = ScreenHorizontalPadding)
         ) {
             ScreenHeader(title = stringResource(R.string.text_6_1), onBack = onBack)
 
@@ -120,7 +122,7 @@ fun EmailConfirmScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp)
+                        .padding(horizontal = ScreenContentInset)
                 )
 
                 Spacer(Modifier.height(24.dp))

@@ -1,5 +1,12 @@
 package com.example.pet.ui.components
 
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -86,9 +93,12 @@ fun BottomInsetsPane(
     }
 }
 
+val PinnedBarGap = 12.dp
+
 @Composable
 fun PinnedBottomBarLayout(
     modifier: Modifier = Modifier,
+    dividerVisible: Boolean = false,
     bottomBar: @Composable ColumnScope.() -> Unit,
     content: @Composable BoxScope.(imeOverlap: Dp) -> Unit
 ) {
@@ -112,8 +122,37 @@ fun PinnedBottomBarLayout(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .onSizeChanged { barHeightPx = it.height },
-            content = bottomBar
-        )
+                .onSizeChanged { barHeightPx = it.height }
+        ) {
+            PinnedBarDivider(visible = dividerVisible)
+            Spacer(Modifier.height(PinnedBarGap))
+            bottomBar()
+        }
     }
+}
+
+val ScreenHorizontalPadding = 12.dp
+val ScreenContentInset = 4.dp
+val ScreenTextPadding = ScreenHorizontalPadding + ScreenContentInset
+
+fun Modifier.bleedHorizontally(amount: Dp): Modifier = layout { measurable, constraints ->
+    val extra = amount.roundToPx()
+    val width = if (constraints.hasBoundedWidth) constraints.maxWidth + extra * 2 else constraints.minWidth
+    val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+    val ownWidth = (width - extra * 2).coerceAtLeast(0)
+    layout(ownWidth, placeable.height) {
+        placeable.place(-extra, 0)
+    }
+}
+
+@Composable
+fun PinnedBarDivider(visible: Boolean, modifier: Modifier = Modifier) {
+    val dividerAlpha by animateFloatAsState(targetValue = if (visible) 1f else 0f, label = "pinnedBarDivider")
+    HorizontalDivider(
+        thickness = 1.dp,
+        color = MaterialTheme.colorScheme.outline,
+        modifier = modifier
+            .bleedHorizontally(ScreenHorizontalPadding)
+            .graphicsLayer { alpha = dividerAlpha }
+    )
 }

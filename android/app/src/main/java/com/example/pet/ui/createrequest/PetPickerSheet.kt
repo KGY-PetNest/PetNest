@@ -1,5 +1,7 @@
 package com.example.pet.ui.createrequest
 
+import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.ScreenTextPadding
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.scaleIn
@@ -78,14 +80,14 @@ fun PetPickerSheet(
             Text(
                 text = stringResource(R.string.text_5_4),
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(horizontal = 24.dp)
+                modifier = Modifier.padding(horizontal = ScreenTextPadding)
             )
 
             Spacer(Modifier.height(12.dp))
 
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                contentPadding = PaddingValues(horizontal = ScreenHorizontalPadding, vertical = 4.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f, fill = false)
@@ -113,7 +115,7 @@ fun PetPickerSheet(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = ScreenHorizontalPadding)
                     .height(48.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))

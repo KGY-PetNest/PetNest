@@ -1,5 +1,6 @@
 package com.example.pet.ui.reviews
 
+import com.example.pet.ui.components.ScreenHorizontalPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,7 +42,7 @@ fun ReviewsScreen(
             modifier = Modifier
                 .fillMaxHeight()
                 .adaptiveContentWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = ScreenHorizontalPadding)
         ) {
             ScreenHeader(title = stringResource(R.string.text_15_1), onBack = onBack)
 

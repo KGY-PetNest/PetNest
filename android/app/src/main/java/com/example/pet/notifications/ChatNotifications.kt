@@ -77,8 +77,12 @@ object ChatNotifier {
         context.getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
     }
 
+    fun acceptsRole(role: UserRole): Boolean =
+        AppContainer.settings.sessionRole != null &&
+                AppContainer.auth.account.value?.roles?.contains(role) == true
+
     fun onIncoming(context: Context, incoming: IncomingMessage) {
-        if (AppContainer.settings.sessionRole != incoming.role) return
+        if (!acceptsRole(incoming.role)) return
         if (incoming.chat.blocked) return
         if (AppForeground.visible && AppForeground.openChatId == incoming.chat.id) return
         show(

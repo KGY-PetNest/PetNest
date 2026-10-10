@@ -1,5 +1,8 @@
 package com.example.pet.ui.chat
 
+import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.ScreenTextPadding
+import com.example.pet.data.displayPersonName
 import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -155,7 +158,7 @@ fun ConversationScreen(
     val chats by remember(role) { AppContainer.chats.chats(role) }.collectAsStateWithLifecycle()
     val messages by remember(chatId) { AppContainer.chats.messages(chatId) }.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
-    var draft by rememberSaveable { mutableStateOf("") }
+    var draft by rememberSaveable { mutableStateOf(ChatDrafts.text(chatId)) }
     var pending by remember { mutableStateOf(ChatDrafts.pending(chatId)) }
     val feed by AppContainer.requests.feed.collectAsStateWithLifecycle()
     val responded by AppContainer.requests.respondedIds.collectAsStateWithLifecycle()
@@ -192,10 +195,12 @@ fun ConversationScreen(
     }
 
     LaunchedEffect(pending) { ChatDrafts.setPending(chatId, pending) }
+    LaunchedEffect(draft) { ChatDrafts.setText(chatId, draft) }
 
     fun importFiles(uris: List<Uri>, importer: suspend (Context, Uri) -> Result<ChatAttachment>) {
         val room = ATTACHMENTS_PER_MESSAGE_MAX - pending.size
         if (uris.isEmpty() || room <= 0) return
+        if (uris.size > room) errorRes = R.string.text_10_57
         scope.launch {
             importing = true
             uris.take(room).forEach { uri ->
@@ -229,12 +234,17 @@ fun ConversationScreen(
         draft = ""
         pending = emptyList()
         scope.launch {
-            if (files.isEmpty()) {
-                AppContainer.chats.send(chatId, role, text)
+            val failed = if (files.isEmpty()) {
+                AppContainer.chats.send(chatId, role, text).isFailure
             } else {
-                files.forEachIndexed { index, file ->
-                    AppContainer.chats.send(chatId, role, if (index == 0) text else "", file)
-                }
+                files.mapIndexed { index, file ->
+                    AppContainer.chats.send(chatId, role, if (index == 0) text else "", file).isFailure
+                }.all { it }
+            }
+            if (failed) {
+                if (draft.isEmpty()) draft = text
+                if (pending.isEmpty()) pending = files
+                errorRes = R.string.text_10_52
             }
         }
     }
@@ -289,7 +299,7 @@ fun ConversationScreen(
                 LazyColumn(
                     state = listState,
                     reverseLayout = true,
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                    contentPadding = PaddingValues(horizontal = ScreenHorizontalPadding, vertical = 12.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(entries, key = { it.key }, contentType = { it::class }) { entry ->
@@ -334,7 +344,7 @@ fun ConversationScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 16.dp)
+                        .padding(horizontal = ScreenTextPadding, vertical = 16.dp)
                 )
             } else {
                 AnimatedVisibility(
@@ -403,7 +413,7 @@ private fun ConversationHeader(
             InitialsAvatar(name = chat.companionName, photoUri = chat.companionAvatarUri, size = 42.dp)
             Column(modifier = Modifier.padding(start = 10.dp)) {
                 Text(
-                    text = chat.companionName,
+                    text = displayPersonName(chat.companionName),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,

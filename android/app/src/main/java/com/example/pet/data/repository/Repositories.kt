@@ -1,5 +1,6 @@
 package com.example.pet.data.repository
 
+import com.example.pet.data.Account
 import com.example.pet.data.Chat
 import com.example.pet.data.ChatAttachment
 import com.example.pet.data.ChatMessage
@@ -22,9 +23,21 @@ class PetInUseException : IllegalStateException()
 
 class RequestClosedException : IllegalStateException()
 
+class WrongPasswordException : IllegalArgumentException()
+
+class AccountNotFoundException : NoSuchElementException()
+
+class AccountExistsException : IllegalStateException()
+
 interface AuthRepository {
-    suspend fun login(email: String, password: String, role: UserRole): Result<Unit>
+    val account: StateFlow<Account?>
+    val demoLogin: String?
+        get() = null
+    suspend fun login(email: String, password: String): Result<UserRole>
     suspend fun register(name: String, phone: String, email: String, password: String, role: UserRole): Result<Unit>
+    suspend fun addRole(role: UserRole): Result<Unit>
+    suspend fun switchRole(role: UserRole): Result<Unit>
+    suspend fun changeEmail(email: String): Result<Unit>
     suspend fun confirmCode(code: String): Result<Unit>
     suspend fun requestPasswordReset(target: String): Result<Unit>
     suspend fun resetPassword(newPassword: String): Result<Unit>
@@ -105,8 +118,6 @@ interface SettingsRepository {
     fun markNotificationsPrompted()
     fun guideSeen(role: UserRole): Boolean
     fun markGuideSeen(role: UserRole)
-    val lastRole: UserRole?
-    fun setLastRole(role: UserRole)
     val onboardingSeen: Boolean
     fun markOnboardingSeen()
     fun clearVolunteerLocation()

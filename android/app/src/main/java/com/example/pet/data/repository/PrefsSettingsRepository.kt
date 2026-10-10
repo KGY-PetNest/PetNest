@@ -72,14 +72,6 @@ class PrefsSettingsRepository(context: Context) : SettingsRepository {
         prefs.edit { putBoolean(KEY_GUIDE_SEEN_PREFIX + role.name, true) }
     }
 
-    override val lastRole: UserRole?
-        get() = prefs.getString(KEY_LAST_ROLE, null)
-            ?.let { name -> UserRole.entries.firstOrNull { it.name == name } }
-
-    override fun setLastRole(role: UserRole) {
-        prefs.edit { putString(KEY_LAST_ROLE, role.name) }
-    }
-
     override val onboardingSeen: Boolean
         get() = prefs.getBoolean(KEY_ONBOARDING_SEEN, false)
 
@@ -119,7 +111,6 @@ class PrefsSettingsRepository(context: Context) : SettingsRepository {
         const val KEY_SESSION_ROLE = "session_role"
         const val KEY_NOTIFICATIONS_PROMPTED = "notifications_prompted"
         const val KEY_GUIDE_SEEN_PREFIX = "guide_seen_"
-        const val KEY_LAST_ROLE = "last_role"
         const val KEY_ONBOARDING_SEEN = "onboarding_seen"
     }
 }
