@@ -538,6 +538,13 @@ fun NavGraph(
                         entry.ifResumed {
                             navController.navigate(Routes.attachment(chatId, messageId)) { launchSingleTop = true }
                         }
+                    },
+                    onDeleted = {
+                        entry.ifTop(navController) {
+                            if (!navController.popBackStack(Routes.CONVERSATION, inclusive = true)) {
+                                navController.popBackStack()
+                            }
+                        }
                     }
                 )
             }

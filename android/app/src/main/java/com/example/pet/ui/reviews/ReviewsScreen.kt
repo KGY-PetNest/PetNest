@@ -1,6 +1,9 @@
 package com.example.pet.ui.reviews
 
 import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.ScreenTopGap
+import com.example.pet.ui.components.ScreenBottomGap
+import com.example.pet.ui.components.ListItemSpacing
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pet.R
 import com.example.pet.data.AppContainer
@@ -47,8 +49,8 @@ fun ReviewsScreen(
             ScreenHeader(title = stringResource(R.string.text_15_1), onBack = onBack)
 
             LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(ListItemSpacing),
+                contentPadding = PaddingValues(top = ScreenTopGap, bottom = ScreenBottomGap),
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()

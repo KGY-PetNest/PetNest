@@ -1,8 +1,17 @@
 package com.example.pet.ui.chat
 
+import com.example.pet.ui.components.ScreenTextPadding
 import com.example.pet.ui.components.ProfileAvatarSize
 import com.example.pet.ui.components.ScreenContentInset
 import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.ScreenSection
+import com.example.pet.ui.components.SectionDivider
+import com.example.pet.ui.components.SmallThumbnailSize
+import com.example.pet.ui.components.IconCircle
+import com.example.pet.ui.components.ListItemSpacing
+import com.example.pet.ui.components.CardPadding
+import com.example.pet.ui.components.ScreenTopGap
+import com.example.pet.ui.components.ScreenBottomGap
 import com.example.pet.data.displayPersonName
 import android.content.Intent
 import androidx.compose.foundation.Image
@@ -29,10 +38,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -68,7 +76,6 @@ import com.example.pet.ui.components.MyResponseStatusChip
 import com.example.pet.ui.components.NotFoundScreen
 import com.example.pet.ui.components.PetThumbnail
 import com.example.pet.ui.components.ScreenHeader
-import com.example.pet.ui.components.SectionTitle
 import com.example.pet.ui.components.SettingsRow
 import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.cardSurface
@@ -85,6 +92,7 @@ fun ChatInfoScreen(
     onOpenProfile: (String) -> Unit,
     onOpenRequest: (String) -> Unit,
     onOpenAttachment: (String) -> Unit,
+    onDeleted: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -95,7 +103,8 @@ fun ChatInfoScreen(
     val responded by AppContainer.requests.respondedIds.collectAsStateWithLifecycle()
     val volunteers by AppContainer.volunteers.volunteers.collectAsStateWithLifecycle()
 
-    val chat = chats.firstOrNull { it.id == chatId }
+    val safety = rememberChatSafetyState()
+    val chat = chats.firstOrNull { it.id == chatId } ?: safety.deletedChat?.takeIf { it.id == chatId }
     if (chat == null) {
         NotFoundScreen(title = stringResource(R.string.text_23_1), onBack = onBack, modifier = modifier)
         return
@@ -124,11 +133,10 @@ fun ChatInfoScreen(
     val media = remember(messages) {
         messages.filter { it.attachment != null }.sortedByDescending { it.sentAt }
     }
-    val safety = rememberChatSafetyState()
     val images = media.filter { it.attachment?.kind == AttachmentKind.Image }
     val documents = media.filter { it.attachment?.kind == AttachmentKind.Pdf }
 
-    ChatSafetyDialogs(state = safety, chat = chat)
+    ChatSafetyDialogs(state = safety, chat = chat, onDeleted = onDeleted)
 
     Box(
         modifier = modifier.fillMaxSize(),
@@ -149,7 +157,7 @@ fun ChatInfoScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = ScreenContentInset)
             ) {
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(ScreenTopGap))
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -159,7 +167,7 @@ fun ChatInfoScreen(
                     Spacer(Modifier.height(12.dp))
                     Text(
                         text = displayPersonName(chat.companionName),
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
                     )
@@ -177,12 +185,14 @@ fun ChatInfoScreen(
                         )
                     } else if (phoneLater) {
                         Spacer(Modifier.height(6.dp))
-                        IconLine(
-                            icon = Icons.Default.Lock,
+                        Text(
                             text = stringResource(
-                                if (role == UserRole.Owner) R.string.text_23_9 else R.string.text_21_13
+                                if (role == UserRole.Owner) R.string.text_23_9 else R.string.text_23_10
                             ),
-                            textStyle = MaterialTheme.typography.bodySmall
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = ScreenTextPadding)
                         )
                     }
                 }
@@ -212,73 +222,71 @@ fun ChatInfoScreen(
                     }
                 }
 
-                SectionDivider()
-                SectionTitle(stringResource(R.string.text_23_6))
-                Spacer(Modifier.height(12.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .cardSurface { onOpenRequest(chat.requestId) }
-                        .padding(12.dp)
-                ) {
-                    PetThumbnail(photoUri = request?.petPhotoUri ?: chat.petPhotoUri, size = 52.dp)
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                ScreenSection(title = stringResource(R.string.text_23_6)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .weight(1f)
-                            .padding(start = 12.dp)
+                            .fillMaxWidth()
+                            .cardSurface { onOpenRequest(chat.requestId) }
+                            .padding(CardPadding)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = chat.requestTitle,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(end = 8.dp)
-                            )
-                            when {
-                                myStatus != null -> MyResponseStatusChip(myStatus)
-                                role == UserRole.Owner && request != null -> StatusChip(request.status)
+                        PetThumbnail(photoUri = request?.petPhotoUri ?: chat.petPhotoUri, size = SmallThumbnailSize)
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 12.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = chat.requestTitle,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(end = 8.dp)
+                                )
+                                when {
+                                    myStatus != null -> MyResponseStatusChip(myStatus)
+                                    role == UserRole.Owner && request != null -> StatusChip(request.status)
+                                }
+                            }
+                            IconLine(icon = Icons.Default.DateRange, text = chat.requestDates, maxLines = 1)
+                        }
+                    }
+                }
+
+                ScreenSection(title = stringResource(R.string.text_23_7)) {
+                    if (media.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.text_23_8),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        MediaGrid(images = images, onOpen = onOpenAttachment)
+                        if (images.isNotEmpty() && documents.isNotEmpty()) Spacer(Modifier.height(12.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            documents.forEach { message ->
+                                val attachment = message.attachment ?: return@forEach
+                                PdfAttachment(
+                                    attachment = attachment,
+                                    contentColor = MaterialTheme.colorScheme.onSurface,
+                                    onClick = { onOpenAttachment(message.id) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .cardSurface()
+                                        .padding(4.dp)
+                                )
                             }
                         }
-                        IconLine(icon = Icons.Default.DateRange, text = chat.requestDates, maxLines = 1)
                     }
                 }
 
                 SectionDivider()
-                SectionTitle(stringResource(R.string.text_23_7))
-                Spacer(Modifier.height(12.dp))
-                if (media.isEmpty()) {
-                    Text(
-                        text = stringResource(R.string.text_23_8),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    MediaGrid(images = images, onOpen = onOpenAttachment)
-                    if (images.isNotEmpty() && documents.isNotEmpty()) Spacer(Modifier.height(12.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        documents.forEach { message ->
-                            val attachment = message.attachment ?: return@forEach
-                            PdfAttachment(
-                                attachment = attachment,
-                                contentColor = MaterialTheme.colorScheme.onSurface,
-                                onClick = { onOpenAttachment(message.id) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .cardSurface()
-                                    .padding(4.dp)
-                            )
-                        }
-                    }
-                }
-
-                SectionDivider()
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(ListItemSpacing)) {
                     SettingsRow(
                         icon = Icons.Default.Flag,
                         text = stringResource(R.string.text_10_32),
@@ -291,9 +299,15 @@ fun ChatInfoScreen(
                         onClick = { safety.blockDialogOpen = true },
                         danger = !chat.blocked
                     )
+                    SettingsRow(
+                        icon = Icons.Default.Delete,
+                        text = stringResource(R.string.text_10_58),
+                        onClick = { safety.deleteDialogOpen = true },
+                        danger = true
+                    )
                 }
 
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(ScreenBottomGap))
             }
         }
     }
@@ -314,15 +328,7 @@ private fun ActionTile(action: InfoAction) {
             .cardSurface(action.onClick)
             .padding(vertical = 12.dp)
     ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer)
-        ) {
-            Icon(imageVector = action.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-        }
+        IconCircle(icon = action.icon)
         Spacer(Modifier.height(6.dp))
         Text(
             text = stringResource(action.label),
@@ -364,11 +370,4 @@ private fun MediaGrid(images: List<ChatMessage>, onOpen: (String) -> Unit) {
             }
         }
     }
-}
-
-@Composable
-private fun SectionDivider() {
-    Spacer(Modifier.height(24.dp))
-    HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outline)
-    Spacer(Modifier.height(20.dp))
 }

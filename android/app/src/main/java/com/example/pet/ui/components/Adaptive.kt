@@ -41,6 +41,15 @@ private val COMPACT_MAX_WIDTH = 640.dp
 private val EXPANDED_MAX_WIDTH = 720.dp
 private const val COMPACT_BREAKPOINT_DP = 600
 
+val ScreenHorizontalPadding = 12.dp
+val ScreenContentInset = 4.dp
+val ScreenTextPadding = ScreenHorizontalPadding + ScreenContentInset
+val ScreenTopGap = 12.dp
+val ScreenBottomGap = 32.dp
+val ScrollEndGap = 16.dp
+val ToggleContentGap = 12.dp
+val PinnedBarGap = 12.dp
+
 fun Modifier.adaptiveContentWidth(
     compactMaxWidth: Dp = COMPACT_MAX_WIDTH,
     expandedMaxWidth: Dp = EXPANDED_MAX_WIDTH
@@ -93,7 +102,23 @@ fun BottomInsetsPane(
     }
 }
 
-val PinnedBarGap = 12.dp
+@Composable
+fun PinnedBar(
+    dividerVisible: Boolean,
+    modifier: Modifier = Modifier,
+    bottomGap: Dp = ScreenBottomGap,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        PinnedBarDivider(visible = dividerVisible)
+        Spacer(Modifier.height(PinnedBarGap))
+        content()
+        Spacer(Modifier.height(bottomGap))
+    }
+}
 
 @Composable
 fun PinnedBottomBarLayout(
@@ -119,21 +144,13 @@ fun PinnedBottomBarLayout(
         ) {
             content(overlap)
         }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .onSizeChanged { barHeightPx = it.height }
-        ) {
-            PinnedBarDivider(visible = dividerVisible)
-            Spacer(Modifier.height(PinnedBarGap))
-            bottomBar()
-        }
+        PinnedBar(
+            dividerVisible = dividerVisible,
+            modifier = Modifier.onSizeChanged { barHeightPx = it.height },
+            content = bottomBar
+        )
     }
 }
-
-val ScreenHorizontalPadding = 12.dp
-val ScreenContentInset = 4.dp
-val ScreenTextPadding = ScreenHorizontalPadding + ScreenContentInset
 
 fun Modifier.bleedHorizontally(amount: Dp): Modifier = layout { measurable, constraints ->
     val extra = amount.roundToPx()

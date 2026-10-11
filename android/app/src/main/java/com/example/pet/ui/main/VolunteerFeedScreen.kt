@@ -4,14 +4,22 @@ import com.example.pet.ui.components.ScreenContentInset
 import com.example.pet.ui.components.CollapsibleSection
 import com.example.pet.ui.components.ScreenTextPadding
 import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.ScreenTopGap
+import com.example.pet.ui.components.ScreenBottomGap
+import com.example.pet.ui.components.ToggleContentGap
+import com.example.pet.ui.components.ListItemSpacing
+import com.example.pet.ui.components.CardPadding
+import com.example.pet.ui.components.AppBottomSheet
+import com.example.pet.ui.components.SheetTitle
+import com.example.pet.ui.components.SheetBottomGap
+import com.example.pet.ui.components.FieldLabel
+import com.example.pet.ui.components.FormButtonGap
+import com.example.pet.ui.components.fadeThrough
 import com.example.pet.ui.components.careFormatText
 import com.example.pet.ui.components.icon
 import com.example.pet.data.CareFormat
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,7 +37,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
@@ -49,7 +56,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -68,9 +74,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -92,7 +96,7 @@ import com.example.pet.ui.components.FilterPill
 import com.example.pet.ui.components.IconLine
 import com.example.pet.ui.components.LocationOutcome
 import com.example.pet.ui.components.MyResponseStatusChip
-import com.example.pet.ui.components.PetThumbnail
+import com.example.pet.ui.components.RequestCardContent
 import com.example.pet.ui.components.PetTraitChips
 import com.example.pet.ui.components.PetTraitSelector
 import com.example.pet.ui.components.PrimaryButton
@@ -109,7 +113,6 @@ import com.example.pet.ui.components.toUtcMillis
 import com.example.pet.ui.components.utcMillisToLocalDate
 import java.time.LocalDate
 import kotlinx.coroutines.launch
-import com.example.pet.ui.components.ListThumbnailSize
 
 private enum class FeedSort(@param:StringRes val label: Int) {
     Soonest(R.string.text_12_14),
@@ -277,7 +280,15 @@ fun VolunteerFeedScreen(
             .mapNotNull { request ->
                 request.statusFor(MockData.CURRENT_VOLUNTEER_ID, responded)?.let { request to it }
             }
-            .sortedWith(compareBy({ MyResponsesOrder.indexOf(it.second) }, { it.first.start }))
+            .sortedWith(
+                compareBy(
+                    { MyResponsesOrder.indexOf(it.second) },
+                    {
+                        val day = it.first.start.toEpochDay()
+                        if (it.second in ActiveResponseStatuses) day else -day
+                    }
+                )
+            )
     }
     val (activeResponses, archivedResponses) = remember(myResponses) {
         myResponses.partition { it.second in ActiveResponseStatuses }
@@ -389,7 +400,7 @@ fun VolunteerFeedScreen(
     ) {
         ScreenHeader(title = stringResource(R.string.text_12_1), onBack = onBack)
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(ScreenTopGap))
 
         SegmentedToggle(
             options = listOf(
@@ -400,11 +411,11 @@ fun VolunteerFeedScreen(
             onSelect = { tab = it }
         )
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(ToggleContentGap))
 
         AnimatedContent(
             targetState = tab,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            transitionSpec = { fadeThrough() },
             label = "volunteerTab",
             modifier = Modifier
                 .weight(1f)
@@ -434,12 +445,12 @@ fun VolunteerFeedScreen(
                         }
                     )
 
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(ListItemSpacing))
 
                     LazyColumn(
                         state = feedListState,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(bottom = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(ListItemSpacing),
+                        contentPadding = PaddingValues(bottom = ScreenBottomGap),
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
@@ -459,7 +470,7 @@ fun VolunteerFeedScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(top = 32.dp)
+                                        .padding(horizontal = ScreenContentInset, vertical = ScreenBottomGap)
                                         .animateItem()
                                 ) {
                                     Text(
@@ -479,8 +490,8 @@ fun VolunteerFeedScreen(
             } else {
                 LazyColumn(
                     state = myListState,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(ListItemSpacing),
+                    contentPadding = PaddingValues(bottom = ScreenBottomGap),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     val responseCard: @Composable (PetRequest, MyResponseStatus, Modifier) -> Unit = { request, status, cardModifier ->
@@ -534,7 +545,7 @@ fun VolunteerFeedScreen(
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 32.dp)
+                                    .padding(horizontal = ScreenContentInset, vertical = ScreenBottomGap)
                                     .animateItem()
                             )
                         }
@@ -591,7 +602,7 @@ private fun FeedFilters(
         }
 
         FilterPill(
-            text = stringResource(R.string.text_12_2),
+            text = stringResource(R.string.common_all),
             selected = kinds.isEmpty(),
             onClick = { onKindsChange(emptySet()) }
         )
@@ -668,35 +679,17 @@ private fun VolunteerRequestCard(
     status: MyResponseStatus? = null,
     onChat: (() -> Unit)? = null
 ) {
-    Row(
-        verticalAlignment = Alignment.Top,
+    RequestCardContent(
+        photoUri = request.petPhotoUri,
+        title = request.title,
         modifier = modifier
-            .fillMaxWidth()
             .cardSurface(onClick)
-            .padding(12.dp)
-    ) {
-        PetThumbnail(photoUri = request.petPhotoUri, size = ListThumbnailSize)
-
-        Column(
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 12.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = request.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 8.dp)
-                )
+            .padding(CardPadding),
+        badge = if (status != null || responded) {
+            {
                 if (status != null) {
                     MyResponseStatusChip(status)
-                } else if (responded) {
+                } else {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = stringResource(R.string.text_21_4),
@@ -705,49 +698,52 @@ private fun VolunteerRequestCard(
                     )
                 }
             }
-            IconLine(
-                icon = Icons.Default.DateRange,
-                text = stringResource(
-                    R.string.text_12_8,
-                    pluralStringResource(R.plurals.common_days_count, request.days, request.days),
-                    request.dates
-                ),
-                maxLines = 1
-            )
-            IconLine(
-                icon = Icons.Default.LocationOn,
-                text = if (distanceKm != null) {
-                    stringResource(R.string.text_12_35, formatDistanceKm(distanceKm), request.publicPlace)
-                } else {
-                    request.publicPlace
-                },
-                maxLines = 1
-            )
-            IconLine(
-                icon = request.format.icon,
-                text = careFormatText(request, forOwner = false),
-                maxLines = 1
-            )
-            if (status == null) {
-                PetTraitChips(
-                    traits = request.traits,
-                    singleLine = true,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+        } else {
+            null
+        },
+        action = if (onChat != null) {
+            {
+                IconButton(onClick = onChat) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.Chat,
+                        contentDescription = stringResource(R.string.text_10_14),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
+        } else {
+            null
         }
-
-        if (onChat != null) {
-            IconButton(
-                onClick = onChat,
-                modifier = Modifier.align(Alignment.Bottom)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.Chat,
-                    contentDescription = stringResource(R.string.text_10_14),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
+    ) {
+        IconLine(
+            icon = Icons.Default.DateRange,
+            text = stringResource(
+                R.string.text_12_8,
+                pluralStringResource(R.plurals.common_days_count, request.days, request.days),
+                request.dates
+            ),
+            maxLines = 1
+        )
+        IconLine(
+            icon = Icons.Default.LocationOn,
+            text = if (distanceKm != null) {
+                stringResource(R.string.text_12_35, formatDistanceKm(distanceKm), request.publicPlace)
+            } else {
+                request.publicPlace
+            },
+            maxLines = 1
+        )
+        IconLine(
+            icon = request.format.icon,
+            text = careFormatText(request, forOwner = false),
+            maxLines = 1
+        )
+        if (status == null) {
+            PetTraitChips(
+                traits = request.traits,
+                singleLine = true,
+                modifier = Modifier.padding(top = 4.dp)
+            )
         }
     }
 }
@@ -774,39 +770,24 @@ private fun LocationFilterSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.background,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-    ) {
+    AppBottomSheet(sheetState = sheetState, onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = ScreenTextPadding)
         ) {
-            Text(
-                text = stringResource(R.string.text_12_25),
-                style = MaterialTheme.typography.titleLarge
-            )
+            SheetTitle(text = stringResource(R.string.text_12_25))
 
-            Spacer(Modifier.height(16.dp))
-
-            Text(
-                text = stringResource(R.string.text_12_28),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(Modifier.height(8.dp))
+            FieldLabel(text = stringResource(R.string.text_12_28))
             IconLine(
                 icon = Icons.Default.LocationOn,
                 text = location?.label?.ifBlank { null } ?: stringResource(R.string.text_12_29),
                 iconSize = 20.dp,
                 textStyle = MaterialTheme.typography.bodyLarge,
                 textColor = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2
+                maxLines = 2,
+                modifier = Modifier.padding(top = 4.dp)
             )
 
             Spacer(Modifier.height(12.dp))
@@ -870,23 +851,19 @@ private fun LocationFilterSheet(
 
             Spacer(Modifier.height(20.dp))
 
-            Text(
-                text = stringResource(R.string.text_12_43),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(Modifier.height(8.dp))
+            FieldLabel(text = stringResource(R.string.text_12_43))
             if (location == null) {
                 Text(
                     text = stringResource(R.string.text_12_32),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             } else {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(top = 4.dp)
                 ) {
                     FilterPill(
                         text = stringResource(R.string.text_12_27),
@@ -903,15 +880,14 @@ private fun LocationFilterSheet(
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(FormButtonGap))
 
             PrimaryButton(
                 text = stringResource(R.string.common_done),
-                onClick = { close() },
-                height = 48.dp
+                onClick = { close() }
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(SheetBottomGap))
         }
     }
 }
@@ -935,46 +911,24 @@ private fun TraitsFilterSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.background,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-    ) {
+    AppBottomSheet(sheetState = sheetState, onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = ScreenTextPadding)
         ) {
-            Text(
-                text = stringResource(R.string.text_12_19),
-                style = MaterialTheme.typography.titleLarge
-            )
+            SheetTitle(text = stringResource(R.string.text_12_19))
 
-            Spacer(Modifier.height(16.dp))
-
-            Text(
-                text = stringResource(R.string.text_12_21),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(Modifier.height(8.dp))
+            FieldLabel(text = stringResource(R.string.text_12_21))
             PetTraitSelector(selected = mustHave, onToggle = onMustHaveToggle)
 
             Spacer(Modifier.height(20.dp))
 
-            Text(
-                text = stringResource(R.string.text_12_22),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(Modifier.height(8.dp))
+            FieldLabel(text = stringResource(R.string.text_12_22))
             PetTraitSelector(selected = exclude, onToggle = onExcludeToggle)
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(FormButtonGap))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -987,12 +941,11 @@ private fun TraitsFilterSheet(
                 PrimaryButton(
                     text = stringResource(R.string.common_done),
                     onClick = { close() },
-                    height = 48.dp,
                     modifier = Modifier.weight(1f)
                 )
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(SheetBottomGap))
         }
     }
 }

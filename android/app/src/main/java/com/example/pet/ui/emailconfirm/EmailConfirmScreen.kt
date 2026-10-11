@@ -1,22 +1,8 @@
 package com.example.pet.ui.emailconfirm
 
-import com.example.pet.ui.components.ScreenContentInset
-import com.example.pet.ui.components.ScreenHorizontalPadding
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.MaterialTheme
@@ -30,22 +16,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.example.pet.R
 import com.example.pet.ui.components.AppTextField
 import com.example.pet.ui.components.AuthFooterLink
+import com.example.pet.ui.components.FormHint
 import com.example.pet.ui.components.FormRules
+import com.example.pet.ui.components.FormScreen
 import com.example.pet.ui.components.PrimaryButton
-import com.example.pet.ui.components.ScreenHeader
-import com.example.pet.ui.components.adaptiveContentWidth
-import com.example.pet.ui.components.clearFocusOnTap
+import com.example.pet.ui.components.fadeThrough
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -95,89 +79,59 @@ fun EmailConfirmScreen(
         }
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .clearFocusOnTap(),
-        contentAlignment = Alignment.TopCenter
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .adaptiveContentWidth()
-                .padding(horizontal = ScreenHorizontalPadding)
-        ) {
-            ScreenHeader(title = stringResource(R.string.text_6_1), onBack = onBack)
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(vertical = 24.dp)
-            ) {
-                Text(
-                    text = message ?: stringResource(R.string.text_6_2),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = ScreenContentInset)
-                )
-
-                Spacer(Modifier.height(24.dp))
-
-                AppTextField(
-                    value = code,
-                    onValueChange = {
-                        code = it.filter(Char::isDigit).take(FormRules.CODE_LENGTH)
-                        isError = false
-                        if (code.length == FormRules.CODE_LENGTH) focusManager.clearFocus()
-                    },
-                    placeholder = stringResource(R.string.text_6_3),
-                    leadingIcon = Icons.Default.Email,
-                    errorText = if (isError) stringResource(R.string.text_6_4) else null,
-                    keyboardType = KeyboardType.Number,
-                    imeAction = ImeAction.Done,
-                    keyboardActions = KeyboardActions(onDone = { submit() })
-                )
-
-                Spacer(Modifier.height(24.dp))
-
-                PrimaryButton(
-                    text = stringResource(R.string.text_6_5),
-                    loading = checking,
-                    onClick = { submit() }
-                )
-
-                Spacer(Modifier.height(16.dp))
-
-                AnimatedContent(
-                    targetState = secondsLeft > 0,
-                    transitionSpec = { fadeIn() togetherWith fadeOut() },
-                    label = "resend",
-                    modifier = Modifier.fillMaxWidth()
-                ) { waiting ->
-                    if (waiting) {
-                        Text(
-                            text = stringResource(R.string.text_6_8, secondsLeft),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    } else {
-                        AuthFooterLink(
-                            plainText = stringResource(R.string.text_6_6),
-                            linkText = stringResource(R.string.text_6_7),
-                            onClick = {
-                                onResend()
-                                secondsLeft = RESEND_SECONDS
-                            }
-                        )
-                    }
+    FormScreen(
+        title = stringResource(R.string.text_6_1),
+        onBack = onBack,
+        modifier = modifier,
+        button = {
+            PrimaryButton(
+                text = stringResource(R.string.text_6_5),
+                loading = checking,
+                onClick = { submit() }
+            )
+        },
+        footer = {
+            AnimatedContent(
+                targetState = secondsLeft > 0,
+                transitionSpec = { fadeThrough() },
+                label = "resend",
+                modifier = Modifier.fillMaxWidth()
+            ) { waiting ->
+                if (waiting) {
+                    Text(
+                        text = stringResource(R.string.text_6_8, secondsLeft),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    AuthFooterLink(
+                        plainText = stringResource(R.string.text_6_6),
+                        linkText = stringResource(R.string.text_6_7),
+                        onClick = {
+                            onResend()
+                            secondsLeft = RESEND_SECONDS
+                        }
+                    )
                 }
             }
         }
+    ) {
+        FormHint(message ?: stringResource(R.string.text_6_2))
+        AppTextField(
+            value = code,
+            onValueChange = {
+                code = it.filter(Char::isDigit).take(FormRules.CODE_LENGTH)
+                isError = false
+                if (code.length == FormRules.CODE_LENGTH) focusManager.clearFocus()
+            },
+            placeholder = stringResource(R.string.text_6_3),
+            leadingIcon = Icons.Default.Email,
+            errorText = if (isError) stringResource(R.string.text_6_4) else null,
+            keyboardType = KeyboardType.Number,
+            imeAction = ImeAction.Done,
+            keyboardActions = KeyboardActions(onDone = { submit() })
+        )
     }
 }

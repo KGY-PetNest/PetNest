@@ -2,6 +2,10 @@ package com.example.pet.ui.volunteerprofile
 
 import com.example.pet.ui.components.ScreenContentInset
 import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.ScreenSection
+import com.example.pet.ui.components.IconCircle
+import com.example.pet.ui.components.ScreenTopGap
+import com.example.pet.ui.components.ScreenBottomGap
 import java.util.Locale
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -26,7 +30,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -48,7 +51,6 @@ import com.example.pet.data.averageRating
 import com.example.pet.ui.components.NotFoundScreen
 import com.example.pet.ui.components.ReviewCard
 import com.example.pet.ui.components.ScreenHeader
-import com.example.pet.ui.components.SectionTitle
 import com.example.pet.ui.components.TagChip
 import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.icon
@@ -129,7 +131,7 @@ fun VolunteerProfileScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = ScreenContentInset)
             ) {
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(ScreenTopGap))
 
                 ProfileHeader(name = volunteer.name, photoUri = volunteer.avatarUri) {
                     IconLine(
@@ -185,7 +187,7 @@ fun VolunteerProfileScreen(
                     )
                 }
 
-                Section(title = stringResource(R.string.text_13_4)) {
+                ScreenSection(title = stringResource(R.string.text_13_4)) {
                     Text(text = volunteer.about, style = bodyStyle)
                     if (volunteer.experience.isNotBlank()) {
                         Spacer(Modifier.height(10.dp))
@@ -197,7 +199,7 @@ fun VolunteerProfileScreen(
                     }
                 }
 
-                Section(title = stringResource(R.string.text_13_18)) {
+                ScreenSection(title = stringResource(R.string.text_13_18)) {
                     FactGrid(
                         items = volunteer.formats.map { format ->
                             format.icon to stringResource(format.serviceLabel)
@@ -206,12 +208,12 @@ fun VolunteerProfileScreen(
                 }
 
                 if (CareFormat.AtVolunteer in volunteer.formats) {
-                    Section(title = stringResource(R.string.text_13_5)) {
+                    ScreenSection(title = stringResource(R.string.text_13_5)) {
                         HomeConditionsGrid(volunteer.homeConditions)
                     }
                 }
 
-                Section(title = stringResource(R.string.text_13_6)) {
+                ScreenSection(title = stringResource(R.string.text_13_6)) {
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -220,7 +222,7 @@ fun VolunteerProfileScreen(
                     }
                 }
 
-                Section(title = stringResource(R.string.text_15_1)) {
+                ScreenSection(title = stringResource(R.string.text_15_1)) {
                     if (reviews.isEmpty()) {
                         Text(
                             text = stringResource(R.string.text_15_8),
@@ -242,7 +244,7 @@ fun VolunteerProfileScreen(
                     }
                 }
 
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(ScreenBottomGap))
             }
         }
     }
@@ -283,34 +285,11 @@ private fun FactItem(icon: ImageVector, text: String, modifier: Modifier = Modif
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
     ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-        Spacer(Modifier.width(10.dp))
+        IconCircle(icon = icon)
+        Spacer(Modifier.width(12.dp))
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium
         )
     }
-}
-
-@Composable
-private fun Section(title: String, content: @Composable () -> Unit) {
-    Spacer(Modifier.height(24.dp))
-    HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outline)
-    Spacer(Modifier.height(20.dp))
-    SectionTitle(text = title)
-    Spacer(Modifier.height(12.dp))
-    content()
 }

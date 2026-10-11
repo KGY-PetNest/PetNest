@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -45,15 +44,17 @@ import com.example.pet.data.AppContainer
 import com.example.pet.data.Pet
 import com.example.pet.data.UserRole
 import com.example.pet.ui.components.IconLine
+import com.example.pet.ui.components.ListThumbnailSize
 import com.example.pet.ui.components.PetThumbnail
+import com.example.pet.ui.components.ProfileHeader
 import com.example.pet.ui.components.ScreenHeader
-import com.example.pet.ui.components.SectionTitle
+import com.example.pet.ui.components.ScreenSection
+import com.example.pet.ui.components.ScreenTopGap
+import com.example.pet.ui.components.ScreenBottomGap
 import com.example.pet.ui.components.formatPhone
 import com.example.pet.ui.components.pressScale
-import com.example.pet.ui.components.ProfileHeader
 
 private const val TILES_PER_ROW = 4
-private val TILE_AVATAR = 64.dp
 
 @Composable
 fun ProfileScreen(
@@ -91,14 +92,11 @@ fun ProfileScreen(
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
+                .padding(horizontal = ScreenContentInset)
         ) {
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(ScreenTopGap))
 
-            ProfileHeader(
-                name = profile.name,
-                photoUri = profile.avatarUri,
-                modifier = Modifier.padding(horizontal = ScreenContentInset)
-            ) {
+            ProfileHeader(name = profile.name, photoUri = profile.avatarUri) {
                 IconLine(
                     icon = Icons.Default.Phone,
                     text = formatPhone(profile.phone),
@@ -111,48 +109,35 @@ fun ProfileScreen(
                 )
             }
 
-            Spacer(Modifier.height(24.dp))
-            HorizontalDivider(
-                thickness = 1.dp,
-                color = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.padding(horizontal = ScreenContentInset)
-            )
-            Spacer(Modifier.height(20.dp))
-
-            SectionTitle(
-                text = stringResource(R.string.text_9_2),
-                modifier = Modifier.padding(start = 8.dp)
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            val tiles: List<Pet?> = pets + null
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.animateContentSize()
-            ) {
-                tiles.chunked(TILES_PER_ROW).forEach { row ->
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        row.forEach { pet ->
-                            Box(
-                                contentAlignment = Alignment.TopCenter,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                if (pet != null) {
-                                    PetTile(pet = pet, onClick = { onPetClick(pet.id) })
-                                } else {
-                                    AddPetTile(onClick = onAddPetClick)
+            ScreenSection(title = stringResource(R.string.text_9_2)) {
+                val tiles: List<Pet?> = pets + null
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.animateContentSize()
+                ) {
+                    tiles.chunked(TILES_PER_ROW).forEach { row ->
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            row.forEach { pet ->
+                                Box(
+                                    contentAlignment = Alignment.TopCenter,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    if (pet != null) {
+                                        PetTile(pet = pet, onClick = { onPetClick(pet.id) })
+                                    } else {
+                                        AddPetTile(onClick = onAddPetClick)
+                                    }
                                 }
                             }
-                        }
-                        repeat(TILES_PER_ROW - row.size) {
-                            Spacer(Modifier.weight(1f))
+                            repeat(TILES_PER_ROW - row.size) {
+                                Spacer(Modifier.weight(1f))
+                            }
                         }
                     }
                 }
             }
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(ScreenBottomGap))
         }
     }
 }
@@ -168,7 +153,7 @@ private fun PetTile(pet: Pet, onClick: () -> Unit) {
             .pressScale(interaction, pressedScale = 0.94f)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
     ) {
-        PetThumbnail(photoUri = pet.photoUri, size = TILE_AVATAR)
+        PetThumbnail(photoUri = pet.photoUri, size = ListThumbnailSize)
         Spacer(Modifier.height(8.dp))
         Text(
             text = pet.name,
@@ -202,7 +187,7 @@ private fun AddPetTile(onClick: () -> Unit) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(TILE_AVATAR)
+                .size(ListThumbnailSize)
                 .clip(CircleShape)
                 .border(1.5.dp, primary, CircleShape)
         ) {

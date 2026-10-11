@@ -1,6 +1,9 @@
 package com.example.pet.ui.login
 
 import com.example.pet.ui.components.ScreenTextPadding
+import com.example.pet.ui.components.FieldLabelInset
+import com.example.pet.ui.components.FormFieldSpacing
+import com.example.pet.ui.components.FormFooterGap
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -49,6 +52,7 @@ import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.clearFocusOnTap
 
 private const val DEMO_PASSWORD = "demo1234"
+private val AuthTitleGap = 24.dp
 
 @Composable
 fun LoginScreen(
@@ -111,13 +115,13 @@ fun LoginScreen(
             Text(
                 text = stringResource(R.string.text_2_1),
                 style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(start = 8.dp)
+                modifier = Modifier.padding(start = FieldLabelInset)
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(AuthTitleGap))
 
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(FormFieldSpacing),
                 modifier = Modifier.animateContentSize()
             ) {
                 AppTextField(
@@ -165,7 +169,7 @@ fun LoginScreen(
                 onClick = { submit() }
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(FormFooterGap))
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,

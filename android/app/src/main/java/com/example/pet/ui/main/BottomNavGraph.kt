@@ -70,9 +70,9 @@ fun BottomNavGraph(
             }
         }
 
-        composable(Screen.Guide.name) {
+        composable(Screen.Handbook.name) {
             AdaptivePane {
-                GuideScreen()
+                HandbookScreen()
             }
         }
 

@@ -1,6 +1,11 @@
 package com.example.pet.ui.registration
 
 import com.example.pet.ui.components.ScreenTextPadding
+import com.example.pet.ui.components.FieldLabelInset
+import com.example.pet.ui.components.FieldSupportingText
+import com.example.pet.ui.components.FormFieldSpacing
+import com.example.pet.ui.components.FormButtonGap
+import com.example.pet.ui.components.FormFooterGap
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,6 +56,8 @@ import com.example.pet.data.AppContainer
 import com.example.pet.data.UserRole
 import com.example.pet.data.repository.AccountExistsException
 import kotlinx.coroutines.launch
+
+private val AuthTitleGap = 24.dp
 
 @Composable
 fun RegistrationScreen(
@@ -138,10 +145,10 @@ fun RegistrationScreen(
             Text(
                 text = stringResource(R.string.text_3_1),
                 style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(start = 8.dp)
+                modifier = Modifier.padding(start = FieldLabelInset)
             )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(AuthTitleGap))
 
             SegmentedToggle(
                 options = listOf(
@@ -152,17 +159,12 @@ fun RegistrationScreen(
                 onSelect = { selectedRole = it }
             )
 
-            Text(
-                text = stringResource(R.string.text_3_13),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 8.dp, top = 8.dp, end = 8.dp)
-            )
+            FieldSupportingText(stringResource(R.string.text_3_13))
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(16.dp))
 
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(FormFieldSpacing),
                 modifier = Modifier.animateContentSize()
             ) {
                 AppTextField(
@@ -247,7 +249,7 @@ fun RegistrationScreen(
                 )
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(FormButtonGap))
 
             if (submitError) {
                 Text(
@@ -267,7 +269,7 @@ fun RegistrationScreen(
                 onClick = { submit() }
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(FormFooterGap))
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,

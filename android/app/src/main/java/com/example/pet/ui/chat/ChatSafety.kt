@@ -1,11 +1,15 @@
 package com.example.pet.ui.chat
 
 import com.example.pet.ui.components.ScreenTextPadding
+import com.example.pet.ui.components.AppBottomSheet
+import com.example.pet.ui.components.SheetTitle
+import com.example.pet.ui.components.SheetBottomGap
+import com.example.pet.ui.components.FormButtonGap
+import com.example.pet.ui.components.fadeThrough
+import com.example.pet.ui.components.revealEnter
+import com.example.pet.ui.components.revealExit
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,7 +30,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -55,21 +59,44 @@ import com.example.pet.ui.components.AppTextField
 import com.example.pet.ui.components.FormRules
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.label
+import com.example.pet.notifications.ChatNotifier
 import kotlinx.coroutines.launch
 
 @Stable
 class ChatSafetyState {
     var reportOpen by mutableStateOf(false)
     var blockDialogOpen by mutableStateOf(false)
+    var deleteDialogOpen by mutableStateOf(false)
+    var deletedChat by mutableStateOf<Chat?>(null)
 }
 
 @Composable
 fun rememberChatSafetyState(): ChatSafetyState = remember { ChatSafetyState() }
 
 @Composable
-fun ChatSafetyDialogs(state: ChatSafetyState, chat: Chat) {
+fun ChatSafetyDialogs(state: ChatSafetyState, chat: Chat, onDeleted: () -> Unit) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val name = shortPersonName(chat.companionName)
+
+    if (state.deleteDialogOpen) {
+        DeleteChatsDialog(
+            count = 1,
+            onDelete = {
+                state.deletedChat = chat
+                val deleted = AppContainer.chats.delete(chat.id).isSuccess
+                if (deleted) {
+                    ChatNotifier.cancel(context, chat.id)
+                    state.deleteDialogOpen = false
+                    onDeleted()
+                } else {
+                    state.deletedChat = null
+                }
+                deleted
+            },
+            onDismiss = { state.deleteDialogOpen = false }
+        )
+    }
 
     if (state.blockDialogOpen) {
         val unblock = chat.blocked
@@ -111,6 +138,59 @@ fun ChatSafetyDialogs(state: ChatSafetyState, chat: Chat) {
             onDismiss = { state.reportOpen = false }
         )
     }
+}
+
+@Composable
+fun DeleteChatsDialog(
+    count: Int,
+    onDelete: suspend () -> Boolean,
+    onDismiss: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    var deleting by remember { mutableStateOf(false) }
+    var failed by remember { mutableStateOf(false) }
+    val single = count <= 1
+
+    AlertDialog(
+        onDismissRequest = { if (!deleting) onDismiss() },
+        title = { Text(stringResource(if (single) R.string.text_10_59 else R.string.text_10_62)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(if (single) R.string.text_10_60 else R.string.text_10_63))
+                AnimatedVisibility(visible = failed, enter = revealEnter(), exit = revealExit()) {
+                    Text(
+                        text = stringResource(if (single) R.string.text_10_61 else R.string.text_10_69),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = !deleting,
+                onClick = {
+                    deleting = true
+                    failed = false
+                    scope.launch {
+                        val deleted = onDelete()
+                        deleting = false
+                        failed = !deleted
+                    }
+                }
+            ) {
+                Text(
+                    text = stringResource(R.string.common_delete),
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(enabled = !deleting, onClick = onDismiss) {
+                Text(stringResource(R.string.common_cancel))
+            }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -155,15 +235,10 @@ private fun ReportSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.background,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-    ) {
+    AppBottomSheet(sheetState = sheetState, onDismissRequest = onDismiss) {
         AnimatedContent(
             targetState = sent,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            transitionSpec = { fadeThrough() },
             label = "reportSent"
         ) { done ->
             if (done) {
@@ -177,28 +252,20 @@ private fun ReportSheet(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(56.dp)
                     )
-                    Spacer(Modifier.height(12.dp))
-                    Text(
+                    Spacer(Modifier.height(16.dp))
+                    SheetTitle(
                         text = stringResource(R.string.text_10_49),
-                        style = MaterialTheme.typography.titleLarge,
-                        textAlign = TextAlign.Center
+                        subtitle = stringResource(R.string.text_10_50),
+                        centered = true
                     )
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        text = stringResource(R.string.text_10_50),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(FormButtonGap - 16.dp))
                     PrimaryButton(
                         text = stringResource(R.string.common_done),
-                        onClick = { close() },
-                        height = 48.dp
+                        onClick = { close() }
                     )
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(SheetBottomGap))
                 }
             } else {
                 Column(
@@ -208,17 +275,15 @@ private fun ReportSheet(
                         .imePadding()
                         .padding(horizontal = ScreenTextPadding)
                 ) {
-                    Text(
+                    SheetTitle(
                         text = stringResource(R.string.text_10_32),
-                        style = MaterialTheme.typography.titleLarge
+                        subtitle = stringResource(R.string.text_10_40),
+                        subtitleColor = if (reasonError) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
                     )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.text_10_40),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (reasonError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(8.dp))
 
                     ReportReason.entries.forEach { option ->
                         Row(
@@ -278,7 +343,11 @@ private fun ReportSheet(
                         }
                     }
 
-                    AnimatedVisibility(visible = failed) {
+                    AnimatedVisibility(
+                        visible = failed,
+                        enter = revealEnter(),
+                        exit = revealExit()
+                    ) {
                         Text(
                             text = stringResource(R.string.text_10_52),
                             style = MaterialTheme.typography.bodySmall,
@@ -287,14 +356,13 @@ private fun ReportSheet(
                         )
                     }
 
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(FormButtonGap))
                     PrimaryButton(
                         text = stringResource(R.string.text_10_48),
                         loading = sending,
-                        onClick = { submit() },
-                        height = 48.dp
+                        onClick = { submit() }
                     )
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(SheetBottomGap))
                 }
             }
         }
@@ -308,7 +376,7 @@ fun BlockedBanner(onUnblock: () -> Unit, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(2.dp),
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .padding(horizontal = ScreenTextPadding, vertical = 10.dp)
     ) {
         Text(
             text = stringResource(R.string.text_10_39),

@@ -2,17 +2,13 @@ package com.example.pet.ui.petprofile
 
 import com.example.pet.ui.components.ScreenContentInset
 import com.example.pet.ui.components.ScreenHorizontalPadding
-import android.graphics.BitmapFactory
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.example.pet.ui.components.AvatarPicker
+import com.example.pet.ui.components.FieldError
+import com.example.pet.ui.components.FieldHint
+import com.example.pet.ui.components.FieldLabel
+import com.example.pet.ui.components.ScreenTopGap
+import com.example.pet.ui.components.ScrollEndGap
+import com.example.pet.ui.components.FormFieldSpacing
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -23,16 +19,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,29 +36,19 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.example.pet.R
 import com.example.pet.data.AppContainer
@@ -75,7 +58,6 @@ import com.example.pet.data.recognizedKind
 import com.example.pet.data.repository.PetInUseException
 import com.example.pet.data.PetTrait
 import com.example.pet.data.RequestStatus
-import com.example.pet.ui.components.AvatarCropDialog
 import com.example.pet.ui.components.FormRules
 import com.example.pet.ui.components.PetTraitSelector
 import com.example.pet.ui.components.PinnedBottomBarLayout
@@ -85,11 +67,8 @@ import com.example.pet.ui.components.SelectableChips
 import com.example.pet.ui.components.label
 import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.clearFocusOnTap
-import com.example.pet.ui.components.pressScale
 import java.util.UUID
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import com.example.pet.ui.components.rememberLeaveGuard
 
 @Composable
@@ -99,7 +78,6 @@ fun PetProfileScreen(
     onSave: (String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
 
@@ -107,8 +85,7 @@ fun PetProfileScreen(
         petId?.let { id -> AppContainer.pets.pets.value.firstOrNull { it.id == id } }
     }
 
-    var photoUri by rememberSaveable { mutableStateOf(existing?.photoUri?.let(Uri::parse)) }
-    var pendingUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    var photoUri by rememberSaveable { mutableStateOf(existing?.photoUri) }
     var name by rememberSaveable { mutableStateOf(existing?.name.orEmpty()) }
     var animal by rememberSaveable { mutableStateOf(existing?.animal.orEmpty()) }
     var kind by rememberSaveable { mutableStateOf(existing?.kind) }
@@ -120,7 +97,7 @@ fun PetProfileScreen(
     var traits by rememberSaveable { mutableStateOf(existing?.traits?.toSet() ?: emptySet()) }
     var saving by remember { mutableStateOf(false) }
 
-    val hasChanges = photoUri?.toString() != existing?.photoUri ||
+    val hasChanges = photoUri != existing?.photoUri ||
             name != existing?.name.orEmpty() ||
             animal != existing?.animal.orEmpty() ||
             kind != existing?.kind ||
@@ -153,7 +130,7 @@ fun PetProfileScreen(
                 age = age.toIntOrNull() ?: 0,
                 traits = PetTrait.entries.filter { it in traits },
                 features = features.trim(),
-                photoUri = photoUri?.toString(),
+                photoUri = photoUri,
                 kind = selectedKind
             )
             saving = true
@@ -163,37 +140,6 @@ fun PetProfileScreen(
                     .onFailure { saving = false }
             }
         }
-    }
-
-    val photoPicker = rememberLauncherForActivityResult(
-        ActivityResultContracts.PickVisualMedia()
-    ) { uri -> if (uri != null) pendingUri = uri }
-
-    val openPicker = {
-        photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-    }
-
-    val avatar by produceState<ImageBitmap?>(initialValue = null, photoUri) {
-        value = photoUri?.let { uri ->
-            withContext(Dispatchers.IO) {
-                runCatching {
-                    context.contentResolver.openInputStream(uri)?.use {
-                        BitmapFactory.decodeStream(it)?.asImageBitmap()
-                    }
-                }.getOrNull()
-            }
-        }
-    }
-
-    pendingUri?.let { uri ->
-        AvatarCropDialog(
-            uri = uri,
-            onDismiss = { pendingUri = null },
-            onCropped = { cropped ->
-                photoUri = cropped
-                pendingUri = null
-            }
-        )
     }
 
     if (confirmDelete && existing != null) {
@@ -286,7 +232,6 @@ fun PetProfileScreen(
                         loading = saving,
                         onClick = { submit() }
                     )
-                    Spacer(Modifier.height(32.dp))
                 }
             ) { imeOverlap ->
                 val density = LocalDensity.current
@@ -295,7 +240,7 @@ fun PetProfileScreen(
                 BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                     val stableHeight = maxHeight + imeOverlap
                     val dynamicFeaturesHeight = if (topContentHeightDp > 0.dp) {
-                        (stableHeight - topContentHeightDp - 16.dp).coerceAtLeast(FEATURES_MIN_HEIGHT)
+                        (stableHeight - topContentHeightDp - ScrollEndGap).coerceAtLeast(FEATURES_MIN_HEIGHT)
                     } else {
                         FEATURES_MIN_HEIGHT
                     }
@@ -304,6 +249,7 @@ fun PetProfileScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(scrollState)
+                            .padding(horizontal = ScreenContentInset)
                     ) {
                         Column(
                             modifier = Modifier
@@ -312,69 +258,21 @@ fun PetProfileScreen(
                                     topContentHeightDp = with(density) { coordinates.size.height.toDp() }
                                 }
                         ) {
-                            Spacer(Modifier.height(8.dp))
+                            Spacer(Modifier.height(ScreenTopGap))
 
-                            val avatarInteraction = remember { MutableInteractionSource() }
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.CenterHorizontally)
-                                    .size(100.dp)
-                                    .pressScale(avatarInteraction, pressedScale = 0.94f)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer)
-                                    .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                                    .clickable(
-                                        interactionSource = avatarInteraction,
-                                        indication = null
-                                    ) { openPicker() },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Crossfade(targetState = avatar, label = "avatar") { bmp ->
-                                    if (bmp != null) {
-                                        Image(
-                                            bitmap = bmp,
-                                            contentDescription = null,
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier.fillMaxSize()
-                                        )
-                                    } else {
-                                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                imageVector = Icons.Default.Pets,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(48.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            Text(
-                                text = stringResource(R.string.text_4_2),
-                                color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier
-                                    .align(Alignment.CenterHorizontally)
-                                    .padding(top = 8.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable { openPicker() }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            AvatarPicker(
+                                name = name,
+                                photoUri = photoUri,
+                                onPhotoChange = { photoUri = it },
+                                forPet = true,
+                                hint = stringResource(R.string.text_4_25),
+                                modifier = Modifier.align(Alignment.CenterHorizontally)
                             )
 
-                            Text(
-                                text = stringResource(R.string.text_4_25),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier
-                                    .align(Alignment.CenterHorizontally)
-                                    .padding(top = 2.dp)
-                            )
-
-                            Spacer(Modifier.height(20.dp))
+                            Spacer(Modifier.height(FormFieldSpacing))
 
                             Column(
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(FormFieldSpacing),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 LabeledField(
@@ -403,18 +301,9 @@ fun PetProfileScreen(
                                     placeholder = stringResource(R.string.text_4_19),
                                     keyboardActions = nextField
                                 )
-                                Column(modifier = Modifier.padding(horizontal = ScreenContentInset)) {
-                                    FieldLabel(
-                                        text = stringResource(R.string.text_4_28),
-                                        required = true,
-                                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.text_4_29),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 8.dp)
-                                    )
+                                Column {
+                                    FieldLabel(text = stringResource(R.string.text_4_28), required = true)
+                                    FieldHint(stringResource(R.string.text_4_29))
                                     SelectableChips(
                                         items = PetKind.entries,
                                         selected = setOfNotNull(kind),
@@ -425,14 +314,7 @@ fun PetProfileScreen(
                                             kindError = false
                                         }
                                     )
-                                    if (kindError) {
-                                        Text(
-                                            text = stringResource(R.string.text_4_30),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.error,
-                                            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-                                        )
-                                    }
+                                    FieldError(visible = kindError, text = stringResource(R.string.text_4_30))
                                 }
                                 LabeledField(
                                     label = stringResource(R.string.text_4_5),
@@ -449,26 +331,16 @@ fun PetProfileScreen(
                                 )
                             }
 
-                            Spacer(Modifier.height(12.dp))
+                            Spacer(Modifier.height(FormFieldSpacing))
 
-                            FieldLabel(
-                                text = stringResource(R.string.text_4_6),
-                                required = true,
-                                modifier = Modifier.padding(start = 12.dp, bottom = 4.dp)
-                            )
-                            Text(
-                                text = stringResource(R.string.text_4_23),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp)
-                            )
+                            FieldLabel(text = stringResource(R.string.text_4_6), required = true)
+                            FieldHint(stringResource(R.string.text_4_23))
 
                             PetTraitSelector(
                                 selected = traits,
                                 onToggle = { trait ->
                                     traits = if (trait in traits) traits - trait else traits + trait
-                                },
-                                modifier = Modifier.padding(horizontal = ScreenContentInset)
+                                }
                             )
 
                             Spacer(Modifier.height(12.dp))
@@ -490,11 +362,10 @@ fun PetProfileScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = ScreenContentInset)
                                 .height(dynamicFeaturesHeight)
                         )
 
-                        Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(ScrollEndGap))
                     }
                 }
             }
@@ -503,27 +374,6 @@ fun PetProfileScreen(
 }
 
 private val FEATURES_MIN_HEIGHT = 136.dp
-
-@Composable
-private fun FieldLabel(
-    text: String,
-    modifier: Modifier = Modifier,
-    required: Boolean = false
-) {
-    val errorColor = MaterialTheme.colorScheme.error
-    Text(
-        text = buildAnnotatedString {
-            append(text)
-            if (required) {
-                withStyle(SpanStyle(color = errorColor)) { append(" *") }
-            }
-        },
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        fontWeight = FontWeight.SemiBold,
-        modifier = modifier
-    )
-}
 
 @Composable
 private fun LabeledField(
@@ -540,12 +390,8 @@ private fun LabeledField(
     placeholder: String? = null,
     maxLength: Int = FormRules.SHORT_TEXT_MAX_LENGTH
 ) {
-    Column(modifier = modifier.fillMaxWidth().padding(horizontal = ScreenContentInset)) {
-        FieldLabel(
-            text = label,
-            required = required,
-            modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-        )
+    Column(modifier = modifier.fillMaxWidth()) {
+        FieldLabel(text = label, required = required)
         OutlinedTextField(
             value = value,
             onValueChange = { onValueChange(it.take(maxLength)) },
