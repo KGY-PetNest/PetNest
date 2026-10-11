@@ -373,11 +373,10 @@ private fun ChatRow(
 
             val requestLine = stringResource(R.string.text_10_5, chat.requestTitle, chat.requestDates)
             val activeLabel = stringResource(R.string.text_10_68)
-            val activeColor = if (role == UserRole.Owner) MaterialTheme.extraColors.warning else MaterialTheme.extraColors.success
             Text(
                 text = if (active) {
                     buildAnnotatedString {
-                        withStyle(SpanStyle(color = activeColor, fontWeight = FontWeight.Bold)) { append(activeLabel) }
+                        withStyle(SpanStyle(color = MaterialTheme.extraColors.success, fontWeight = FontWeight.Bold)) { append(activeLabel) }
                         append(stringResource(R.string.text_10_70))
                         append(requestLine)
                     }
