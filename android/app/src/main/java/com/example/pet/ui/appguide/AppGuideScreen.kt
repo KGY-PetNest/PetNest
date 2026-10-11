@@ -1,17 +1,27 @@
 package com.example.pet.ui.appguide
 
 import com.example.pet.ui.components.ScreenHorizontalPadding
-import com.example.pet.ui.components.PinnedBarDivider
+import com.example.pet.ui.components.ScreenContentInset
+import com.example.pet.ui.components.ScreenTopGap
+import com.example.pet.ui.components.ScreenBottomGap
+import com.example.pet.ui.components.ScrollEndGap
+import com.example.pet.ui.components.ToggleContentGap
+import com.example.pet.ui.components.ListItemSpacing
+import com.example.pet.ui.components.CardContentPadding
+import com.example.pet.ui.components.ShortAnimMs
+import com.example.pet.ui.components.PinnedBar
+import com.example.pet.ui.components.InfoBanner
+import com.example.pet.ui.components.ScreenSection
+import com.example.pet.ui.components.ExpandChevron
+import com.example.pet.ui.components.revealEnter
+import com.example.pet.ui.components.revealExit
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,7 +44,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.HowToReg
 import androidx.compose.material.icons.filled.Lightbulb
@@ -56,17 +65,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.pet.R
 import com.example.pet.data.UserRole
-import com.example.pet.ui.components.PinnedBarGap
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.ScreenHeader
-import com.example.pet.ui.components.SectionTitle
 import com.example.pet.ui.components.SegmentedToggle
 import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.cardSurface
@@ -186,12 +192,18 @@ fun AppGuideScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(scrollState)
+                        .padding(horizontal = ScreenContentInset)
                 ) {
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(ScreenTopGap))
 
                     if (firstRun) {
-                        FirstRunHint()
-                        Spacer(Modifier.height(16.dp))
+                        InfoBanner(
+                            icon = Icons.Default.Lightbulb,
+                            text = stringResource(R.string.text_26_52),
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.height(ListItemSpacing))
                     }
 
                     SegmentedToggle(
@@ -203,11 +215,11 @@ fun AppGuideScreen(
                         onSelect = { tab = it }
                     )
 
-                    Spacer(Modifier.height(20.dp))
+                    Spacer(Modifier.height(ToggleContentGap))
 
                     Crossfade(
                         targetState = tab,
-                        animationSpec = tween(200),
+                        animationSpec = tween(ShortAnimMs),
                         label = "guideTab"
                     ) { index ->
                         val isOwner = index == 0
@@ -218,7 +230,7 @@ fun AppGuideScreen(
                         )
                     }
 
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(if (firstRun) ScrollEndGap else ScreenBottomGap))
                 }
 
                 androidx.compose.animation.AnimatedVisibility(
@@ -234,39 +246,14 @@ fun AppGuideScreen(
             }
 
             if (firstRun) {
-                PinnedBarDivider(visible = scrollState.canScrollForward)
-                PrimaryButton(
-                    text = stringResource(R.string.text_26_51),
-                    onClick = onFinish,
-                    modifier = Modifier.padding(top = PinnedBarGap, bottom = 16.dp)
-                )
+                PinnedBar(dividerVisible = scrollState.canScrollForward) {
+                    PrimaryButton(
+                        text = stringResource(R.string.text_26_51),
+                        onClick = onFinish
+                    )
+                }
             }
         }
-    }
-}
-
-@Composable
-private fun FirstRunHint() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Icons.Default.Lightbulb,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(22.dp)
-        )
-        Spacer(Modifier.width(12.dp))
-        Text(
-            text = stringResource(R.string.text_26_52),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
     }
 }
 
@@ -295,23 +282,19 @@ private fun GuideContent(
             )
         }
 
-        Spacer(Modifier.height(16.dp))
+        ScreenSection(title = stringResource(R.string.text_26_53)) {
+            NavigationHelp()
+        }
 
-        NavigationHelp()
-
-        Spacer(Modifier.height(24.dp))
-
-        SectionTitle(stringResource(R.string.text_26_30))
-
-        Spacer(Modifier.height(12.dp))
-
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            questions.forEachIndexed { index, item ->
-                QuestionItem(
-                    item = item,
-                    expanded = expanded == index,
-                    onToggle = { expanded = if (expanded == index) null else index }
-                )
+        ScreenSection(title = stringResource(R.string.text_26_30)) {
+            Column(verticalArrangement = Arrangement.spacedBy(ListItemSpacing)) {
+                questions.forEachIndexed { index, item ->
+                    QuestionItem(
+                        item = item,
+                        expanded = expanded == index,
+                        onToggle = { expanded = if (expanded == index) null else index }
+                    )
+                }
             }
         }
     }
@@ -357,7 +340,7 @@ private fun StepItem(
             }
         }
 
-        Spacer(Modifier.width(14.dp))
+        Spacer(Modifier.width(12.dp))
 
         Column(
             modifier = Modifier
@@ -397,17 +380,11 @@ private fun QuestionItem(
     expanded: Boolean,
     onToggle: () -> Unit
 ) {
-    val rotation by animateFloatAsState(
-        targetValue = if (expanded) 180f else 0f,
-        animationSpec = tween(200),
-        label = "questionArrow"
-    )
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .cardSurface(onClick = onToggle)
-            .padding(16.dp)
+            .padding(CardContentPadding)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -416,17 +393,12 @@ private fun QuestionItem(
                 modifier = Modifier.weight(1f)
             )
             Spacer(Modifier.width(8.dp))
-            Icon(
-                imageVector = Icons.Default.ExpandMore,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.rotate(rotation)
-            )
+            ExpandChevron(expanded = expanded)
         }
         AnimatedVisibility(
             visible = expanded,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
+            enter = revealEnter(),
+            exit = revealExit()
         ) {
             Text(
                 text = stringResource(item.answer),
@@ -445,15 +417,13 @@ private fun NavigationHelp() {
     val density = LocalDensity.current
     val usesButtons = WindowInsets.tappableElement.getBottom(density) > 0
 
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        SectionTitle(stringResource(R.string.text_26_53))
-
+    Column(verticalArrangement = Arrangement.spacedBy(ListItemSpacing)) {
         Row(
             verticalAlignment = Alignment.Top,
             modifier = Modifier
                 .fillMaxWidth()
                 .cardSurface()
-                .padding(16.dp)
+                .padding(CardContentPadding)
         ) {
             Icon(
                 imageVector = Icons.Default.Apps,
@@ -481,7 +451,7 @@ private fun NavigationHelp() {
             modifier = Modifier
                 .fillMaxWidth()
                 .cardSurface()
-                .padding(16.dp)
+                .padding(CardContentPadding)
         ) {
             Row(verticalAlignment = Alignment.Top) {
                 Icon(
@@ -702,4 +672,3 @@ private fun ScrollHint() {
         )
     }
 }
-

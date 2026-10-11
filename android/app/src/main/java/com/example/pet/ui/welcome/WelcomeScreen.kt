@@ -1,6 +1,8 @@
 package com.example.pet.ui.welcome
 
 import com.example.pet.ui.components.ScreenTextPadding
+import com.example.pet.ui.components.ScreenBottomGap
+import com.example.pet.ui.components.FormFooterGap
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -162,7 +164,7 @@ fun WelcomeScreen(
                     modifier = Modifier.appear(shown, index = 3)
                 )
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(FormFooterGap))
 
                 AuthFooterLink(
                     plainText = stringResource(R.string.text_1_5),
@@ -171,7 +173,7 @@ fun WelcomeScreen(
                     modifier = Modifier.appear(shown, index = 4)
                 )
 
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(ScreenBottomGap))
             }
         }
     }

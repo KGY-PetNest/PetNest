@@ -1,7 +1,9 @@
 package com.example.pet.ui.mappicker
 
-import com.example.pet.ui.components.ScreenContentInset
 import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.ScreenTopGap
+import com.example.pet.ui.components.ScreenBottomGap
+import com.example.pet.ui.components.fadeThrough
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
@@ -9,9 +11,6 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -112,6 +111,7 @@ private const val SEARCH_DEBOUNCE_MS = 400L
 private data class AddressSuggestion(val title: String, val subtitle: String, val point: Point)
 
 private val ADDRESS_BAR_HEIGHT = 56.dp
+private val MapBlockGap = 16.dp
 
 @Composable
 fun MapPickerScreen(
@@ -347,7 +347,7 @@ fun MapPickerScreen(
                 title = stringResource(if (forVolunteerLocation) R.string.text_7_5 else R.string.text_7_1),
                 onBack = onBack
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(ScreenTopGap))
 
             OutlinedTextField(
                 value = query,
@@ -379,7 +379,7 @@ fun MapPickerScreen(
                     .fillMaxWidth()
                     .onFocusChanged { searchFocused = it.isFocused }
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(MapBlockGap))
 
             Box(
                 modifier = Modifier
@@ -472,12 +472,11 @@ fun MapPickerScreen(
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(MapBlockGap))
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = ScreenContentInset)
                     .height(ADDRESS_BAR_HEIGHT)
                     .clip(RoundedCornerShape(16.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp)),
@@ -488,7 +487,7 @@ fun MapPickerScreen(
                 )
                 AnimatedContent(
                     targetState = text,
-                    transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(120)) },
+                    transitionSpec = { fadeThrough() },
                     label = "address",
                     modifier = Modifier
                         .fillMaxWidth()
@@ -511,7 +510,7 @@ fun MapPickerScreen(
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(MapBlockGap))
 
             PrimaryButton(
                 text = stringResource(
@@ -536,7 +535,7 @@ fun MapPickerScreen(
                 }
             )
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(ScreenBottomGap))
         }
     }
 }

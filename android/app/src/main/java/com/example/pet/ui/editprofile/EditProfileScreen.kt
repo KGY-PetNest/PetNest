@@ -1,6 +1,15 @@
 package com.example.pet.ui.editprofile
 
+import com.example.pet.ui.components.ScreenContentInset
 import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.FieldError
+import com.example.pet.ui.components.FieldHint
+import com.example.pet.ui.components.FieldLabel
+import com.example.pet.ui.components.ScreenTopGap
+import com.example.pet.ui.components.ScrollEndGap
+import com.example.pet.ui.components.FormFieldSpacing
+import com.example.pet.ui.components.revealEnter
+import com.example.pet.ui.components.revealExit
 import com.example.pet.ui.components.icon
 import com.example.pet.ui.components.serviceLabel
 import com.example.pet.data.CareFormat
@@ -37,7 +46,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -276,24 +284,18 @@ fun EditProfileScreen(
                         loading = saving,
                         onClick = { submit() }
                     )
-                    Spacer(Modifier.height(32.dp))
                 }
             ) {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(FormFieldSpacing),
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(scrollState)
-                        .padding(vertical = 8.dp)
+                        .padding(start = ScreenContentInset, end = ScreenContentInset, top = ScreenTopGap)
                         .animateContentSize()
                 ) {
                     if (becomeVolunteer) {
-                        Text(
-                            text = stringResource(R.string.text_17_18),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 4.dp)
-                        )
+                        FieldHint(stringResource(R.string.text_17_18))
                     }
                     AvatarPicker(
                         name = name,
@@ -351,56 +353,60 @@ fun EditProfileScreen(
                     )
 
                     if (volunteer != null) {
-                        FieldTitle(stringResource(R.string.text_17_2))
-                        FieldHint(stringResource(R.string.text_17_19))
-                        AppTextField(
-                            value = experience,
-                            onValueChange = {
-                                experience = it
-                                experienceError = null
-                            },
-                            placeholder = stringResource(R.string.text_17_8),
-                            leadingIcon = Icons.Default.Work,
-                            errorText = experienceError?.let { stringResource(it) },
-                            keyboardActions = nextField
-                        )
-
-                        FieldTitle(stringResource(R.string.text_13_4))
-                        AppTextField(
-                            value = about,
-                            onValueChange = {
-                                about = it
-                                aboutError = null
-                            },
-                            placeholder = stringResource(R.string.text_17_9),
-                            errorText = aboutError?.let { stringResource(it, FormRules.DESCRIPTION_MIN_LENGTH) },
-                            imeAction = ImeAction.Default,
-                            singleLine = false,
-                            modifier = Modifier.height(140.dp)
-                        )
-
-                        FieldTitle(stringResource(R.string.text_13_18))
-                        SelectableChips(
-                            items = CareFormat.entries,
-                            selected = formats,
-                            label = { stringResource(it.serviceLabel) },
-                            icon = { it.icon },
-                            onToggle = { item ->
-                                formats = if (item in formats) formats - item else formats + item
-                                formatsError = false
-                            }
-                        )
-                        AnimatedVisibility(visible = formatsError) {
-                            Text(
-                                text = stringResource(R.string.text_17_10),
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall
+                        Column {
+                            FieldLabel(stringResource(R.string.text_17_2), required = true)
+                            FieldHint(stringResource(R.string.text_17_19))
+                            AppTextField(
+                                value = experience,
+                                onValueChange = {
+                                    experience = it
+                                    experienceError = null
+                                },
+                                placeholder = stringResource(R.string.text_17_8),
+                                leadingIcon = Icons.Default.Work,
+                                errorText = experienceError?.let { stringResource(it) },
+                                keyboardActions = nextField
                             )
                         }
 
-                        AnimatedVisibility(visible = CareFormat.AtVolunteer in formats) {
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                FieldTitle(stringResource(R.string.text_13_5))
+                        Column {
+                            FieldLabel(stringResource(R.string.text_13_4), required = true)
+                            AppTextField(
+                                value = about,
+                                onValueChange = {
+                                    about = it
+                                    aboutError = null
+                                },
+                                placeholder = stringResource(R.string.text_17_9),
+                                errorText = aboutError?.let { stringResource(it, FormRules.DESCRIPTION_MIN_LENGTH) },
+                                imeAction = ImeAction.Default,
+                                singleLine = false,
+                                modifier = Modifier.height(140.dp)
+                            )
+                        }
+
+                        Column {
+                            FieldLabel(stringResource(R.string.text_13_18), required = true)
+                            SelectableChips(
+                                items = CareFormat.entries,
+                                selected = formats,
+                                label = { stringResource(it.serviceLabel) },
+                                icon = { it.icon },
+                                onToggle = { item ->
+                                    formats = if (item in formats) formats - item else formats + item
+                                    formatsError = false
+                                }
+                            )
+                            FieldError(visible = formatsError, text = stringResource(R.string.text_17_10))
+                        }
+
+                        AnimatedVisibility(
+                            visible = CareFormat.AtVolunteer in formats,
+                            enter = revealEnter(),
+                            exit = revealExit()
+                        ) {
+                            Column {
+                                FieldLabel(stringResource(R.string.text_13_5))
                                 FieldHint(stringResource(R.string.text_17_14))
                                 HomeConditionSelector(
                                     selected = homeConditions,
@@ -409,48 +415,24 @@ fun EditProfileScreen(
                             }
                         }
 
-                        FieldTitle(stringResource(R.string.text_13_6))
-                        SelectableChips(
-                            items = AcceptedPet.entries,
-                            selected = acceptedPets,
-                            label = { stringResource(it.label) },
-                            onToggle = { item ->
-                                acceptedPets = if (item in acceptedPets) acceptedPets - item else acceptedPets + item
-                                acceptedError = false
-                            }
-                        )
-                        AnimatedVisibility(visible = acceptedError) {
-                            Text(
-                                text = stringResource(R.string.text_17_10),
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall
+                        Column {
+                            FieldLabel(stringResource(R.string.text_13_6), required = true)
+                            SelectableChips(
+                                items = AcceptedPet.entries,
+                                selected = acceptedPets,
+                                label = { stringResource(it.label) },
+                                onToggle = { item ->
+                                    acceptedPets = if (item in acceptedPets) acceptedPets - item else acceptedPets + item
+                                    acceptedError = false
+                                }
                             )
+                            FieldError(visible = acceptedError, text = stringResource(R.string.text_17_10))
                         }
                     }
 
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(ScrollEndGap - FormFieldSpacing))
                 }
             }
         }
     }
-}
-
-@Composable
-private fun FieldTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(start = 4.dp, top = 8.dp)
-    )
-}
-
-@Composable
-private fun FieldHint(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 4.dp)
-    )
 }

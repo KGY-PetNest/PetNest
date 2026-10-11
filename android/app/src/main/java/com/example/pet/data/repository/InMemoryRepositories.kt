@@ -309,9 +309,14 @@ private data class ChatThread(
     val chat: Chat,
     val messages: List<ChatMessage>,
     val unread: Int,
-    val blocked: Boolean = false
+    val blocked: Boolean = false,
+    val hidden: Boolean = false,
+    val clearedAt: LocalDateTime? = null
 ) {
-    fun toChat(): Chat = chat.copy(lastMessage = messages.lastOrNull(), unreadCount = unread, blocked = blocked)
+    val visibleMessages: List<ChatMessage>
+        get() = clearedAt?.let { cleared -> messages.filter { it.sentAt.isAfter(cleared) } } ?: messages
+
+    fun toChat(): Chat = chat.copy(lastMessage = visibleMessages.lastOrNull(), unreadCount = unread, blocked = blocked)
 }
 
 class FakePushRepository : PushRepository {
@@ -417,12 +422,15 @@ class InMemoryChatRepository(
     }
 
     override fun messages(chatId: String): StateFlow<List<ChatMessage>> = synchronized(lock) {
-        messageFlows.getOrPut(chatId) { MutableStateFlow(threads[chatId]?.messages.orEmpty()) }.asStateFlow()
+        messageFlows.getOrPut(chatId) { MutableStateFlow(threads[chatId]?.visibleMessages.orEmpty()) }.asStateFlow()
     }
 
     override suspend fun openChat(role: UserRole, requestId: String, volunteerId: String): Result<Chat> {
         val existing = findThread(role, requestId, volunteerId)
-        if (existing != null) return Result.success(existing.toChat())
+        if (existing != null) {
+            if (existing.hidden) update(existing.chat.id) { it.copy(hidden = false) }
+            return Result.success(existing.toChat())
+        }
 
         delay(FAKE_NETWORK_DELAY_MS)
         val chat = createThread(role, requestId, volunteerId)
@@ -490,6 +498,13 @@ class InMemoryChatRepository(
         delay(FAKE_NETWORK_DELAY_MS)
         val exists = synchronized(lock) { chatId in threads }
         return if (exists) Result.success(Unit) else Result.failure(NoSuchElementException("Chat not found"))
+    }
+
+    override suspend fun delete(chatId: String): Result<Unit> {
+        delay(FAKE_NETWORK_DELAY_MS)
+        synchronized(lock) { replyJobs.remove(chatId)?.cancel() }
+        val updated = update(chatId) { it.copy(hidden = true, clearedAt = LocalDateTime.now(), unread = 0) }
+        return if (updated) Result.success(Unit) else Result.failure(NoSuchElementException("Chat not found"))
     }
 
     private fun canWrite(thread: ChatThread): Boolean {
@@ -649,7 +664,12 @@ class InMemoryChatRepository(
     private fun update(chatId: String, transform: (ChatThread) -> ChatThread): Boolean {
         synchronized(lock) {
             val current = threads[chatId] ?: return false
-            val updated = transform(current)
+            val transformed = transform(current)
+            val updated = if (transformed.hidden && transformed.messages.size > current.messages.size) {
+                transformed.copy(hidden = false)
+            } else {
+                transformed
+            }
             if (updated != current) {
                 threads[chatId] = updated
                 publish()
@@ -660,12 +680,12 @@ class InMemoryChatRepository(
 
     private fun publish() {
         fun listFor(side: UserRole): List<Chat> = threads.values
-            .filter { it.side == side }
+            .filter { it.side == side && !it.hidden }
             .map { it.toChat() }
             .sortedByDescending { it.lastMessage?.sentAt }
         ownerChats.value = listFor(UserRole.Owner)
         volunteerChats.value = listFor(UserRole.Volunteer)
-        messageFlows.forEach { (id, flow) -> threads[id]?.let { flow.value = it.messages } }
+        messageFlows.forEach { (id, flow) -> threads[id]?.let { flow.value = it.visibleMessages } }
     }
 
     private companion object {

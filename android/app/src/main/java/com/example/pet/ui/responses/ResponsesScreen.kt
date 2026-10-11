@@ -1,9 +1,18 @@
 package com.example.pet.ui.responses
 
 import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.ScreenContentInset
+import com.example.pet.ui.components.ScreenTopGap
+import com.example.pet.ui.components.ScreenBottomGap
+import com.example.pet.ui.components.ScrollEndGap
+import com.example.pet.ui.components.ToggleContentGap
+import com.example.pet.ui.components.ListItemSpacing
+import com.example.pet.ui.components.CardPadding
+import com.example.pet.ui.components.PinnedBar
+import com.example.pet.ui.components.revealEnter
+import com.example.pet.ui.components.revealExit
 import com.example.pet.ui.components.careFormatText
 import com.example.pet.ui.components.icon
-import com.example.pet.ui.components.PinnedBarDivider
 import androidx.compose.foundation.lazy.rememberLazyListState
 import com.example.pet.ui.components.PersonThumbnailSize
 import com.example.pet.data.displayPersonName
@@ -14,11 +23,9 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -88,7 +95,6 @@ import com.example.pet.ui.components.IconLine
 import com.example.pet.ui.components.InitialsAvatar
 import com.example.pet.ui.components.NotFoundScreen
 import com.example.pet.ui.components.PetThumbnail
-import com.example.pet.ui.components.PinnedBarGap
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.RatingLabel
 import com.example.pet.ui.components.ReviewSheet
@@ -416,14 +422,14 @@ fun ResponsesScreen(
                 }
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(ScreenTopGap))
 
             Row(
                 verticalAlignment = Alignment.Top,
                 modifier = Modifier
                     .fillMaxWidth()
                     .cardSurface()
-                    .padding(12.dp)
+                    .padding(CardPadding)
             ) {
                 PetThumbnail(photoUri = petPhotoUri, size = ListThumbnailSize)
                 Column(
@@ -461,16 +467,16 @@ fun ResponsesScreen(
                     text = stringResource(R.string.text_14_20),
                     textStyle = MaterialTheme.typography.bodyMedium,
                     textColor = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 12.dp)
+                    modifier = Modifier.padding(start = ScreenContentInset, top = 12.dp)
                 )
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(ListItemSpacing))
 
             AnimatedVisibility(
                 visible = request.status != RequestStatus.Completed,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
+                enter = revealEnter(),
+                exit = revealExit()
             ) {
                 Column {
                     SegmentedToggle(
@@ -481,14 +487,14 @@ fun ResponsesScreen(
                         selectedIndex = tab,
                         onSelect = { tab = it }
                     )
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(ToggleContentGap))
                 }
             }
 
             LazyColumn(
                 state = listState,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(ListItemSpacing),
+                contentPadding = PaddingValues(bottom = ScrollEndGap),
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
@@ -527,7 +533,7 @@ fun ResponsesScreen(
                             textAlign = TextAlign.Center,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 32.dp)
+                                .padding(horizontal = ScreenContentInset, vertical = ScreenBottomGap)
                                 .animateItem()
                         )
                     }
@@ -536,12 +542,10 @@ fun ResponsesScreen(
 
             AnimatedVisibility(
                 visible = request.status == RequestStatus.VolunteerChosen,
-                enter = fadeIn() + expandVertically(clip = false),
-                exit = fadeOut() + shrinkVertically(clip = false)
+                enter = revealEnter(clip = false),
+                exit = revealExit(clip = false)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    PinnedBarDivider(visible = listState.canScrollForward)
-                    Spacer(Modifier.height(PinnedBarGap))
+                PinnedBar(dividerVisible = listState.canScrollForward) {
                     val canComplete = !LocalDate.now().isBefore(request.start)
                     val hint = when {
                         !canComplete -> stringResource(R.string.text_14_18, request.start.format(DayMonthFormat))
@@ -565,18 +569,15 @@ fun ResponsesScreen(
                         enabled = canComplete,
                         onClick = { confirmComplete = true }
                     )
-                    Spacer(Modifier.height(32.dp))
                 }
             }
 
             AnimatedVisibility(
                 visible = request.status == RequestStatus.Completed,
-                enter = fadeIn() + expandVertically(clip = false),
-                exit = fadeOut() + shrinkVertically(clip = false)
+                enter = revealEnter(clip = false),
+                exit = revealExit(clip = false)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    PinnedBarDivider(visible = listState.canScrollForward)
-                    Spacer(Modifier.height(PinnedBarGap))
+                PinnedBar(dividerVisible = listState.canScrollForward) {
                     if (reviewed) {
                         IconLine(
                             icon = Icons.Default.CheckCircle,
@@ -591,7 +592,6 @@ fun ResponsesScreen(
                             onClick = { showReview = true }
                         )
                     }
-                    Spacer(Modifier.height(32.dp))
                 }
             }
         }
@@ -619,7 +619,7 @@ private fun ResponseCard(
         modifier = modifier
             .fillMaxWidth()
             .cardSurface(onClick)
-            .padding(12.dp)
+            .padding(CardPadding)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             InitialsAvatar(name = volunteer.name, photoUri = volunteer.avatarUri, size = PersonThumbnailSize)

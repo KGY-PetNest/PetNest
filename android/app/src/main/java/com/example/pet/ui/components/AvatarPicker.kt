@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -30,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.pet.R
 
@@ -38,7 +40,9 @@ fun AvatarPicker(
     name: String,
     photoUri: String?,
     onPhotoChange: (String?) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    forPet: Boolean = false,
+    hint: String? = null
 ) {
     var pendingUri by rememberSaveable { mutableStateOf<Uri?>(null) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -66,7 +70,11 @@ fun AvatarPicker(
                 .pressScale(interaction, pressedScale = 0.94f)
                 .clickable(interactionSource = interaction, indication = null) { openPicker() }
         ) {
-            InitialsAvatar(name = name, photoUri = photoUri, size = 96.dp)
+            if (forPet) {
+                PetThumbnail(photoUri = photoUri, size = ProfileAvatarSize, bordered = true)
+            } else {
+                InitialsAvatar(name = name, photoUri = photoUri, size = ProfileAvatarSize)
+            }
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -96,6 +104,15 @@ fun AvatarPicker(
                     )
                 }
             }
+        }
+        if (hint != null) {
+            Text(
+                text = hint,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = ScreenContentInset)
+            )
         }
     }
 }

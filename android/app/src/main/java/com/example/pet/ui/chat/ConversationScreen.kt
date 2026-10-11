@@ -2,6 +2,15 @@ package com.example.pet.ui.chat
 
 import com.example.pet.ui.components.ScreenHorizontalPadding
 import com.example.pet.ui.components.ScreenTextPadding
+import com.example.pet.ui.components.AppBottomSheet
+import com.example.pet.ui.components.SheetTitle
+import com.example.pet.ui.components.SheetBottomGap
+import com.example.pet.ui.components.IconCircle
+import com.example.pet.ui.components.CompactAvatarSize
+import com.example.pet.ui.components.CardContentPadding
+import com.example.pet.ui.components.cardSurface
+import com.example.pet.ui.components.revealEnter
+import com.example.pet.ui.components.revealExit
 import com.example.pet.data.displayPersonName
 import android.content.Context
 import android.net.Uri
@@ -12,13 +21,11 @@ import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -55,6 +62,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -65,7 +73,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -127,6 +134,7 @@ private val BubbleImageMaxWidth = 260.dp
 private val BubbleRadius = 18.dp
 private val BubbleTailRadius = 4.dp
 private val PendingTileSize = 64.dp
+private val ChatHeaderHeight = 56.dp
 
 private sealed interface ChatEntry {
     val key: String
@@ -219,7 +227,7 @@ fun ConversationScreen(
         if (uri != null) importFiles(listOf(uri), ::importPdfAttachment)
     }
 
-    val chat = chats.firstOrNull { it.id == chatId }
+    val chat = chats.firstOrNull { it.id == chatId } ?: safety.deletedChat?.takeIf { it.id == chatId }
     if (chat == null) {
         NotFoundScreen(title = stringResource(R.string.text_10_1), onBack = onBack, modifier = modifier)
         return
@@ -259,7 +267,7 @@ fun ConversationScreen(
         )
     }
 
-    ChatSafetyDialogs(state = safety, chat = chat)
+    ChatSafetyDialogs(state = safety, chat = chat, onDeleted = onBack)
 
     Box(
         modifier = modifier.fillMaxSize(),
@@ -275,7 +283,8 @@ fun ConversationScreen(
                 onBack = onBack,
                 onOpenInfo = onOpenInfo,
                 onReport = { safety.reportOpen = true },
-                onToggleBlock = { safety.blockDialogOpen = true }
+                onToggleBlock = { safety.blockDialogOpen = true },
+                onDelete = { safety.deleteDialogOpen = true }
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
@@ -293,7 +302,7 @@ fun ConversationScreen(
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .align(Alignment.Center)
-                            .padding(horizontal = 32.dp)
+                            .padding(horizontal = ScreenTextPadding)
                     )
                 }
                 LazyColumn(
@@ -349,16 +358,16 @@ fun ConversationScreen(
             } else {
                 AnimatedVisibility(
                     visible = errorRes != null,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
+                    enter = revealEnter(),
+                    exit = revealExit()
                 ) {
                     ErrorLine(errorRes)
                 }
 
                 AnimatedVisibility(
                     visible = pending.isNotEmpty() || importing,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
+                    enter = revealEnter(),
+                    exit = revealExit()
                 ) {
                     PendingAttachments(
                         attachments = pending,
@@ -389,15 +398,16 @@ private fun ConversationHeader(
     onBack: () -> Unit,
     onOpenInfo: () -> Unit,
     onReport: () -> Unit,
-    onToggleBlock: () -> Unit
+    onToggleBlock: () -> Unit,
+    onDelete: () -> Unit
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .height(64.dp)
-            .padding(start = 4.dp, end = 4.dp)
+            .height(ChatHeaderHeight)
+            .padding(horizontal = ScreenHorizontalPadding)
     ) {
         IconButton(onClick = onBack) {
             Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
@@ -410,8 +420,8 @@ private fun ConversationHeader(
                 .clickable(onClick = onOpenInfo)
                 .padding(horizontal = 4.dp, vertical = 4.dp)
         ) {
-            InitialsAvatar(name = chat.companionName, photoUri = chat.companionAvatarUri, size = 42.dp)
-            Column(modifier = Modifier.padding(start = 10.dp)) {
+            InitialsAvatar(name = chat.companionName, photoUri = chat.companionAvatarUri, size = CompactAvatarSize)
+            Column(modifier = Modifier.padding(start = 12.dp)) {
                 Text(
                     text = displayPersonName(chat.companionName),
                     style = MaterialTheme.typography.titleMedium,
@@ -432,7 +442,8 @@ private fun ConversationHeader(
             IconButton(onClick = { menuOpen = true }) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = stringResource(R.string.text_10_53)
+                    contentDescription = stringResource(R.string.text_10_53),
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
@@ -461,6 +472,25 @@ private fun ConversationHeader(
                     onClick = {
                         menuOpen = false
                         onToggleBlock()
+                    }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = stringResource(R.string.text_10_58),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    onClick = {
+                        menuOpen = false
+                        onDelete()
                     }
                 )
             }
@@ -687,7 +717,7 @@ fun PdfAttachment(
                 tint = contentColor
             )
         }
-        Column(modifier = Modifier.padding(start = 10.dp, end = 4.dp)) {
+        Column(modifier = Modifier.padding(start = 12.dp, end = 4.dp)) {
             Text(
                 text = attachment.name,
                 style = MaterialTheme.typography.bodyMedium,
@@ -713,7 +743,7 @@ private fun ErrorLine(@StringRes errorRes: Int?) {
         color = MaterialTheme.colorScheme.error,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .padding(horizontal = ScreenTextPadding, vertical = 6.dp)
     )
 }
 
@@ -725,7 +755,7 @@ private fun PendingAttachments(
 ) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        contentPadding = PaddingValues(horizontal = ScreenHorizontalPadding, vertical = 8.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         items(attachments, key = { it.uri }) { attachment ->
@@ -831,7 +861,7 @@ private fun MessageInput(
         verticalAlignment = Alignment.Bottom,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 4.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
+            .padding(horizontal = ScreenHorizontalPadding, vertical = 8.dp)
     ) {
         IconButton(
             onClick = onAttach,
@@ -892,36 +922,28 @@ private fun AttachSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.background,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-    ) {
+    AppBottomSheet(sheetState = sheetState, onDismissRequest = onDismiss) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = ScreenTextPadding)
         ) {
-            Text(
-                text = stringResource(R.string.text_10_23),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
-            )
-            AttachOption(
-                icon = Icons.Default.Image,
-                title = stringResource(R.string.text_10_16),
-                hint = stringResource(R.string.text_10_18, ATTACHMENTS_PER_MESSAGE_MAX, ATTACHMENT_MAX_MB),
-                onClick = { hideThen(onPickPhotos) }
-            )
-            AttachOption(
-                icon = Icons.Default.PictureAsPdf,
-                title = stringResource(R.string.text_10_17),
-                hint = stringResource(R.string.text_10_19, ATTACHMENT_MAX_MB),
-                onClick = { hideThen(onPickPdf) }
-            )
-            Spacer(Modifier.height(24.dp))
+            SheetTitle(text = stringResource(R.string.text_10_23))
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                AttachOption(
+                    icon = Icons.Default.Image,
+                    title = stringResource(R.string.text_10_16),
+                    hint = stringResource(R.string.text_10_18, ATTACHMENTS_PER_MESSAGE_MAX, ATTACHMENT_MAX_MB),
+                    onClick = { hideThen(onPickPhotos) }
+                )
+                AttachOption(
+                    icon = Icons.Default.PictureAsPdf,
+                    title = stringResource(R.string.text_10_17),
+                    hint = stringResource(R.string.text_10_19, ATTACHMENT_MAX_MB),
+                    onClick = { hideThen(onPickPdf) }
+                )
+            }
+            Spacer(Modifier.height(SheetBottomGap))
         }
     }
 }
@@ -937,21 +959,11 @@ private fun AttachOption(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp)
+            .cardSurface(onClick)
+            .padding(horizontal = CardContentPadding, vertical = 14.dp)
     ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer)
-        ) {
-            Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-        }
-        Column(modifier = Modifier.padding(start = 14.dp)) {
+        IconCircle(icon = icon)
+        Column(modifier = Modifier.padding(start = 12.dp)) {
             Text(text = title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
             Text(
                 text = hint,

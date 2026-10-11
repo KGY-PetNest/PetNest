@@ -17,6 +17,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +30,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -60,9 +65,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.pet.R
@@ -81,19 +90,51 @@ import androidx.compose.ui.layout.Placeable
 
 private val CardShape = RoundedCornerShape(16.dp)
 
-fun Modifier.cardSurface(onClick: (() -> Unit)? = null): Modifier = composed {
-    val outline = MaterialTheme.colorScheme.outline
+fun Modifier.cardSurface(onClick: (() -> Unit)? = null): Modifier =
+    selectableCardSurface(onClick = onClick, onLongClick = null, selected = false)
+
+fun Modifier.cardSurface(
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    selected: Boolean
+): Modifier = selectableCardSurface(onClick = onClick, onLongClick = onLongClick, selected = selected)
+
+@OptIn(ExperimentalFoundationApi::class)
+private fun Modifier.selectableCardSurface(
+    onClick: (() -> Unit)?,
+    onLongClick: (() -> Unit)?,
+    selected: Boolean
+): Modifier = composed {
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+        animationSpec = tween(ShortAnimMs),
+        label = "cardBorder"
+    )
+    val fillColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+        animationSpec = tween(ShortAnimMs),
+        label = "cardFill"
+    )
+    val interaction = remember { MutableInteractionSource() }
+    val haptic = LocalHapticFeedback.current
+    val surface = (if (onClick == null) this else this.pressScale(interaction, pressedScale = 0.98f))
+        .clip(CardShape)
+        .background(fillColor)
+        .border(1.dp, borderColor, CardShape)
     if (onClick == null) {
-        this
-            .clip(CardShape)
-            .border(1.dp, outline, CardShape)
+        surface
     } else {
-        val interaction = remember { MutableInteractionSource() }
-        this
-            .pressScale(interaction, pressedScale = 0.98f)
-            .clip(CardShape)
-            .border(1.dp, outline, CardShape)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+        surface.combinedClickable(
+            interactionSource = interaction,
+            indication = null,
+            onClick = onClick,
+            onLongClick = onLongClick?.let { longClick ->
+                {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    longClick()
+                }
+            }
+        )
     }
 }
 
@@ -160,7 +201,7 @@ fun FilterPill(
 fun InitialsAvatar(
     name: String,
     modifier: Modifier = Modifier,
-    size: Dp = 52.dp,
+    size: Dp = PersonThumbnailSize,
     photoUri: String? = null,
     zoomable: Boolean = false
 ) {
@@ -198,8 +239,8 @@ fun InitialsAvatar(
                 text = initials,
                 color = MaterialTheme.colorScheme.primary,
                 style = when {
-                    size >= 88.dp -> MaterialTheme.typography.headlineSmall
-                    size >= 64.dp -> MaterialTheme.typography.titleLarge
+                    size >= ProfileAvatarSize -> MaterialTheme.typography.headlineSmall
+                    size >= ListThumbnailSize -> MaterialTheme.typography.titleLarge
                     else -> MaterialTheme.typography.titleMedium
                 },
                 fontWeight = FontWeight.SemiBold
@@ -212,9 +253,10 @@ fun InitialsAvatar(
 fun PetThumbnail(
     modifier: Modifier = Modifier,
     photoUri: String? = null,
-    size: Dp = 64.dp,
+    size: Dp = ListThumbnailSize,
     zoomTitle: String? = null,
-    zoomable: Boolean = false
+    zoomable: Boolean = false,
+    bordered: Boolean = false
 ) {
     val photo = rememberPhoto(photoUri)
     var viewerOpen by rememberSaveable { mutableStateOf(false) }
@@ -231,6 +273,9 @@ fun PetThumbnail(
                 if (zoomable && photo != null) Modifier.clickable { viewerOpen = true } else Modifier
             )
             .background(MaterialTheme.colorScheme.primaryContainer)
+            .then(
+                if (bordered) Modifier.border(1.dp, MaterialTheme.colorScheme.primary, CircleShape) else Modifier
+            )
     ) {
         val bitmap = photo
         if (bitmap != null) {
@@ -317,6 +362,180 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun SectionDivider() {
+    Spacer(Modifier.height(SectionDividerTopGap))
+    HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outline)
+    Spacer(Modifier.height(SectionDividerBottomGap))
+}
+
+@Composable
+fun ScreenSection(title: String, content: @Composable () -> Unit) {
+    SectionDivider()
+    SectionTitle(text = title)
+    Spacer(Modifier.height(SectionTitleGap))
+    content()
+}
+
+@Composable
+fun FieldLabel(
+    text: String,
+    modifier: Modifier = Modifier,
+    required: Boolean = false
+) {
+    val errorColor = MaterialTheme.colorScheme.error
+    Text(
+        text = buildAnnotatedString {
+            append(text)
+            if (required) {
+                withStyle(SpanStyle(color = errorColor)) { append(" *") }
+            }
+        },
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontWeight = FontWeight.SemiBold,
+        modifier = modifier.padding(start = FieldLabelInset, bottom = 4.dp)
+    )
+}
+
+@Composable
+fun FieldHint(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.padding(start = FieldLabelInset, end = FieldLabelInset, bottom = 8.dp)
+    )
+}
+
+@Composable
+fun FieldError(visible: Boolean, text: String, modifier: Modifier = Modifier) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = revealEnter(),
+        exit = revealExit()
+    ) {
+        Text(
+            text = text,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = modifier.padding(start = FieldSupportingInset, top = 4.dp)
+        )
+    }
+}
+
+@Composable
+fun FieldSupportingText(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.padding(start = FieldSupportingInset, end = FieldSupportingInset, top = 6.dp)
+    )
+}
+
+@Composable
+fun InfoBanner(
+    icon: ImageVector,
+    containerColor: Color,
+    contentColor: Color,
+    modifier: Modifier = Modifier,
+    title: String? = null,
+    text: String? = null
+) {
+    Row(
+        verticalAlignment = if (title != null && text != null) Alignment.Top else Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(CardShape)
+            .background(containerColor)
+            .padding(CardContentPadding)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(22.dp)
+        )
+        Column(
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(start = 12.dp)
+        ) {
+            if (title != null) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor
+                )
+            }
+            if (text != null) {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun IconCircle(icon: ImageVector, modifier: Modifier = Modifier) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .size(IconCircleSize)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primaryContainer)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+@Composable
+fun EmptyState(
+    icon: ImageVector,
+    title: String,
+    text: String,
+    modifier: Modifier = Modifier,
+    bottomSpace: Dp = 0.dp
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = modifier.padding(horizontal = ScreenContentInset, vertical = 24.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(56.dp)
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        if (bottomSpace > 0.dp) {
+            Spacer(Modifier.height(bottomSpace))
+        }
+    }
+}
+
+@Composable
 fun CollapsibleSection(
     title: String,
     expanded: Boolean,
@@ -328,11 +547,11 @@ fun CollapsibleSection(
         CollapsibleSectionHeader(title = title, expanded = expanded, onToggle = onToggle)
         AnimatedVisibility(
             visible = expanded,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically()
+            enter = revealEnter(),
+            exit = revealExit()
         ) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(ListItemSpacing),
                 modifier = Modifier.padding(top = 4.dp),
                 content = content
             )
@@ -347,30 +566,22 @@ fun CollapsibleSectionHeader(
     onToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val rotation by animateFloatAsState(targetValue = if (expanded) 90f else 0f, label = "sectionChevron")
     val interaction = remember { MutableInteractionSource() }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
             .clickable(interactionSource = interaction, indication = null, onClick = onToggle)
-            .padding(horizontal = 4.dp, vertical = 10.dp)
+            .padding(horizontal = ScreenContentInset, vertical = 10.dp)
     ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .size(22.dp)
-                .graphicsLayer { rotationZ = rotation }
-        )
-        Spacer(Modifier.width(6.dp))
         Text(
             text = title,
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
         )
+        ExpandChevron(expanded = expanded)
     }
 }
 
@@ -507,16 +718,11 @@ private fun <T> ChipGroupSection(
     var expanded by rememberSaveable { mutableStateOf(false) }
     val selectedCount = items.count { it in selected }
     val visibleItems = if (expanded) items else items.filter { it in selected }
-    val arrowRotation by animateFloatAsState(
-        targetValue = if (expanded) 180f else 0f,
-        animationSpec = tween(200),
-        label = "groupArrow"
-    )
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .animateContentSize(tween(200))
+            .animateContentSize(tween(ShortAnimMs))
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -547,12 +753,7 @@ private fun <T> ChipGroupSection(
                     )
                 }
             }
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.rotate(arrowRotation)
-            )
+            ExpandChevron(expanded = expanded)
         }
         if (visibleItems.isNotEmpty()) {
             SelectableChips(
@@ -603,13 +804,63 @@ fun HomeConditionSelector(
 }
 
 @Composable
+fun RequestCardContent(
+    photoUri: String?,
+    title: String,
+    modifier: Modifier = Modifier,
+    badge: (@Composable () -> Unit)? = null,
+    action: (@Composable () -> Unit)? = null,
+    details: @Composable ColumnScope.() -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        PetThumbnail(photoUri = photoUri, size = ListThumbnailSize)
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp)
+                )
+                badge?.invoke()
+            }
+            if (action == null) {
+                details()
+            } else {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier.weight(1f),
+                        content = details
+                    )
+                    action()
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun MyResponseStatusChip(status: MyResponseStatus) {
     val (container, content) = when (status) {
         MyResponseStatus.Pending -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.primary
         MyResponseStatus.Chosen -> MaterialTheme.extraColors.successContainer to MaterialTheme.extraColors.success
         MyResponseStatus.NotChosen, MyResponseStatus.Expired ->
             MaterialTheme.colorScheme.outline to MaterialTheme.colorScheme.onSurfaceVariant
-        MyResponseStatus.Completed -> MaterialTheme.extraColors.warningContainer to MaterialTheme.extraColors.warning
+        MyResponseStatus.Completed -> MaterialTheme.extraColors.successContainer to MaterialTheme.extraColors.success
     }
     TagChip(
         text = stringResource(status.label),
@@ -638,6 +889,17 @@ fun rememberPhoto(photoUri: String?): ImageBitmap? {
 val ProfileAvatarSize = 88.dp
 val ListThumbnailSize = 64.dp
 val PersonThumbnailSize = 52.dp
+val SmallThumbnailSize = PersonThumbnailSize
+val CompactAvatarSize = 40.dp
+val IconCircleSize = 36.dp
+val CardPadding = 12.dp
+val CardContentPadding = 16.dp
+val ListItemSpacing = 12.dp
+val SectionDividerTopGap = 24.dp
+val SectionDividerBottomGap = 20.dp
+val SectionTitleGap = 12.dp
+val FieldLabelInset = 4.dp
+val FieldSupportingInset = 16.dp
 
 @Composable
 fun ProfileHeader(
@@ -761,4 +1023,3 @@ fun StatTile(
         )
     }
 }
-
