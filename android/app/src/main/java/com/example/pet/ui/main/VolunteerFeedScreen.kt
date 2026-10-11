@@ -93,6 +93,7 @@ import com.example.pet.data.distanceKmTo
 import com.example.pet.data.formatDistanceKm
 import com.example.pet.ui.components.DateRangeDialog
 import com.example.pet.ui.components.FilterPill
+import com.example.pet.ui.components.bleedHorizontally
 import com.example.pet.ui.components.IconLine
 import com.example.pet.ui.components.LocationOutcome
 import com.example.pet.ui.components.MyResponseStatusChip
@@ -579,7 +580,9 @@ private fun FeedFilters(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
             .fillMaxWidth()
+            .bleedHorizontally(ScreenHorizontalPadding)
             .horizontalScroll(rememberScrollState())
+            .padding(horizontal = ScreenHorizontalPadding)
     ) {
         FilterPill(
             text = if (radiusKm != null && hasLocation) {

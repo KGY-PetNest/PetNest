@@ -41,8 +41,8 @@ private val COMPACT_MAX_WIDTH = 640.dp
 private val EXPANDED_MAX_WIDTH = 720.dp
 private const val COMPACT_BREAKPOINT_DP = 600
 
-val ScreenHorizontalPadding = 12.dp
-val ScreenContentInset = 4.dp
+val ScreenHorizontalPadding = 16.dp
+val ScreenContentInset = 0.dp
 val ScreenTextPadding = ScreenHorizontalPadding + ScreenContentInset
 val ScreenTopGap = 12.dp
 val ScreenBottomGap = 32.dp
