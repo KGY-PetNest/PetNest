@@ -1,14 +1,14 @@
 package com.example.pet.ui.chat
 
 import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.ScreenTextPadding
+import com.example.pet.ui.components.ZoomableImage
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -26,19 +26,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -59,8 +53,6 @@ import java.io.File
 import kotlin.math.roundToInt
 
 private const val VIEWER_IMAGE_MAX_SIDE_PX = 2048
-private const val ZOOM_MAX = 5f
-private const val ZOOM_DOUBLE_TAP = 2.5f
 
 @Composable
 fun AttachmentViewerScreen(
@@ -91,7 +83,7 @@ fun AttachmentViewerScreen(
                 .fillMaxWidth()
         ) {
             when (attachment.kind) {
-                AttachmentKind.Image -> ZoomableImage(uri = attachment.uri)
+                AttachmentKind.Image -> AttachmentImage(uri = attachment.uri)
                 AttachmentKind.Pdf -> {
                     val file = remember(attachment.uri) { attachmentFile(attachment.uri) }
                     if (file != null) PdfPages(file = file) else ViewerError()
@@ -102,10 +94,8 @@ fun AttachmentViewerScreen(
 }
 
 @Composable
-private fun ZoomableImage(uri: String) {
+private fun AttachmentImage(uri: String) {
     val image = rememberAttachmentImageState(uri, VIEWER_IMAGE_MAX_SIDE_PX)
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offset by remember { mutableStateOf(Offset.Zero) }
 
     Crossfade(targetState = image, label = "viewerImage") { current ->
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
@@ -113,36 +103,9 @@ private fun ZoomableImage(uri: String) {
                 AttachmentImageState.Loading ->
                     CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(32.dp))
                 AttachmentImageState.Failed -> ViewerError()
-                is AttachmentImageState.Ready -> Image(
+                is AttachmentImageState.Ready -> ZoomableImage(
                     bitmap = current.bitmap,
-                    contentDescription = stringResource(R.string.text_10_16),
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onDoubleTap = {
-                                    if (scale > 1f) {
-                                        scale = 1f
-                                        offset = Offset.Zero
-                                    } else {
-                                        scale = ZOOM_DOUBLE_TAP
-                                    }
-                                }
-                            )
-                        }
-                        .pointerInput(Unit) {
-                            detectTransformGestures { _, pan, zoom, _ ->
-                                scale = (scale * zoom).coerceIn(1f, ZOOM_MAX)
-                                offset = if (scale == 1f) Offset.Zero else offset + pan
-                            }
-                        }
-                        .graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                            translationX = offset.x
-                            translationY = offset.y
-                        }
+                    contentDescription = stringResource(R.string.text_10_16)
                 )
             }
         }
@@ -169,10 +132,10 @@ private fun PdfPages(file: File) {
         }
         PdfState.Failed -> ViewerError()
         is PdfState.Ready -> BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val pageWidthPx = with(LocalDensity.current) { (maxWidth - 32.dp).roundToPx() }.coerceAtLeast(1)
+            val pageWidthPx = with(LocalDensity.current) { (maxWidth - ScreenTextPadding * 2).roundToPx() }.coerceAtLeast(1)
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(ScreenTextPadding),
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.outline)
@@ -222,7 +185,7 @@ private fun ViewerError() {
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 32.dp)
+            modifier = Modifier.padding(horizontal = ScreenTextPadding)
         )
     }
 }

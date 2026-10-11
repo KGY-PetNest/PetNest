@@ -3,10 +3,12 @@ package com.example.pet.ui.main
 import com.example.pet.ui.components.ScreenContentInset
 import com.example.pet.ui.components.CollapsibleSection
 import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.EmptyState
+import com.example.pet.ui.components.ListItemSpacing
+import com.example.pet.ui.components.ScreenTopGap
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,9 +45,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pet.R
@@ -56,7 +55,8 @@ import com.example.pet.data.Review
 import com.example.pet.data.UserRole
 import com.example.pet.data.shortPersonName
 import com.example.pet.ui.components.IconLine
-import com.example.pet.ui.components.PetThumbnail
+import com.example.pet.ui.components.RequestCardContent
+import com.example.pet.ui.components.CardPadding
 import com.example.pet.ui.components.ReviewSheet
 import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.TagChip
@@ -65,7 +65,6 @@ import com.example.pet.ui.components.label
 import com.example.pet.ui.theme.extraColors
 import java.time.LocalDate
 import java.util.UUID
-import com.example.pet.ui.components.ListThumbnailSize
 
 private const val FAB_COLLAPSE_SCROLL_PX = 48
 private const val ARCHIVE_RANK = 2
@@ -141,7 +140,11 @@ fun FeedScreen(
             )
 
             if (requests.isEmpty()) {
-                EmptyFeed(
+                EmptyState(
+                    icon = Icons.Default.Pets,
+                    title = stringResource(R.string.text_8_4),
+                    text = stringResource(R.string.text_8_5),
+                    bottomSpace = FAB_CLEARANCE,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
@@ -153,7 +156,7 @@ fun FeedScreen(
                         .fillMaxWidth()
                         .verticalScroll(scrollState)
                 ) {
-                    Spacer(Modifier.height(20.dp))
+                    Spacer(Modifier.height(ScreenTopGap))
 
                     val card: @Composable (PetRequest) -> Unit = { request ->
                         RequestCard(
@@ -167,7 +170,7 @@ fun FeedScreen(
                         )
                     }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(ListItemSpacing)) {
                         if (activeRequests.isEmpty()) {
                             Text(
                                 text = stringResource(R.string.text_8_10),
@@ -207,38 +210,8 @@ fun FeedScreen(
             contentColor = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp)
+                .padding(end = ScreenHorizontalPadding, bottom = 16.dp)
         )
-    }
-}
-
-@Composable
-private fun EmptyFeed(modifier: Modifier = Modifier) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = modifier.padding(horizontal = 24.dp, vertical = 24.dp)
-    ) {
-        Icon(
-            imageVector = Icons.Default.Pets,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(56.dp)
-        )
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = stringResource(R.string.text_8_4),
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = stringResource(R.string.text_8_5),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(FAB_CLEARANCE))
     }
 }
 
@@ -256,75 +229,59 @@ private fun RequestCard(
         modifier = Modifier
             .fillMaxWidth()
             .cardSurface(onClick)
-            .padding(12.dp)
+            .padding(CardPadding)
     ) {
-        Row(verticalAlignment = Alignment.Top) {
-            PetThumbnail(photoUri = photoUri, size = ListThumbnailSize)
-
-            Column(
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 12.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = request.title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 8.dp)
-                    )
-                    if (request.isExpired) {
-                        TagChip(
-                            text = stringResource(R.string.text_8_7),
-                            containerColor = MaterialTheme.colorScheme.outline,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        StatusChip(request.status)
-                    }
-                }
-                IconLine(icon = Icons.Default.DateRange, text = request.dates, maxLines = 1)
-                IconLine(icon = Icons.Default.LocationOn, text = request.place, maxLines = 1)
-                if (volunteerName != null && request.status != RequestStatus.Open) {
-                    IconLine(
-                        icon = Icons.Default.Person,
-                        text = stringResource(R.string.text_8_6, shortPersonName(volunteerName)),
-                        maxLines = 1
-                    )
-                }
+        RequestCardContent(
+            photoUri = photoUri,
+            title = request.title,
+            badge = {
                 if (request.isExpired) {
-                    IconLine(
-                        icon = Icons.Default.Info,
-                        text = stringResource(R.string.text_8_8),
-                        textColor = MaterialTheme.colorScheme.error
+                    TagChip(
+                        text = stringResource(R.string.text_8_7),
+                        containerColor = MaterialTheme.colorScheme.outline,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                } else if (request.status == RequestStatus.VolunteerChosen && !LocalDate.now().isBefore(request.end)) {
-                    IconLine(
-                        icon = Icons.Default.Info,
-                        text = stringResource(R.string.text_8_9),
-                        textColor = MaterialTheme.colorScheme.primary
-                    )
-                } else if (request.status == RequestStatus.Open) {
-                    IconLine(
-                        icon = Icons.Default.Groups,
-                        text = if (responsesCount > 0) {
-                            pluralStringResource(R.plurals.responses_count, responsesCount, responsesCount)
-                        } else {
-                            stringResource(R.string.text_8_3)
-                        },
-                        textColor = if (responsesCount > 0) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        maxLines = 1
-                    )
+                } else {
+                    StatusChip(request.status)
                 }
+            }
+        ) {
+            IconLine(icon = Icons.Default.DateRange, text = request.dates, maxLines = 1)
+            IconLine(icon = Icons.Default.LocationOn, text = request.place, maxLines = 1)
+            if (volunteerName != null && request.status != RequestStatus.Open) {
+                IconLine(
+                    icon = Icons.Default.Person,
+                    text = stringResource(R.string.text_8_6, shortPersonName(volunteerName)),
+                    maxLines = 1
+                )
+            }
+            if (request.isExpired) {
+                IconLine(
+                    icon = Icons.Default.Info,
+                    text = stringResource(R.string.text_8_8),
+                    textColor = MaterialTheme.colorScheme.error
+                )
+            } else if (request.status == RequestStatus.VolunteerChosen && !LocalDate.now().isBefore(request.end)) {
+                IconLine(
+                    icon = Icons.Default.Info,
+                    text = stringResource(R.string.text_8_9),
+                    textColor = MaterialTheme.colorScheme.primary
+                )
+            } else if (request.status == RequestStatus.Open) {
+                IconLine(
+                    icon = Icons.Default.Groups,
+                    text = if (responsesCount > 0) {
+                        pluralStringResource(R.plurals.responses_count, responsesCount, responsesCount)
+                    } else {
+                        stringResource(R.string.text_8_3)
+                    },
+                    textColor = if (responsesCount > 0) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    maxLines = 1
+                )
             }
         }
 

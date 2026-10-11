@@ -2,6 +2,12 @@ package com.example.pet.ui.settings
 
 import com.example.pet.ui.components.ScreenContentInset
 import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.ScreenTopGap
+import com.example.pet.ui.components.ScreenBottomGap
+import com.example.pet.ui.components.ScreenSection
+import com.example.pet.ui.components.SectionDivider
+import com.example.pet.ui.components.SectionTitleGap
+import com.example.pet.ui.components.ListItemSpacing
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -114,7 +120,7 @@ fun SettingsScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = ScreenContentInset)
             ) {
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(ScreenTopGap))
 
                 SectionTitle(stringResource(R.string.text_22_13))
 
@@ -126,7 +132,7 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(SectionTitleGap))
 
                 when {
                     hasOtherRole -> SettingsRow(
@@ -148,55 +154,43 @@ fun SettingsScreen(
                     )
                 }
 
-                Spacer(Modifier.height(28.dp))
+                ScreenSection(title = stringResource(R.string.text_22_1)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(ListItemSpacing)) {
+                        SettingsRow(
+                            icon = Icons.Default.Edit,
+                            text = stringResource(R.string.text_16_1),
+                            onClick = onEditProfile
+                        )
+                        SettingsRow(
+                            icon = Icons.Default.Lock,
+                            text = stringResource(R.string.text_16_3),
+                            onClick = onChangePassword
+                        )
+                        SettingsRow(
+                            icon = Icons.Default.Notifications,
+                            text = stringResource(R.string.text_22_9),
+                            onClick = { openNotificationSettings(context) }
+                        )
+                    }
+                }
 
-                SectionTitle(stringResource(R.string.text_22_1))
-
-                Spacer(Modifier.height(12.dp))
-
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SettingsRow(
-                        icon = Icons.Default.Edit,
-                        text = stringResource(R.string.text_16_1),
-                        onClick = onEditProfile
-                    )
-                    SettingsRow(
-                        icon = Icons.Default.Lock,
-                        text = stringResource(R.string.text_16_3),
-                        onClick = onChangePassword
-                    )
-                    SettingsRow(
-                        icon = Icons.Default.Notifications,
-                        text = stringResource(R.string.text_22_9),
-                        onClick = { openNotificationSettings(context) }
+                ScreenSection(title = stringResource(R.string.text_22_5)) {
+                    SegmentedToggle(
+                        options = themeOptions.map { stringResource(it.second) },
+                        selectedIndex = themeOptions.indexOfFirst { it.first == themeMode },
+                        onSelect = { index -> AppContainer.settings.setThemeMode(themeOptions[index].first) }
                     )
                 }
 
-                Spacer(Modifier.height(28.dp))
+                ScreenSection(title = stringResource(R.string.text_22_11)) {
+                    SettingsRow(
+                        icon = Icons.AutoMirrored.Filled.HelpOutline,
+                        text = stringResource(R.string.text_22_10),
+                        onClick = onOpenGuide
+                    )
+                }
 
-                SectionTitle(stringResource(R.string.text_22_5))
-
-                Spacer(Modifier.height(12.dp))
-
-                SegmentedToggle(
-                    options = themeOptions.map { stringResource(it.second) },
-                    selectedIndex = themeOptions.indexOfFirst { it.first == themeMode },
-                    onSelect = { index -> AppContainer.settings.setThemeMode(themeOptions[index].first) }
-                )
-
-                Spacer(Modifier.height(28.dp))
-
-                SectionTitle(stringResource(R.string.text_22_11))
-
-                Spacer(Modifier.height(12.dp))
-
-                SettingsRow(
-                    icon = Icons.AutoMirrored.Filled.HelpOutline,
-                    text = stringResource(R.string.text_22_10),
-                    onClick = onOpenGuide
-                )
-
-                Spacer(Modifier.height(28.dp))
+                SectionDivider()
 
                 SettingsRow(
                     icon = Icons.AutoMirrored.Filled.Logout,
@@ -205,7 +199,7 @@ fun SettingsScreen(
                     danger = true
                 )
 
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(ScreenBottomGap))
             }
 
             Text(

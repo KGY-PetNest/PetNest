@@ -98,6 +98,7 @@ interface ChatRepository {
     suspend fun block(chatId: String): Result<Unit>
     suspend fun unblock(chatId: String): Result<Unit>
     suspend fun report(chatId: String, reason: ReportReason, comment: String): Result<Unit>
+    suspend fun delete(chatId: String): Result<Unit>
 }
 
 interface PushRepository {

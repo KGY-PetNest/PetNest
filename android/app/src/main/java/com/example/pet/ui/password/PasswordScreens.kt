@@ -1,29 +1,10 @@
 package com.example.pet.ui.password
 
-import com.example.pet.ui.components.ScreenContentInset
-import com.example.pet.ui.components.ScreenHorizontalPadding
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,71 +22,23 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.example.pet.R
 import com.example.pet.data.AppContainer
 import com.example.pet.ui.components.AppTextField
+import com.example.pet.ui.components.FormHint
 import com.example.pet.ui.components.FormRules
+import com.example.pet.ui.components.FormScreen
 import com.example.pet.ui.components.PasswordField
 import com.example.pet.ui.components.PhoneVisualTransformation
 import com.example.pet.ui.components.PrimaryButton
-import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.SegmentedToggle
-import com.example.pet.ui.components.adaptiveContentWidth
-import com.example.pet.ui.components.clearFocusOnTap
+import com.example.pet.ui.components.fadeThrough
 import com.example.pet.ui.components.formatPhone
 import kotlinx.coroutines.launch
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import com.example.pet.data.repository.WrongPasswordException
 import com.example.pet.ui.components.showRequestError
-
-@Composable
-private fun PasswordScaffold(
-    title: String,
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .clearFocusOnTap(),
-        contentAlignment = Alignment.TopCenter
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .adaptiveContentWidth()
-                .padding(horizontal = ScreenHorizontalPadding)
-        ) {
-            ScreenHeader(title = title, onBack = onBack)
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(vertical = 16.dp)
-                    .animateContentSize(),
-                content = content
-            )
-        }
-    }
-}
-
-@Composable
-private fun Hint(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = ScreenContentInset)
-    )
-}
 
 @Composable
 private fun passwordErrorText(error: Int?): String? = error?.let {
@@ -167,7 +100,18 @@ fun ChangePasswordScreen(
 
     val next = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
 
-    PasswordScaffold(title = stringResource(R.string.text_16_3), onBack = onBack, modifier = modifier) {
+    FormScreen(
+        title = stringResource(R.string.text_16_3),
+        onBack = onBack,
+        modifier = modifier,
+        button = {
+            PrimaryButton(
+                text = stringResource(R.string.text_18_7),
+                loading = saving,
+                onClick = { submit() }
+            )
+        }
+    ) {
         PasswordField(
             value = current,
             onValueChange = {
@@ -208,12 +152,6 @@ fun ChangePasswordScreen(
         ) {
             Text(stringResource(R.string.text_18_3))
         }
-        Spacer(Modifier.height(8.dp))
-        PrimaryButton(
-            text = stringResource(R.string.text_18_7),
-            loading = saving,
-            onClick = { submit() }
-        )
     }
 }
 
@@ -258,9 +196,19 @@ fun ForgotPasswordScreen(
         }
     }
 
-    PasswordScaffold(title = stringResource(R.string.text_19_1), onBack = onBack, modifier = modifier) {
-        Hint(stringResource(R.string.text_19_2))
-        Spacer(Modifier.height(4.dp))
+    FormScreen(
+        title = stringResource(R.string.text_19_1),
+        onBack = onBack,
+        modifier = modifier,
+        button = {
+            PrimaryButton(
+                text = stringResource(R.string.text_19_4),
+                loading = sending,
+                onClick = { submit() }
+            )
+        }
+    ) {
+        FormHint(stringResource(R.string.text_19_2))
         SegmentedToggle(
             options = listOf(stringResource(R.string.text_2_4), stringResource(R.string.text_19_3)),
             selectedIndex = channel,
@@ -271,7 +219,7 @@ fun ForgotPasswordScreen(
         )
         AnimatedContent(
             targetState = channel,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            transitionSpec = { fadeThrough() },
             label = "resetChannel"
         ) { selected ->
             if (selected == 0) {
@@ -315,12 +263,6 @@ fun ForgotPasswordScreen(
                 )
             }
         }
-        Spacer(Modifier.height(8.dp))
-        PrimaryButton(
-            text = stringResource(R.string.text_19_4),
-            loading = sending,
-            onClick = { submit() }
-        )
     }
 }
 
@@ -357,9 +299,19 @@ fun ResetPasswordScreen(
         }
     }
 
-    PasswordScaffold(title = stringResource(R.string.text_20_1), onBack = onBack, modifier = modifier) {
-        Hint(stringResource(R.string.text_20_2))
-        Spacer(Modifier.height(4.dp))
+    FormScreen(
+        title = stringResource(R.string.text_20_1),
+        onBack = onBack,
+        modifier = modifier,
+        button = {
+            PrimaryButton(
+                text = stringResource(R.string.text_18_7),
+                loading = saving,
+                onClick = { submit() }
+            )
+        }
+    ) {
+        FormHint(stringResource(R.string.text_20_2))
         PasswordField(
             value = password,
             onValueChange = {
@@ -382,12 +334,6 @@ fun ResetPasswordScreen(
             errorText = repeatErrorRes?.let { stringResource(it) },
             imeAction = ImeAction.Done,
             keyboardActions = KeyboardActions(onDone = { submit() })
-        )
-        Spacer(Modifier.height(8.dp))
-        PrimaryButton(
-            text = stringResource(R.string.text_18_7),
-            loading = saving,
-            onClick = { submit() }
         )
     }
 }

@@ -2,6 +2,17 @@ package com.example.pet.ui.createrequest
 
 import com.example.pet.ui.components.ScreenContentInset
 import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.FieldLabel
+import com.example.pet.ui.components.FieldError
+import com.example.pet.ui.components.FieldSupportingInset
+import com.example.pet.ui.components.SmallThumbnailSize
+import com.example.pet.ui.components.FieldSupportingText
+import com.example.pet.ui.components.ScreenTopGap
+import com.example.pet.ui.components.ScrollEndGap
+import com.example.pet.ui.components.FormFieldSpacing
+import com.example.pet.ui.components.revealEnter
+import com.example.pet.ui.components.revealExit
+import com.example.pet.ui.components.fadeThrough
 import androidx.compose.runtime.mutableIntStateOf
 import com.example.pet.ui.components.SelectableChips
 import com.example.pet.ui.components.SegmentedToggle
@@ -10,10 +21,8 @@ import com.example.pet.data.CareFormat
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -66,7 +75,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pet.R
@@ -377,7 +385,6 @@ fun CreateRequestScreen(
                         loading = saving,
                         onClick = { submit() }
                     )
-                    Spacer(Modifier.height(32.dp))
                 }
             ) { imeOverlap ->
                 val density = LocalDensity.current
@@ -386,7 +393,7 @@ fun CreateRequestScreen(
                 BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                     val stableHeight = maxHeight + imeOverlap
                     val dynamicCommentHeight = if (topContentHeightDp > 0.dp) {
-                        (stableHeight - topContentHeightDp - 16.dp).coerceAtLeast(96.dp)
+                        (stableHeight - topContentHeightDp - ScrollEndGap).coerceAtLeast(96.dp)
                     } else {
                         96.dp
                     }
@@ -403,25 +410,27 @@ fun CreateRequestScreen(
                                     topContentHeightDp = with(density) { coordinates.size.height.toDp() }
                                 }
                         ) {
-                            Spacer(Modifier.height(8.dp))
-
-                            PetCard(
-                                pet = selectedPet,
-                                isError = petError,
-                                onClick = {
-                                    focusManager.clearFocus()
-                                    showPetPicker = true
-                                }
-                            )
-                            ErrorText(
-                                visible = petError,
-                                text = stringResource(R.string.text_5_19)
-                            )
-
-                            Spacer(Modifier.height(16.dp))
+                            Spacer(Modifier.height(ScreenTopGap))
 
                             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenContentInset)) {
-                                SectionLabel(stringResource(R.string.text_5_5))
+                                PetCard(
+                                    pet = selectedPet,
+                                    isError = petError,
+                                    onClick = {
+                                        focusManager.clearFocus()
+                                        showPetPicker = true
+                                    }
+                                )
+                                FieldError(
+                                    visible = petError,
+                                    text = stringResource(R.string.text_5_19)
+                                )
+                            }
+
+                            Spacer(Modifier.height(FormFieldSpacing))
+
+                            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenContentInset)) {
+                                FieldLabel(stringResource(R.string.text_5_5))
 
                                 val datesInvalid = datesError || overlapError || pastDatesError
                                 val datesBorder by animateColorAsState(
@@ -472,29 +481,23 @@ fun CreateRequestScreen(
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
-                                ErrorText(
+                                FieldError(
                                     visible = datesInvalid,
                                     text = when {
                                         overlapError -> stringResource(R.string.text_5_29, selectedPet?.name.orEmpty())
                                         pastDatesError -> stringResource(R.string.text_5_30)
                                         else -> stringResource(R.string.text_5_20)
-                                    },
-                                    horizontalPadding = 16.dp
+                                    }
                                 )
                                 if (hasResponses) {
-                                    Text(
-                                        text = stringResource(R.string.text_5_31),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp)
-                                    )
+                                    FieldSupportingText(stringResource(R.string.text_5_31))
                                 }
                             }
 
-                            Spacer(Modifier.height(16.dp))
+                            Spacer(Modifier.height(FormFieldSpacing))
 
                             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenContentInset)) {
-                                SectionLabel(stringResource(R.string.text_5_34))
+                                FieldLabel(stringResource(R.string.text_5_34))
                                 SegmentedToggle(
                                     options = listOf(
                                         stringResource(R.string.text_5_35),
@@ -505,17 +508,18 @@ fun CreateRequestScreen(
                                         format = if (index == 1) CareFormat.AtOwner else CareFormat.AtVolunteer
                                     }
                                 )
-                                Text(
-                                    text = stringResource(
+                                FieldSupportingText(
+                                    stringResource(
                                         if (format == CareFormat.AtOwner) R.string.text_5_38 else R.string.text_5_37
-                                    ),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp)
+                                    )
                                 )
-                                AnimatedVisibility(visible = format == CareFormat.AtOwner) {
+                                AnimatedVisibility(
+                                    visible = format == CareFormat.AtOwner,
+                                    enter = revealEnter(),
+                                    exit = revealExit()
+                                ) {
                                     Column(modifier = Modifier.padding(top = 12.dp)) {
-                                        SectionLabel(stringResource(R.string.text_5_39))
+                                        FieldLabel(stringResource(R.string.text_5_39))
                                         SelectableChips(
                                             items = VisitOptions,
                                             selected = setOf(visitsPerDay),
@@ -524,20 +528,15 @@ fun CreateRequestScreen(
                                             },
                                             onToggle = { visitsPerDay = it }
                                         )
-                                        Text(
-                                            text = stringResource(R.string.text_5_42),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp)
-                                        )
+                                        FieldSupportingText(stringResource(R.string.text_5_42))
                                     }
                                 }
                             }
 
-                            Spacer(Modifier.height(16.dp))
+                            Spacer(Modifier.height(FormFieldSpacing))
 
                             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenContentInset)) {
-                                SectionLabel(stringResource(R.string.text_5_7))
+                                FieldLabel(stringResource(R.string.text_5_7))
 
                                 val addressBorder by animateColorAsState(
                                     targetValue = if (addressError) {
@@ -585,14 +584,13 @@ fun CreateRequestScreen(
                                         modifier = Modifier.size(22.dp)
                                     )
                                 }
-                                ErrorText(
+                                FieldError(
                                     visible = addressError,
-                                    text = stringResource(R.string.text_5_21),
-                                    horizontalPadding = 16.dp
+                                    text = stringResource(R.string.text_5_21)
                                 )
 
                                 if (format == CareFormat.AtOwner) {
-                                    Spacer(Modifier.height(10.dp))
+                                    Spacer(Modifier.height(FormFieldSpacing))
 
                                     AppTextField(
                                         value = addressDetails,
@@ -605,20 +603,15 @@ fun CreateRequestScreen(
                                         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
                                     )
                                 } else {
-                                    Text(
-                                        text = stringResource(R.string.text_5_40),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp)
-                                    )
+                                    FieldSupportingText(stringResource(R.string.text_5_40))
                                 }
                             }
 
-                            Spacer(Modifier.height(16.dp))
+                            Spacer(Modifier.height(FormFieldSpacing))
 
-                            SectionLabel(
+                            FieldLabel(
                                 text = stringResource(R.string.text_5_11),
-                                startPadding = 12.dp
+                                modifier = Modifier.padding(start = ScreenContentInset)
                             )
                         }
 
@@ -652,7 +645,7 @@ fun CreateRequestScreen(
                                 .height(dynamicCommentHeight)
                         )
 
-                        Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(ScrollEndGap))
                     }
                 }
             }
@@ -678,18 +671,17 @@ private fun PetCard(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = ScreenContentInset)
             .pressScale(interaction, pressedScale = 0.98f)
             .clip(RoundedCornerShape(16.dp))
             .border(1.dp, borderColor, RoundedCornerShape(16.dp))
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .padding(12.dp)
     ) {
-        PetThumbnail(photoUri = pet?.photoUri, size = 52.dp)
+        PetThumbnail(photoUri = pet?.photoUri, size = SmallThumbnailSize)
 
         AnimatedContent(
             targetState = pet,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            transitionSpec = { fadeThrough() },
             label = "selectedPet",
             modifier = Modifier
                 .weight(1f)
@@ -726,40 +718,5 @@ private fun PetCard(
                 style = MaterialTheme.typography.labelMedium
             )
         }
-    }
-}
-
-@Composable
-private fun SectionLabel(
-    text: String,
-    modifier: Modifier = Modifier,
-    startPadding: Dp = 4.dp
-) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        fontWeight = FontWeight.SemiBold,
-        modifier = modifier.padding(start = startPadding, bottom = 4.dp)
-    )
-}
-
-@Composable
-private fun ErrorText(
-    visible: Boolean,
-    text: String,
-    horizontalPadding: Dp = 24.dp
-) {
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn() + expandVertically(),
-        exit = fadeOut() + shrinkVertically()
-    ) {
-        Text(
-            text = text,
-            color = MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(start = horizontalPadding, top = 4.dp)
-        )
     }
 }

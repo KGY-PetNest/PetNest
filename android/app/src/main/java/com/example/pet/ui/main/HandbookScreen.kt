@@ -11,7 +11,7 @@ import com.example.pet.R
 import com.example.pet.ui.components.ScreenHeader
 
 @Composable
-fun GuideScreen(
+fun HandbookScreen(
     onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {

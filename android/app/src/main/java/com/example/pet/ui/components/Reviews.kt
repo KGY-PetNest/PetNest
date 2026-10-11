@@ -28,7 +28,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
@@ -50,6 +49,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.animation.AnimatedVisibility
 import com.example.pet.R
 import com.example.pet.data.DayMonthYearFormat
 import com.example.pet.data.Review
@@ -106,10 +106,10 @@ fun ReviewCard(review: Review, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .cardSurface()
-            .padding(14.dp)
+            .padding(CardContentPadding)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            InitialsAvatar(name = review.authorName, size = 40.dp)
+            InitialsAvatar(name = review.authorName, size = CompactAvatarSize)
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -143,7 +143,7 @@ fun ReviewSummary(reviews: List<Review>, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .cardSurface()
-            .padding(16.dp)
+            .padding(CardContentPadding)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
@@ -227,7 +227,6 @@ fun ReviewSheet(
     )
     val scope = rememberCoroutineScope()
 
-
     fun close() {
         allowHideState.value = true
         scope.launch { sheetState.hide() }.invokeOnCompletion {
@@ -261,17 +260,15 @@ fun ReviewSheet(
         )
     }
 
-    ModalBottomSheet(
+    AppBottomSheet(
+        sheetState = sheetState,
         onDismissRequest = {
             when {
                 sending -> Unit
                 dirtyState.value && !allowHideState.value -> askDiscard = true
                 else -> onDismiss()
             }
-        },
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.background,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        }
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -280,18 +277,11 @@ fun ReviewSheet(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = ScreenTextPadding)
         ) {
-            Text(
+            SheetTitle(
                 text = stringResource(R.string.text_15_4),
-                style = MaterialTheme.typography.titleLarge
+                subtitle = volunteerName,
+                centered = true
             )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = volunteerName,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(Modifier.height(20.dp))
 
             StarRow(
                 rating = rating,
@@ -301,7 +291,11 @@ fun ReviewSheet(
                     ratingError = false
                 }
             )
-            if (ratingError) {
+            AnimatedVisibility(
+                visible = ratingError,
+                enter = revealEnter(),
+                exit = revealExit()
+            ) {
                 Text(
                     text = stringResource(R.string.text_15_5),
                     color = MaterialTheme.colorScheme.error,
@@ -310,7 +304,7 @@ fun ReviewSheet(
                 )
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(SheetTitleGap))
 
             OutlinedTextField(
                 value = text,
@@ -331,7 +325,7 @@ fun ReviewSheet(
                     .height(140.dp)
             )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(FormButtonGap))
 
             PrimaryButton(
                 text = stringResource(R.string.text_15_7),
@@ -352,7 +346,7 @@ fun ReviewSheet(
                 }
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(SheetBottomGap))
         }
     }
 }

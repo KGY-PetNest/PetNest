@@ -2,6 +2,11 @@ package com.example.pet.ui.createrequest
 
 import com.example.pet.ui.components.ScreenHorizontalPadding
 import com.example.pet.ui.components.ScreenTextPadding
+import com.example.pet.ui.components.SmallThumbnailSize
+import com.example.pet.ui.components.ListItemSpacing
+import com.example.pet.ui.components.AppBottomSheet
+import com.example.pet.ui.components.SheetTitle
+import com.example.pet.ui.components.SheetBottomGap
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.scaleIn
@@ -70,23 +75,15 @@ fun PetPickerSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.background,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-    ) {
+    AppBottomSheet(sheetState = sheetState, onDismissRequest = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
+            SheetTitle(
                 text = stringResource(R.string.text_5_4),
-                style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = ScreenTextPadding)
             )
 
-            Spacer(Modifier.height(12.dp))
-
             LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(ListItemSpacing),
                 contentPadding = PaddingValues(horizontal = ScreenHorizontalPadding, vertical = 4.dp),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -104,11 +101,11 @@ fun PetPickerSheet(
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(ListItemSpacing))
 
             OutlinedButton(
                 onClick = { hideThen(onAddPet) },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = MaterialTheme.colorScheme.primary
@@ -116,14 +113,14 @@ fun PetPickerSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = ScreenHorizontalPadding)
-                    .height(48.dp)
+                    .height(56.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.size(8.dp))
                 Text(stringResource(R.string.text_9_3), style = MaterialTheme.typography.labelLarge)
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(SheetBottomGap))
         }
     }
 }
@@ -154,7 +151,7 @@ private fun PetRow(
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .padding(12.dp)
     ) {
-        PetThumbnail(photoUri = pet.photoUri, size = 44.dp)
+        PetThumbnail(photoUri = pet.photoUri, size = SmallThumbnailSize)
 
         Column(
             modifier = Modifier

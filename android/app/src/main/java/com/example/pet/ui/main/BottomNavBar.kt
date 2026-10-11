@@ -1,5 +1,6 @@
 package com.example.pet.ui.main
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -19,22 +20,24 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.pet.R
 import com.example.pet.navigation.Screen
 
 private const val BADGE_MAX = 99
 
 private data class BottomNavItem(
     val screen: Screen,
-    val label: String,
+    @param:StringRes val label: Int,
     val icon: ImageVector
 )
 
 private val bottomNavItems = listOf(
-    BottomNavItem(Screen.Feed, "Заявки", Icons.AutoMirrored.Filled.List),
-    BottomNavItem(Screen.Chat, "Чат", Icons.Default.ChatBubble),
-    BottomNavItem(Screen.Guide, "Справочник", Icons.AutoMirrored.Filled.MenuBook),
-    BottomNavItem(Screen.Profile, "Профиль", Icons.Default.Person)
+    BottomNavItem(Screen.Feed, R.string.common_tab_requests, Icons.AutoMirrored.Filled.List),
+    BottomNavItem(Screen.Chat, R.string.common_tab_chat, Icons.Default.ChatBubble),
+    BottomNavItem(Screen.Handbook, R.string.common_tab_handbook, Icons.AutoMirrored.Filled.MenuBook),
+    BottomNavItem(Screen.Profile, R.string.common_tab_profile, Icons.Default.Person)
 )
 
 @Composable
@@ -82,7 +85,7 @@ fun BottomNavBar(
                     },
                     label = {
                         Text(
-                            text = item.label,
+                            text = stringResource(item.label),
                             style = MaterialTheme.typography.labelSmall
                         )
                     },

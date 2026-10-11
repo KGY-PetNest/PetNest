@@ -12,7 +12,7 @@ enum class Screen {
     EmailConfirm,
     Feed,
     Chat,
-    Guide,
+    Handbook,
     Profile,
     Main,
     MapPicker,
