@@ -10,6 +10,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set in .env}
       REDIS_URL: redis://redis:6379
       METRICS_PASSWORD: ${METRICS_PASSWORD:?METRICS_PASSWORD is not set in .env}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:?SMTP_PASSWORD is not set in .env}
     ports:
       - "8080:8080"
     depends_on:

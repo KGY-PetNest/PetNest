@@ -20,7 +20,7 @@ fun Application.configureStatusPages() {
             val errors = when {
                 validation != null -> validation.errors
                 missing != null -> missing.missingFields.map { "Поле '$it' обязательно" }
-                serialization != null -> listOf(serialization.message ?: "Некорректные данные запроса")
+                serialization != null -> listOf(serialization.toRussian())
                 else -> listOf("Некорректные данные запроса")
             }
             call.respond(HttpStatusCode.BadRequest, mapOf("errors" to errors))
@@ -35,4 +35,17 @@ fun Application.configureStatusPages() {
             call.respond(HttpStatusCode.Unauthorized, mapOf("errors" to listOf(cause.message)))
         }
     }
+}
+
+private val UNKNOWN_KEY = Regex("unknown key '([^']+)'")
+private val ENUM_VALUE = Regex("element with name '([^']+)' at path \\$\\.(\\S+)")
+private val FIELD_PATH = Regex("at path:? \\$\\.(\\S+)")
+
+private fun SerializationException.toRussian(): String {
+    val text = message.orEmpty()
+    UNKNOWN_KEY.find(text)?.let { return "Неизвестное поле '${it.groupValues[1]}'" }
+    ENUM_VALUE.find(text)?.let { return "Недопустимое значение '${it.groupValues[1]}' в поле '${it.groupValues[2]}'" }
+    if ("EOF" in text) return "Некорректный JSON"
+    FIELD_PATH.find(text)?.let { return "Некорректное значение поля '${it.groupValues[1]}'" }
+    return "Некорректный JSON"
 }
