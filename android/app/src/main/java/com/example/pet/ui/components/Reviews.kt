@@ -44,6 +44,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.filled.Flag
+import com.example.pet.data.ReportReason
+import com.example.pet.data.AppContainer
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -100,7 +104,14 @@ fun StarRow(
 }
 
 @Composable
-fun ReviewCard(review: Review, modifier: Modifier = Modifier) {
+fun ReviewCard(
+    review: Review,
+    modifier: Modifier = Modifier,
+    personName: String = review.authorName,
+    personPhotoUri: String? = null,
+    onPersonClick: (() -> Unit)? = null,
+    onReport: (() -> Unit)? = null
+) {
     Column(
         verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = modifier
@@ -109,30 +120,82 @@ fun ReviewCard(review: Review, modifier: Modifier = Modifier) {
             .padding(CardContentPadding)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            InitialsAvatar(name = review.authorName, size = CompactAvatarSize)
-            Column(
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(start = 12.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .then(if (onPersonClick != null) Modifier.clickable(onClick = onPersonClick) else Modifier)
             ) {
-                Text(
-                    text = review.authorName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = review.date.format(DayMonthYearFormat),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                InitialsAvatar(name = personName, photoUri = personPhotoUri, size = CompactAvatarSize)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 12.dp)
+                ) {
+                    Text(
+                        text = personName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (onPersonClick != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = review.date.format(DayMonthYearFormat),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             StarRow(rating = review.rating)
+            if (onReport != null) {
+                ReviewMenu(onReport = onReport)
+            }
         }
         Text(
             text = review.text,
             style = MaterialTheme.typography.bodyMedium
         )
     }
+}
+
+@Composable
+private fun ReviewMenu(onReport: () -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    MoreMenuButton(
+        expanded = open,
+        onExpandedChange = { open = it },
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        buttonSize = 36.dp
+    ) {
+        ActionMenuItem(
+            text = stringResource(R.string.common_report),
+            icon = Icons.Default.Flag,
+            onClick = {
+                open = false
+                onReport()
+            }
+        )
+    }
+}
+
+private val ReviewReportReasons = listOf(
+    ReportReason.Fake,
+    ReportReason.Rude,
+    ReportReason.Spam,
+    ReportReason.Other
+)
+
+@Composable
+fun ReviewReportSheet(reviewId: String, onDismiss: () -> Unit) {
+    ReportSheet(
+        reasons = ReviewReportReasons,
+        sentSubtitle = stringResource(R.string.text_15_18),
+        canBlock = false,
+        onSubmit = { reason, comment, _ -> AppContainer.reviews.report(reviewId, reason, comment) },
+        onDismiss = onDismiss
+    )
 }
 
 @Composable

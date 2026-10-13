@@ -14,6 +14,8 @@ object MockData {
 
     const val CURRENT_VOLUNTEER_ID = "u1"
 
+    const val CURRENT_OWNER_ID = "o0"
+
     private val today: LocalDate = LocalDate.now()
 
     private val now: LocalDateTime = LocalDateTime.now()
@@ -25,13 +27,15 @@ object MockData {
     val ownerProfile = UserProfile(
         name = "Петрова Елена Сергеевна",
         phone = "9161234567",
-        email = "elena@example.com"
+        email = "elena@example.com",
+        joinedAt = today.minusMonths(10)
     )
 
     val volunteerProfile = UserProfile(
         name = "Петрова Мария Ивановна",
         phone = "9267654321",
-        email = "maria@example.com"
+        email = "maria@example.com",
+        joinedAt = today.minusMonths(14)
     )
 
     val pets = listOf(
@@ -105,6 +109,7 @@ object MockData {
             start = inDays(2), end = inDays(5), district = "",
             address = "Москва, проспект Мира, 21", comment = "Не любит, когда берут на руки",
             traits = listOf(PetTrait.Calm),
+            traitsOther = "боится пылесоса,не ест курицу,спит только на диване",
             features = "Спокойная, любит сидеть на подоконнике, не берите на руки",
             location = GeoPoint(55.781, 37.633),
             ownerName = "Морозова Ольга Петровна", ownerPhone = "9067778899", format = CareFormat.AtOwner, visitsPerDay = 1
@@ -135,6 +140,33 @@ object MockData {
             features = "Агрессивно реагирует на других собак, гулять на коротком поводке",
             location = GeoPoint(55.748, 37.565),
             ownerName = "Новиков Павел Олегович", ownerPhone = "9268887766", format = CareFormat.AtVolunteer
+        ),
+        PetRequest(
+            id = "v10", petId = "x10", title = "Кеша", petInfo = "Волнистый попугай, 2 года", kind = PetKind.Bird,
+            start = inDays(5), end = inDays(12), district = "",
+            address = "Москва, ул. Покровка, 18", comment = "Клетку и корм привезу",
+            traits = listOf(PetTrait.Active, PetTrait.FearsNoise),
+            features = "Выпускать полетать на час в день при закрытых окнах, клетку на ночь накрывать",
+            location = GeoPoint(55.7595, 37.6455),
+            ownerName = "Соколова Дарья Михайловна", ownerPhone = "9152223344", format = CareFormat.AtVolunteer
+        ),
+        PetRequest(
+            id = "v11", petId = "x11", title = "Тортила", petInfo = "Красноухая черепаха, 12 лет", kind = PetKind.Other,
+            start = inDays(8), end = inDays(22), district = "",
+            address = "Москва, ул. Бауманская, 40", comment = "Аквариум большой, перевозить не хочу",
+            traits = listOf(PetTrait.Calm, PetTrait.SpecialDiet),
+            traitsOther = "нужна лампа для обогрева, воду менять раз в неделю",
+            features = "Кормить через день гаммарусом и зеленью, лампу включать на 10 часов",
+            location = GeoPoint(55.7725, 37.6785),
+            ownerName = "Орлов Максим Евгеньевич", ownerPhone = "9037776655", format = CareFormat.AtOwner, visitsPerDay = 1
+        ),
+        PetRequest(
+            id = "v12", petId = "x12", title = "Рыжик", petInfo = "Домашний кот, 1 год", kind = PetKind.Cat,
+            start = inDays(10), end = inDays(14), district = "",
+            address = "Москва, ул. Сретенка, 9", comment = "Лоток и корм привезу",
+            features = "Сухой корм утром и вечером, вода всегда в доступе, любит играть с мячиком",
+            location = GeoPoint(55.7685, 37.6335),
+            ownerName = "Зайцева Екатерина Андреевна", ownerPhone = "9161112200", format = CareFormat.AtVolunteer
         ),
         PetRequest(
             id = "v7", petId = "x7", title = "Кошка, 6 лет", petInfo = "Кошка, 6 лет", kind = PetKind.Cat,
@@ -215,13 +247,23 @@ object MockData {
         )
     )
 
+    val owners = listOf(
+        OwnerProfile(id = "o1", name = "Белова Ольга Александровна", joinedAt = today.minusMonths(7), completedCount = 3),
+        OwnerProfile(id = "o2", name = "Кузнецов Игорь Андреевич", joinedAt = today.minusMonths(11), completedCount = 2),
+        OwnerProfile(id = "o3", name = "Смирнова Анна Викторовна", joinedAt = today.minusMonths(16), completedCount = 4),
+        OwnerProfile(id = "o4", name = "Лебедева Светлана Игоревна", joinedAt = today.minusMonths(9), completedCount = 1),
+        OwnerProfile(id = "o5", name = "Новиков Павел Олегович", joinedAt = today.minusMonths(13), completedCount = 2),
+        OwnerProfile(id = "o6", name = "Волков Дмитрий Сергеевич", joinedAt = today.minusMonths(6), completedCount = 1)
+    )
+
     val reviews = listOf(
-        Review("r1", "u1", "v9", "Ольга", 5, "Мария прекрасно позаботилась о нашем коте, присылала фото каждый день.", daysAgo(54)),
-        Review("r2", "u1", null, "Игорь", 5, "Всё отлично, собака вернулась довольная и спокойная.", daysAgo(80)),
-        Review("r3", "u1", null, "Анна", 4, "Хорошая передержка, но хотелось бы чаще получать новости.", daysAgo(120)),
-        Review("r4", "u2", null, "Света", 5, "Алексей гулял с собакой даже под дождём. Рекомендую!", daysAgo(95)),
-        Review("r5", "u2", null, "Павел", 4, "Всё хорошо, пёс набегался во дворе.", daysAgo(140)),
-        Review("r6", "u3", null, "Дмитрий", 5, "Катя очень бережно отнеслась к нашему пожилому коту.", daysAgo(85))
+        Review("r1", "u1", "v9", "Ольга", 5, "Мария прекрасно позаботилась о нашем коте, присылала фото каждый день.", daysAgo(54), authorId = "o1"),
+        Review("r2", "u1", null, "Игорь", 5, "Всё отлично, собака вернулась довольная и спокойная.", daysAgo(80), authorId = "o2"),
+        Review("r3", "u1", null, "Анна", 4, "Хорошая передержка, но хотелось бы чаще получать новости.", daysAgo(120), authorId = "o3"),
+        Review("r4", "u2", null, "Света", 5, "Алексей гулял с собакой даже под дождём. Рекомендую!", daysAgo(95), authorId = "o4"),
+        Review("r5", "u2", null, "Павел", 4, "Всё хорошо, пёс набегался во дворе.", daysAgo(140), authorId = "o5"),
+        Review("r6", "u3", null, "Дмитрий", 5, "Катя очень бережно отнеслась к нашему пожилому коту.", daysAgo(85), authorId = "o6"),
+        Review("r7", "u2", null, "Анна", 5, "Второй раз оставляем собаку Алексею, всё как всегда отлично.", daysAgo(30), authorId = "o3")
     )
 
     val respondedIds = setOf("v2", "v7", "v8", "v9")

@@ -1,5 +1,11 @@
 package com.example.pet.ui.requestdetails
 
+import java.time.LocalDate
+import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.animation.AnimatedVisibility
+import com.example.pet.ui.components.revealEnter
+import com.example.pet.ui.components.revealExit
 import com.example.pet.ui.components.ScreenContentInset
 import com.example.pet.ui.components.ScreenHorizontalPadding
 import com.example.pet.ui.components.ScreenSection
@@ -16,10 +22,6 @@ import com.example.pet.ui.components.careFormatText
 import com.example.pet.ui.components.icon
 import android.content.Intent
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,7 +34,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
@@ -60,7 +61,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -85,6 +85,7 @@ import com.example.pet.ui.components.MyResponseStatusChip
 import com.example.pet.ui.components.NotFoundScreen
 import com.example.pet.ui.components.PetThumbnail
 import com.example.pet.ui.components.PetTraitChips
+import com.example.pet.ui.components.TagChip
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.ReviewCard
 import com.example.pet.ui.components.ScreenHeader
@@ -115,6 +116,8 @@ fun RequestDetailsScreen(
     var confirmWithdraw by rememberSaveable { mutableStateOf(false) }
     var chatLocked by rememberSaveable { mutableStateOf(false) }
     var confirmCancel by rememberSaveable { mutableStateOf(false) }
+    var confirmDone by rememberSaveable { mutableStateOf(false) }
+    var confirmingDone by remember { mutableStateOf(false) }
     val bodyStyle = MaterialTheme.typography.bodyLarge
     val request = feed.firstOrNull { it.id == requestId }
     if (request == null) {
@@ -131,7 +134,40 @@ fun RequestDetailsScreen(
     }
     val hasBottomBar = myStatus == null || myStatus == MyResponseStatus.Pending ||
             myStatus == MyResponseStatus.Chosen
-    val barEndsWithTextButton = myStatus == MyResponseStatus.Pending || myStatus == MyResponseStatus.Chosen
+    val barEndsWithTextButton = myStatus == MyResponseStatus.Pending ||
+            (myStatus == MyResponseStatus.Chosen && !request.ownerConfirmedCompletion && !request.volunteerConfirmedCompletion)
+
+    val canConfirmDone = myStatus == MyResponseStatus.Chosen &&
+            !request.volunteerConfirmedCompletion &&
+            !LocalDate.now().isBefore(request.start)
+
+    if (confirmDone) {
+        AlertDialog(
+            onDismissRequest = { confirmDone = false },
+            title = { Text(stringResource(R.string.text_21_28)) },
+            text = { Text(stringResource(R.string.text_21_29)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmDone = false
+                        scope.launch {
+                            confirmingDone = true
+                            AppContainer.requests.confirmCompletion(request.id, UserRole.Volunteer)
+                                .onFailure { showRequestError(context) }
+                            confirmingDone = false
+                        }
+                    }
+                ) {
+                    Text(stringResource(R.string.text_21_30))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDone = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        )
+    }
 
     if (confirmWithdraw) {
         AlertDialog(
@@ -300,13 +336,29 @@ fun RequestDetailsScreen(
                 }
 
                 when (myStatus) {
-                    MyResponseStatus.Chosen -> StatusBanner(
-                        icon = Icons.Default.CheckCircle,
-                        title = stringResource(R.string.text_21_6),
-                        text = stringResource(R.string.text_21_7),
-                        containerColor = MaterialTheme.extraColors.successContainer,
-                        contentColor = MaterialTheme.extraColors.success
-                    )
+                    MyResponseStatus.Chosen -> when {
+                        request.volunteerConfirmedCompletion -> StatusBanner(
+                            icon = Icons.Default.HourglassTop,
+                            title = stringResource(R.string.text_21_26),
+                            text = stringResource(R.string.text_21_27),
+                            containerColor = MaterialTheme.extraColors.successContainer,
+                            contentColor = MaterialTheme.extraColors.success
+                        )
+                        request.ownerConfirmedCompletion -> StatusBanner(
+                            icon = Icons.Default.TaskAlt,
+                            title = stringResource(R.string.text_21_24),
+                            text = stringResource(R.string.text_21_25),
+                            containerColor = MaterialTheme.extraColors.successContainer,
+                            contentColor = MaterialTheme.extraColors.success
+                        )
+                        else -> StatusBanner(
+                            icon = Icons.Default.CheckCircle,
+                            title = stringResource(R.string.text_21_6),
+                            text = stringResource(R.string.text_21_7),
+                            containerColor = MaterialTheme.extraColors.successContainer,
+                            contentColor = MaterialTheme.extraColors.success
+                        )
+                    }
                     MyResponseStatus.NotChosen -> StatusBanner(
                         icon = Icons.Default.Info,
                         title = stringResource(R.string.text_21_9),
@@ -326,6 +378,22 @@ fun RequestDetailsScreen(
                         contentColor = MaterialTheme.extraColors.success
                     )
                     else -> Unit
+                }
+
+                AnimatedVisibility(
+                    visible = canConfirmDone,
+                    enter = revealEnter(),
+                    exit = revealExit()
+                ) {
+                    OutlinedButton(
+                        onClick = { confirmDone = true },
+                        enabled = !confirmingDone,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp)
+                    ) {
+                        Text(stringResource(R.string.common_confirm_completion))
+                    }
                 }
 
                 Spacer(Modifier.height(16.dp))
@@ -428,13 +496,17 @@ fun RequestDetailsScreen(
                     }
                 }
 
-                if (request.traits.isNotEmpty() || request.features.isNotBlank()) {
-                    ScreenSection(title = stringResource(R.string.text_4_6)) {
-                        PetTraitChips(traits = request.traits, large = true)
-                        if (request.features.isNotBlank()) {
-                            Spacer(Modifier.height(12.dp))
-                            Text(text = request.features, style = bodyStyle)
-                        }
+                ScreenSection(title = stringResource(R.string.text_4_6)) {
+                    if (request.traits.isEmpty() && request.traitsOther.isBlank()) {
+                        TagChip(text = stringResource(R.string.text_4_36), large = true)
+                    } else {
+                        PetTraitChips(traits = request.traits, other = request.traitsOther, large = true)
+                    }
+                }
+
+                if (request.features.isNotBlank()) {
+                    ScreenSection(title = stringResource(R.string.text_4_32)) {
+                        Text(text = request.features, style = bodyStyle)
                     }
                 }
 
@@ -465,14 +537,16 @@ fun RequestDetailsScreen(
                             }
                         )
                     }
-                    TextButton(
-                        enabled = !busy,
-                        onClick = { confirmWithdraw = true }
-                    ) {
-                        Text(
-                            text = stringResource(R.string.text_21_15),
-                            color = MaterialTheme.colorScheme.error.copy(alpha = if (busy) 0.38f else 1f)
-                        )
+                    if (!request.ownerConfirmedCompletion && !request.volunteerConfirmedCompletion) {
+                        TextButton(
+                            enabled = !busy,
+                            onClick = { confirmWithdraw = true }
+                        ) {
+                            Text(
+                                text = stringResource(R.string.text_21_15),
+                                color = MaterialTheme.colorScheme.error.copy(alpha = if (busy) 0.38f else 1f)
+                            )
+                        }
                     }
                 }
             }

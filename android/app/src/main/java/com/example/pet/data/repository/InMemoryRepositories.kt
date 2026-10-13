@@ -7,6 +7,7 @@ import com.example.pet.data.ChatMessage
 import com.example.pet.data.MessageStatus
 import com.example.pet.data.IncomingMessage
 import com.example.pet.data.MockData
+import com.example.pet.data.OwnerProfile
 import com.example.pet.data.canChat
 import com.example.pet.data.Pet
 import com.example.pet.data.PetRequest
@@ -27,6 +28,9 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -152,7 +156,9 @@ class InMemoryRequestRepository(
         val request = feedState.value.firstOrNull { it.id == requestId }
             ?: return Result.failure(NoSuchElementException("Request not found"))
         if (request.chosenVolunteerId != MockData.CURRENT_VOLUNTEER_ID ||
-            request.status != RequestStatus.VolunteerChosen
+            request.status != RequestStatus.VolunteerChosen ||
+            request.ownerConfirmedCompletion ||
+            request.volunteerConfirmedCompletion
         ) {
             return Result.failure(IllegalStateException("Nothing to withdraw from"))
         }
@@ -171,6 +177,7 @@ class InMemoryRequestRepository(
             ?: return Result.failure(NoSuchElementException("Request not found"))
         val allowed = when {
             request.status == RequestStatus.Completed -> false
+            request.ownerConfirmedCompletion || request.volunteerConfirmedCompletion -> false
             volunteerId == null -> true
             request.start.isBefore(LocalDate.now()) -> false
             else -> volunteerId in responsesState.value[requestId].orEmpty()
@@ -186,16 +193,84 @@ class InMemoryRequestRepository(
         return Result.success(Unit)
     }
 
-    override suspend fun complete(requestId: String): Result<Unit> {
+    override suspend fun confirmCompletion(requestId: String, role: UserRole): Result<Unit> = when (role) {
+        UserRole.Owner -> confirmAsOwner(requestId)
+        UserRole.Volunteer -> confirmAsVolunteer(requestId)
+    }
+
+    private suspend fun confirmAsOwner(requestId: String): Result<Unit> {
         val request = owner.value.firstOrNull { it.id == requestId }
             ?: return Result.failure(NoSuchElementException("Request not found"))
         if (request.status != RequestStatus.VolunteerChosen || LocalDate.now().isBefore(request.start)) {
             return Result.failure(IllegalStateException("Request cannot be completed yet"))
         }
         delay(FAKE_NETWORK_DELAY_MS)
-        updateOwnerRequest(requestId) { it.copy(status = RequestStatus.Completed) }
-        request.chosenVolunteerId?.let { volunteers.addCompleted(it) }
+        val completes = request.volunteerConfirmedCompletion
+        updateOwnerRequest(requestId) {
+            it.copy(
+                ownerConfirmedCompletion = true,
+                status = if (completes) RequestStatus.Completed else it.status
+            )
+        }
+        if (completes) {
+            request.chosenVolunteerId?.let { volunteers.addCompleted(it) }
+        } else {
+            simulateVolunteerConfirmation(requestId)
+        }
         return Result.success(Unit)
+    }
+
+    private suspend fun confirmAsVolunteer(requestId: String): Result<Unit> {
+        val request = feedState.value.firstOrNull { it.id == requestId }
+            ?: return Result.failure(NoSuchElementException("Request not found"))
+        if (request.chosenVolunteerId != MockData.CURRENT_VOLUNTEER_ID ||
+            request.status != RequestStatus.VolunteerChosen ||
+            LocalDate.now().isBefore(request.start)
+        ) {
+            return Result.failure(IllegalStateException("Request cannot be completed yet"))
+        }
+        delay(FAKE_NETWORK_DELAY_MS)
+        val completes = request.ownerConfirmedCompletion
+        updateFeedRequest(requestId) {
+            it.copy(
+                volunteerConfirmedCompletion = true,
+                status = if (completes) RequestStatus.Completed else it.status
+            )
+        }
+        if (completes) {
+            volunteers.addCompleted(MockData.CURRENT_VOLUNTEER_ID)
+        } else {
+            simulateOwnerConfirmation(requestId)
+        }
+        return Result.success(Unit)
+    }
+
+    private fun simulateVolunteerConfirmation(requestId: String) {
+        scope.launch {
+            delay(SIMULATED_CONFIRMATION_DELAY_MS)
+            val request = owner.value.firstOrNull { it.id == requestId } ?: return@launch
+            if (request.status != RequestStatus.VolunteerChosen || !request.ownerConfirmedCompletion) return@launch
+            updateOwnerRequest(requestId) {
+                it.copy(volunteerConfirmedCompletion = true, status = RequestStatus.Completed)
+            }
+            request.chosenVolunteerId?.let { volunteers.addCompleted(it) }
+        }
+    }
+
+    private fun simulateOwnerConfirmation(requestId: String) {
+        scope.launch {
+            delay(SIMULATED_CONFIRMATION_DELAY_MS)
+            val request = feedState.value.firstOrNull { it.id == requestId } ?: return@launch
+            if (request.status != RequestStatus.VolunteerChosen || !request.volunteerConfirmedCompletion) return@launch
+            updateFeedRequest(requestId) {
+                it.copy(ownerConfirmedCompletion = true, status = RequestStatus.Completed)
+            }
+            volunteers.addCompleted(MockData.CURRENT_VOLUNTEER_ID)
+        }
+    }
+
+    private fun updateFeedRequest(requestId: String, transform: (PetRequest) -> PetRequest) {
+        feedState.update { list -> list.map { if (it.id == requestId) transform(it) else it } }
     }
 
     override suspend fun delete(requestId: String): Result<Unit> {
@@ -228,6 +303,7 @@ class InMemoryRequestRepository(
                         petInfo = pet.info,
                         kind = pet.kind,
                         traits = pet.traits,
+                        traitsOther = pet.traitsOther,
                         features = pet.features,
                         petPhotoUri = pet.photoUri
                     )
@@ -263,6 +339,7 @@ class InMemoryRequestRepository(
 
     private companion object {
         const val SIMULATED_RESPONSE_DELAY_MS = 6000L
+        const val SIMULATED_CONFIRMATION_DELAY_MS = 4000L
     }
 }
 
@@ -283,6 +360,34 @@ class InMemoryVolunteerRepository : VolunteerRepository {
     }
 }
 
+class InMemoryOwnerRepository(
+    profiles: ProfileRepository,
+    requests: RequestRepository
+) : OwnerRepository {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    override val currentOwnerId: String = MockData.CURRENT_OWNER_ID
+
+    override val owners: StateFlow<List<OwnerProfile>> =
+        combine(profiles.profile(UserRole.Owner), requests.ownerRequests) { profile, ownRequests ->
+            listOf(currentOwner(profile, ownRequests)) + MockData.owners
+        }.stateIn(
+            scope = scope,
+            started = SharingStarted.Eagerly,
+            initialValue = listOf(
+                currentOwner(profiles.profile(UserRole.Owner).value, requests.ownerRequests.value)
+            ) + MockData.owners
+        )
+
+    private fun currentOwner(profile: UserProfile, ownRequests: List<PetRequest>) = OwnerProfile(
+        id = MockData.CURRENT_OWNER_ID,
+        name = profile.name,
+        avatarUri = profile.avatarUri,
+        joinedAt = profile.joinedAt,
+        completedCount = ownRequests.count { it.status == RequestStatus.Completed }
+    )
+}
+
 class InMemoryReviewRepository : ReviewRepository {
     private val state = MutableStateFlow(MockData.reviews)
     override val reviews: StateFlow<List<Review>> = state.asStateFlow()
@@ -291,16 +396,23 @@ class InMemoryReviewRepository : ReviewRepository {
         val duplicate = review.requestId != null && state.value.any { it.requestId == review.requestId }
         if (duplicate) return Result.failure(IllegalStateException("Review already exists"))
         delay(FAKE_NETWORK_DELAY_MS)
+        val stored = review.copy(authorId = review.authorId.ifBlank { MockData.CURRENT_OWNER_ID })
         var added = false
         state.update { list ->
             if (review.requestId != null && list.any { it.requestId == review.requestId }) {
                 list
             } else {
                 added = true
-                listOf(review) + list
+                listOf(stored) + list
             }
         }
         return if (added) Result.success(Unit) else Result.failure(IllegalStateException("Review already exists"))
+    }
+
+    override suspend fun report(reviewId: String, reason: ReportReason, comment: String): Result<Unit> {
+        delay(FAKE_NETWORK_DELAY_MS)
+        val exists = state.value.any { it.id == reviewId }
+        return if (exists) Result.success(Unit) else Result.failure(NoSuchElementException("Review not found"))
     }
 }
 
@@ -409,6 +521,13 @@ class InMemoryChatRepository(
                         request.status == RequestStatus.Open
                     ) {
                         postEvent(UserRole.Volunteer, request, MockData.CURRENT_VOLUNTEER_ID, ChatEvent.VolunteerWithdrew)
+                    }
+                    if (old != null &&
+                        request.chosenVolunteerId == MockData.CURRENT_VOLUNTEER_ID &&
+                        old.status != RequestStatus.Completed &&
+                        request.status == RequestStatus.Completed
+                    ) {
+                        postEvent(UserRole.Volunteer, request, MockData.CURRENT_VOLUNTEER_ID, ChatEvent.Completed)
                     }
                 }
                 previous = current

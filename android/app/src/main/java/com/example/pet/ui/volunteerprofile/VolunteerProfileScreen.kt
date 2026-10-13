@@ -1,19 +1,19 @@
 package com.example.pet.ui.volunteerprofile
 
+import com.example.pet.ui.components.ReviewReportSheet
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.example.pet.ui.components.ScreenContentInset
 import com.example.pet.ui.components.ScreenHorizontalPadding
 import com.example.pet.ui.components.ScreenSection
 import com.example.pet.ui.components.IconCircle
 import com.example.pet.ui.components.ScreenTopGap
 import com.example.pet.ui.components.ScreenBottomGap
-import java.util.Locale
-import java.time.format.DateTimeFormatter
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.pet.ui.components.serviceLabel
 import com.example.pet.data.CareFormat
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,7 +39,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -64,7 +63,10 @@ import com.example.pet.ui.components.formatPhone
 import com.example.pet.ui.components.ProfileHeader
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.TaskAlt
-import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.MoreHoriz
+import com.example.pet.ui.components.JoinedSinceLine
+import com.example.pet.ui.components.ListItemSpacing
+import com.example.pet.data.AcceptedPet
 import androidx.compose.ui.res.pluralStringResource
 import com.example.pet.ui.components.StatTile
 import com.example.pet.ui.theme.PetStar
@@ -72,19 +74,19 @@ import com.example.pet.ui.theme.PetStar
 private const val REVIEWS_PREVIEW_COUNT = 2
 private const val FACT_COLUMNS = 2
 
-private val MonthYearFormat: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("MMMM yyyy", Locale.forLanguageTag("ru"))
-
 @Composable
 fun VolunteerProfileScreen(
     volunteerId: String,
     onAllReviews: (String) -> Unit,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
-    onOpenSettings: (() -> Unit)? = null
+    onOpenSettings: (() -> Unit)? = null,
+    onOpenOwner: ((String) -> Unit)? = null
 ) {
     val volunteers by AppContainer.volunteers.volunteers.collectAsStateWithLifecycle()
     val allReviews by AppContainer.reviews.reviews.collectAsStateWithLifecycle()
+    val owners by AppContainer.owners.owners.collectAsStateWithLifecycle()
+    var reportReviewId by rememberSaveable { mutableStateOf<String?>(null) }
     val ownProfile by remember { AppContainer.profiles.profile(UserRole.Volunteer) }.collectAsStateWithLifecycle()
     val isOwn = onOpenSettings != null
     val primary = MaterialTheme.colorScheme.primary
@@ -95,6 +97,8 @@ fun VolunteerProfileScreen(
         return
     }
     val reviews = allReviews.filter { it.volunteerId == volunteer.id }
+
+    reportReviewId?.let { id -> ReviewReportSheet(reviewId = id, onDismiss = { reportReviewId = null }) }
 
     Box(
         modifier = modifier.fillMaxSize(),
@@ -134,11 +138,7 @@ fun VolunteerProfileScreen(
                 Spacer(Modifier.height(ScreenTopGap))
 
                 ProfileHeader(name = volunteer.name, photoUri = volunteer.avatarUri) {
-                    IconLine(
-                        icon = Icons.Default.CalendarMonth,
-                        text = stringResource(R.string.text_13_19, volunteer.joinedAt.format(MonthYearFormat)),
-                        textStyle = MaterialTheme.typography.bodyMedium
-                    )
+                    JoinedSinceLine(volunteer.joinedAt)
                     if (isOwn) {
                         IconLine(
                             icon = Icons.Default.Phone,
@@ -209,7 +209,7 @@ fun VolunteerProfileScreen(
 
                 if (CareFormat.AtVolunteer in volunteer.formats) {
                     ScreenSection(title = stringResource(R.string.text_13_5)) {
-                        HomeConditionsGrid(volunteer.homeConditions)
+                        HomeConditionsGrid(volunteer.homeConditions, volunteer.homeConditionsOther)
                     }
                 }
 
@@ -218,7 +218,18 @@ fun VolunteerProfileScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        volunteer.acceptedPets.forEach { TagChip(stringResource(it.label), large = true) }
+                        volunteer.acceptedPets.forEach { pet ->
+                            val label = stringResource(pet.label)
+                            val other = volunteer.acceptedPetsOther.trim()
+                            TagChip(
+                                text = if (pet == AcceptedPet.Other && other.isNotEmpty()) {
+                                    stringResource(R.string.common_label_value, label, other)
+                                } else {
+                                    label
+                                },
+                                large = true
+                            )
+                        }
                     }
                 }
 
@@ -230,8 +241,24 @@ fun VolunteerProfileScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            reviews.take(REVIEWS_PREVIEW_COUNT).forEach { ReviewCard(it) }
+                        Column(verticalArrangement = Arrangement.spacedBy(ListItemSpacing)) {
+                            reviews.take(REVIEWS_PREVIEW_COUNT).forEach { review ->
+                                val author = owners.firstOrNull { it.id == review.authorId }
+                                ReviewCard(
+                                    review = review,
+                                    personPhotoUri = author?.avatarUri,
+                                    onPersonClick = if (author != null && onOpenOwner != null) {
+                                        { onOpenOwner(author.id) }
+                                    } else {
+                                        null
+                                    },
+                                    onReport = if (review.authorId != AppContainer.owners.currentOwnerId) {
+                                        { reportReviewId = review.id }
+                                    } else {
+                                        null
+                                    }
+                                )
+                            }
                         }
                         if (reviews.size > REVIEWS_PREVIEW_COUNT) {
                             TextButton(onClick = { onAllReviews(volunteer.id) }) {
@@ -251,8 +278,9 @@ fun VolunteerProfileScreen(
 }
 
 @Composable
-private fun HomeConditionsGrid(conditions: List<HomeConditionType>) {
-    if (conditions.isEmpty()) {
+private fun HomeConditionsGrid(conditions: List<HomeConditionType>, other: String) {
+    val otherText = other.trim()
+    if (conditions.isEmpty() && otherText.isEmpty()) {
         Text(
             text = stringResource(R.string.text_13_10),
             style = MaterialTheme.typography.bodyLarge,
@@ -261,7 +289,10 @@ private fun HomeConditionsGrid(conditions: List<HomeConditionType>) {
         return
     }
     val ordered = HomeConditionGroup.entries.flatMap { group -> conditions.filter { it.group == group } }
-    FactGrid(items = ordered.map { it.icon to stringResource(it.label) })
+    FactGrid(
+        items = ordered.map { it.icon to stringResource(it.label) } +
+            listOfNotNull(otherText.takeIf { it.isNotEmpty() }?.let { Icons.Default.MoreHoriz to it })
+    )
 }
 
 @Composable

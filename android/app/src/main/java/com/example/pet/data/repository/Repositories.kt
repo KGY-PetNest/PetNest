@@ -5,6 +5,7 @@ import com.example.pet.data.Chat
 import com.example.pet.data.ChatAttachment
 import com.example.pet.data.ChatMessage
 import com.example.pet.data.IncomingMessage
+import com.example.pet.data.OwnerProfile
 import com.example.pet.data.Pet
 import com.example.pet.data.PetRequest
 import com.example.pet.data.ReportReason
@@ -67,7 +68,7 @@ interface RequestRepository {
     suspend fun cancelResponse(requestId: String): Result<Unit>
     suspend fun withdraw(requestId: String): Result<Unit>
     suspend fun chooseVolunteer(requestId: String, volunteerId: String?): Result<Unit>
-    suspend fun complete(requestId: String): Result<Unit>
+    suspend fun confirmCompletion(requestId: String, role: UserRole): Result<Unit>
     suspend fun delete(requestId: String): Result<Unit>
     fun toggleFavorite(requestId: String, volunteerId: String)
 }
@@ -77,9 +78,15 @@ interface VolunteerRepository {
     suspend fun update(volunteer: Volunteer): Result<Unit>
 }
 
+interface OwnerRepository {
+    val owners: StateFlow<List<OwnerProfile>>
+    val currentOwnerId: String
+}
+
 interface ReviewRepository {
     val reviews: StateFlow<List<Review>>
     suspend fun add(review: Review): Result<Unit>
+    suspend fun report(reviewId: String, reason: ReportReason, comment: String): Result<Unit>
 }
 
 interface ChatRepository {

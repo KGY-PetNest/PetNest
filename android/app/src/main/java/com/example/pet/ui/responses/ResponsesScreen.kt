@@ -53,9 +53,8 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import com.example.pet.ui.components.ActionMenuItem
+import com.example.pet.ui.components.MoreMenuButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -73,6 +72,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.pluralStringResource
@@ -145,6 +146,7 @@ fun ResponsesScreen(
     var openingChat by remember { mutableStateOf(false) }
     var showReview by rememberSaveable { mutableStateOf(false) }
     var confirmComplete by rememberSaveable { mutableStateOf(false) }
+    var awaitingReview by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     var showLocked by rememberSaveable { mutableStateOf(false) }
@@ -167,6 +169,14 @@ fun ResponsesScreen(
     val petPhotoUri = pets.firstOrNull { it.id == request.petId }?.photoUri ?: request.petPhotoUri
     val chosen = volunteers.firstOrNull { it.id == request.chosenVolunteerId }
     val finishesEarly = LocalDate.now().isBefore(request.end)
+    val chosenName = chosen?.let { shortPersonName(it.name) }.orEmpty()
+
+    LaunchedEffect(request.status) {
+        if (awaitingReview && request.status == RequestStatus.Completed) {
+            awaitingReview = false
+            showReview = true
+        }
+    }
 
     val shown = when {
         request.status == RequestStatus.Completed -> listOfNotNull(chosen)
@@ -193,14 +203,14 @@ fun ResponsesScreen(
             title = { Text(stringResource(if (finishesEarly) R.string.text_15_17 else R.string.text_15_11)) },
             text = {
                 Text(
-                    if (finishesEarly) {
-                        stringResource(
+                    when {
+                        request.volunteerConfirmedCompletion -> stringResource(R.string.text_15_12)
+                        finishesEarly -> stringResource(
                             R.string.text_15_16,
                             request.end.format(DayMonthFormat),
-                            chosen?.let { shortPersonName(it.name) }.orEmpty()
+                            chosenName
                         )
-                    } else {
-                        stringResource(R.string.text_15_12)
+                        else -> stringResource(R.string.text_15_20)
                     }
                 )
             },
@@ -208,10 +218,11 @@ fun ResponsesScreen(
                 TextButton(
                     onClick = {
                         confirmComplete = false
+                        val closesNow = request.volunteerConfirmedCompletion
                         scope.launch {
                             completing = true
-                            AppContainer.requests.complete(request.id)
-                                .onSuccess { showReview = true }
+                            AppContainer.requests.confirmCompletion(request.id, UserRole.Owner)
+                                .onSuccess { if (closesNow) showReview = true else awaitingReview = true }
                                 .onFailure { showRequestError(context) }
                             completing = false
                         }
@@ -375,46 +386,28 @@ fun ResponsesScreen(
                 onBack = onBack,
                 actions = if (request.status != RequestStatus.Completed) {
                     {
-                        Box {
-                            IconButton(onClick = { menuOpen = true }) {
-                                Icon(
-                                    imageVector = Icons.Default.MoreVert,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = menuOpen,
-                                onDismissRequest = { menuOpen = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.text_5_26)) },
-                                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
-                                    onClick = {
-                                        menuOpen = false
-                                        if (request.status == RequestStatus.Open) onEditRequest(request.id) else showLocked = true
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            text = stringResource(R.string.text_14_15),
-                                            color = MaterialTheme.colorScheme.error
-                                        )
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error
-                                        )
-                                    },
-                                    onClick = {
-                                        menuOpen = false
-                                        if (request.status == RequestStatus.Open) confirmDelete = true else showLocked = true
-                                    }
-                                )
-                            }
+                        MoreMenuButton(
+                            expanded = menuOpen,
+                            onExpandedChange = { menuOpen = it },
+                            tint = MaterialTheme.colorScheme.primary
+                        ) {
+                            ActionMenuItem(
+                                text = stringResource(R.string.text_14_32),
+                                icon = Icons.Default.Edit,
+                                onClick = {
+                                    menuOpen = false
+                                    if (request.status == RequestStatus.Open) onEditRequest(request.id) else showLocked = true
+                                }
+                            )
+                            ActionMenuItem(
+                                text = stringResource(R.string.text_14_15),
+                                icon = Icons.Default.Delete,
+                                destructive = true,
+                                onClick = {
+                                    menuOpen = false
+                                    if (request.status == RequestStatus.Open) confirmDelete = true else showLocked = true
+                                }
+                            )
                         }
                     }
                 } else {
@@ -546,29 +539,54 @@ fun ResponsesScreen(
                 exit = revealExit(clip = false)
             ) {
                 PinnedBar(dividerVisible = listState.canScrollForward) {
-                    val canComplete = !LocalDate.now().isBefore(request.start)
-                    val hint = when {
-                        !canComplete -> stringResource(R.string.text_14_18, request.start.format(DayMonthFormat))
-                        finishesEarly -> stringResource(R.string.text_14_28, request.end.format(DayMonthFormat))
-                        else -> null
-                    }
-                    if (hint != null) {
+                    if (request.ownerConfirmedCompletion) {
+                        IconLine(
+                            icon = Icons.Default.HourglassTop,
+                            text = stringResource(R.string.text_14_29, chosenName),
+                            iconSize = 20.dp,
+                            textStyle = MaterialTheme.typography.bodyLarge,
+                            textColor = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
                         Text(
-                            text = hint,
+                            text = stringResource(R.string.text_14_30),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp)
+                        )
+                    } else {
+                        val canComplete = !LocalDate.now().isBefore(request.start)
+                        val hint = when {
+                            request.volunteerConfirmedCompletion -> stringResource(R.string.text_14_31)
+                            !canComplete -> stringResource(R.string.text_14_18, request.start.format(DayMonthFormat))
+                            finishesEarly -> stringResource(R.string.text_14_28, request.end.format(DayMonthFormat))
+                            else -> null
+                        }
+                        if (hint != null) {
+                            Text(
+                                text = hint,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                        }
+                        PrimaryButton(
+                            text = stringResource(
+                                when {
+                                    request.volunteerConfirmedCompletion -> R.string.common_confirm_completion
+                                    canComplete && finishesEarly -> R.string.text_14_27
+                                    else -> R.string.text_14_10
+                                }
+                            ),
+                            loading = completing,
+                            enabled = canComplete,
+                            onClick = { confirmComplete = true }
                         )
                     }
-                    PrimaryButton(
-                        text = stringResource(
-                            if (canComplete && finishesEarly) R.string.text_14_27 else R.string.text_14_10
-                        ),
-                        loading = completing,
-                        enabled = canComplete,
-                        onClick = { confirmComplete = true }
-                    )
                 }
             }
 

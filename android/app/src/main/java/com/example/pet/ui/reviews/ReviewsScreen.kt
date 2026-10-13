@@ -1,5 +1,9 @@
 package com.example.pet.ui.reviews
 
+import com.example.pet.ui.components.ReviewReportSheet
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.example.pet.ui.components.ScreenHorizontalPadding
 import com.example.pet.ui.components.ScreenTopGap
 import com.example.pet.ui.components.ScreenBottomGap
@@ -31,9 +35,14 @@ import com.example.pet.ui.components.adaptiveContentWidth
 fun ReviewsScreen(
     volunteerId: String,
     onBack: () -> Unit,
+    onOpenOwner: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val allReviews by AppContainer.reviews.reviews.collectAsStateWithLifecycle()
+    val owners by AppContainer.owners.owners.collectAsStateWithLifecycle()
+    var reportReviewId by rememberSaveable { mutableStateOf<String?>(null) }
+
+    reportReviewId?.let { id -> ReviewReportSheet(reviewId = id, onDismiss = { reportReviewId = null }) }
     val reviews = allReviews.filter { it.volunteerId == volunteerId }
 
     Box(
@@ -57,7 +66,18 @@ fun ReviewsScreen(
             ) {
                 item(key = "summary") { ReviewSummary(reviews) }
                 items(reviews, key = { it.id }) { review ->
-                    ReviewCard(review = review, modifier = Modifier.animateItem())
+                    val author = owners.firstOrNull { it.id == review.authorId }
+                    ReviewCard(
+                        review = review,
+                        personPhotoUri = author?.avatarUri,
+                        onPersonClick = author?.let { { onOpenOwner(it.id) } },
+                        onReport = if (review.authorId != AppContainer.owners.currentOwnerId) {
+                            { reportReviewId = review.id }
+                        } else {
+                            null
+                        },
+                        modifier = Modifier.animateItem()
+                    )
                 }
             }
         }

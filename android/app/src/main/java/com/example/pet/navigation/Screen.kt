@@ -18,6 +18,7 @@ enum class Screen {
     MapPicker,
     Responses,
     VolunteerProfile,
+    OwnerProfile,
     Reviews,
     RequestDetails,
     EditProfile,
@@ -36,6 +37,7 @@ object Routes {
     const val ROLE_ARG = "role"
     const val REQUEST_ID_ARG = "requestId"
     const val VOLUNTEER_ID_ARG = "volunteerId"
+    const val OWNER_ID_ARG = "ownerId"
     const val PET_ID_ARG = "petId"
     const val TARGET_ARG = "target"
     const val FOR_VOLUNTEER_ARG = "forVolunteer"
@@ -52,6 +54,9 @@ object Routes {
 
     val VOLUNTEER_PROFILE = "${Screen.VolunteerProfile.name}/{$VOLUNTEER_ID_ARG}"
     fun volunteerProfile(volunteerId: String) = "${Screen.VolunteerProfile.name}/$volunteerId"
+
+    val OWNER_PROFILE = "${Screen.OwnerProfile.name}/{$OWNER_ID_ARG}"
+    fun ownerProfile(ownerId: String) = "${Screen.OwnerProfile.name}/$ownerId"
 
     val REVIEWS = "${Screen.Reviews.name}/{$VOLUNTEER_ID_ARG}"
     fun reviews(volunteerId: String) = "${Screen.Reviews.name}/$volunteerId"
