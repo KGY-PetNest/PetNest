@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -41,7 +40,6 @@ import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -289,7 +287,7 @@ fun ChatInfoScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(ListItemSpacing)) {
                     SettingsRow(
                         icon = Icons.Default.Flag,
-                        text = stringResource(R.string.text_10_32),
+                        text = stringResource(R.string.common_report),
                         onClick = { safety.reportOpen = true },
                         danger = true
                     )

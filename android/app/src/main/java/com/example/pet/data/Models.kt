@@ -95,7 +95,16 @@ data class UserProfile(
     val name: String,
     val phone: String,
     val email: String,
-    val avatarUri: String? = null
+    val avatarUri: String? = null,
+    val joinedAt: LocalDate = LocalDate.now()
+)
+
+data class OwnerProfile(
+    val id: String,
+    val name: String,
+    val avatarUri: String? = null,
+    val joinedAt: LocalDate = LocalDate.now(),
+    val completedCount: Int = 0
 )
 
 data class Pet(
@@ -106,7 +115,8 @@ data class Pet(
     val traits: List<PetTrait>,
     val features: String,
     val photoUri: String? = null,
-    val kind: PetKind = kindFromAnimal(animal)
+    val kind: PetKind = kindFromAnimal(animal),
+    val traitsOther: String = ""
 ) {
     val info: String
         get() = "$animal, ${yearsText(age)}"
@@ -133,7 +143,10 @@ data class PetRequest(
     val ownerName: String = "",
     val ownerPhone: String = "",
     val format: CareFormat = CareFormat.AtVolunteer,
-    val visitsPerDay: Int = DEFAULT_VISITS_PER_DAY
+    val visitsPerDay: Int = DEFAULT_VISITS_PER_DAY,
+    val traitsOther: String = "",
+    val ownerConfirmedCompletion: Boolean = false,
+    val volunteerConfirmedCompletion: Boolean = false
 ) {
     val days: Int
         get() = ChronoUnit.DAYS.between(start, end).toInt().coerceAtLeast(1)
@@ -174,8 +187,35 @@ data class Volunteer(
     val phone: String = "",
     val completedCount: Int = 0,
     val joinedAt: LocalDate = LocalDate.now(),
-    val formats: List<CareFormat> = CareFormat.entries
+    val formats: List<CareFormat> = CareFormat.entries,
+    val homeConditionsOther: String = "",
+    val acceptedPetsOther: String = ""
 )
+
+val PetRequest.hasNoTraits: Boolean
+    get() = traits.isEmpty() && traitsOther.isBlank()
+
+private val PetKind.acceptedAs: Set<AcceptedPet>
+    get() = when (this) {
+        PetKind.Cat -> setOf(AcceptedPet.Cats)
+        PetKind.Dog -> setOf(AcceptedPet.SmallDogs, AcceptedPet.LargeDogs)
+        PetKind.Rodent -> setOf(AcceptedPet.Rodents)
+        PetKind.Bird -> setOf(AcceptedPet.Birds)
+        PetKind.Other -> setOf(AcceptedPet.Other)
+    }
+
+fun PetRequest.suits(volunteer: Volunteer): Boolean {
+    val home = volunteer.homeConditions.toSet()
+    val atVolunteer = format == CareFormat.AtVolunteer
+    val formatOk = volunteer.formats.isEmpty() || format in volunteer.formats
+    val kindOk = volunteer.acceptedPets.isEmpty() || volunteer.acceptedPets.any { it in kind.acceptedAs }
+    val medicationOk = PetTrait.Medication !in traits || HomeConditionType.CanGiveMedication in home
+    val walksOk = PetTrait.NeedsWalks !in traits || HomeConditionType.CanWalk in home
+    val aloneOk = !atVolunteer || PetTrait.CantBeAlone !in traits || HomeConditionType.SomeoneHome in home
+    val kidsOk = !atVolunteer || PetTrait.NotGoodWithKids !in traits || HomeConditionType.HasKids !in home
+    val animalsOk = !atVolunteer || PetTrait.NotFriendlyWithAnimals !in traits || HomeConditionType.HasOtherPets !in home
+    return formatOk && kindOk && medicationOk && walksOk && aloneOk && kidsOk && animalsOk
+}
 
 data class Review(
     val id: String,
@@ -184,7 +224,8 @@ data class Review(
     val authorName: String,
     val rating: Int,
     val text: String,
-    val date: LocalDate
+    val date: LocalDate,
+    val authorId: String = ""
 )
 
 enum class MessageStatus { Sending, Sent, Read, Failed }
@@ -202,7 +243,7 @@ data class ChatAttachment(
 
 enum class ChatEvent { VolunteerChosen, ChoiceCancelled, Completed, VolunteerWithdrew }
 
-enum class ReportReason { Spam, Rude, Fraud, Inappropriate, Other }
+enum class ReportReason { Spam, Rude, Fraud, Inappropriate, Fake, Other }
 
 data class ChatMessage(
     val id: String,
@@ -239,31 +280,59 @@ val DayMonthFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM", Lo
 
 val DayMonthYearFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.forLanguageTag("ru"))
 
-private val RodentWords = listOf(
-    "хомя", "крыс", "мыш", "морск", "свинк", "шиншил", "песчан", "дегу", "крол", "бурундук", "белк", "hamster"
+val MonthYearFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.forLanguageTag("ru"))
+
+private class KindDictionary(
+    val kind: PetKind,
+    val prefixes: List<String>,
+    val words: Set<String> = emptySet()
+) {
+    fun matches(word: String): Boolean = word in words || prefixes.any { word.startsWith(it) }
+}
+
+private val KindDictionaries = listOf(
+    KindDictionary(
+        PetKind.Rodent,
+        listOf("хомя", "крыс", "мыш", "свинк", "шиншил", "песчан", "дегу", "крол", "бурундук", "белк", "hamster", "rabbit"),
+        setOf("rat")
+    ),
+    KindDictionary(
+        PetKind.Bird,
+        listOf(
+            "попуг", "волнист", "канар", "кенар", "птиц", "амадин", "корелл", "неразлуч", "щегол", "жако", "какаду",
+            "розелл", "аратинг", "голубь", "голуби", "parrot", "bird"
+        ),
+        setOf("ара")
+    ),
+    KindDictionary(
+        PetKind.Dog,
+        listOf(
+            "песик", "песел", "собак", "щен", "дворняг", "дворняж", "двортерьер", "овчар", "терьер", "такс", "лабрадор",
+            "ретривер", "хаски", "корги", "шпиц", "мопс", "бульдог", "чихуа", "спаниел", "кокер", "пудел", "бигл",
+            "джек", "рассел", "йорк", "доберман", "ротвейлер", "шарпей", "акита", "сиба", "шиба", "самоед", "маламут",
+            "алабай", "стафф", "питбул", "бишон", "мальтез", "мальтипу", "болонк", "пекин", "померан", "шитцу",
+            "лхаса", "колли", "шелти", "бордер", "аусси", "далмат", "боксер", "бассет", "басенджи", "веймар", "корсо",
+            "мастиф", "сенбернар", "ньюфаунд", "зенненхунд", "лайк", "левретк", "грейхаунд", "борз", "гонч", "сеттер",
+            "пойнтер", "риджбек", "dog", "puppy"
+        ),
+        setOf("пес", "дог", "дого", "той", "чау", "тцу")
+    ),
+    KindDictionary(
+        PetKind.Cat,
+        listOf(
+            "кот", "кош", "сфинкс", "мейн", "британ", "шотланд", "скоттиш", "вислоух", "сиам", "перс", "бенгал",
+            "абиссин", "регдол", "рэгдол", "бирм", "бурм", "невск", "сибир", "голубая", "ориентал", "девон", "корниш", "рекс",
+            "экзот", "ангор", "петерболд", "бобтейл", "манчкин", "тайск", "kitten"
+        ),
+        setOf("cat")
+    )
 )
 
-private val BirdWords = listOf(
-    "попуг", "канар", "кенар", "птиц", "амадин", "корелл", "неразлуч", "щегол", "parrot", "bird"
-)
-
-private val DogWords = listOf(
-    "пёс", "пес", "собак", "щен", "овчар", "терьер", "такс", "лабрадор", "ретривер", "хаски", "корги",
-    "шпиц", "мопс", "бульдог", "чихуа", "спаниел", "пудел", "дворняж", "dog", "puppy"
-)
-
-private val CatWords = listOf("кот", "кош", "сфинкс", "мейн-кун", "мейнкун", "cat", "kitten")
+private val NonLetters = Regex("[^\\p{L}]+")
 
 fun recognizedKind(animal: String): PetKind? {
-    val text = animal.lowercase(Locale.forLanguageTag("ru"))
-    return when {
-        text.isBlank() -> null
-        RodentWords.any { it in text } -> PetKind.Rodent
-        BirdWords.any { it in text } -> PetKind.Bird
-        DogWords.any { it in text } -> PetKind.Dog
-        CatWords.any { it in text } -> PetKind.Cat
-        else -> null
-    }
+    val words = animal.lowercase(Locale.forLanguageTag("ru")).replace('ё', 'е').split(NonLetters).filter { it.isNotEmpty() }
+    return KindDictionaries.firstOrNull { dictionary -> words.any(dictionary::matches) }?.kind
 }
 
 fun kindFromAnimal(animal: String): PetKind = recognizedKind(animal) ?: PetKind.Other

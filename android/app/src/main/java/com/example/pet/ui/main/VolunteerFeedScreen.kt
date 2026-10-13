@@ -17,12 +17,13 @@ import com.example.pet.ui.components.FormButtonGap
 import com.example.pet.ui.components.fadeThrough
 import com.example.pet.ui.components.careFormatText
 import com.example.pet.ui.components.icon
+import com.example.pet.ui.components.label
 import com.example.pet.data.CareFormat
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -41,17 +42,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.outlined.Chat
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.NearMe
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -91,8 +91,15 @@ import com.example.pet.data.UserRole
 import com.example.pet.data.canChat
 import com.example.pet.data.distanceKmTo
 import com.example.pet.data.formatDistanceKm
+import com.example.pet.data.hasNoTraits
+import com.example.pet.data.suits
 import com.example.pet.ui.components.DateRangeDialog
+import com.example.pet.ui.components.AppDropdownMenu
+import com.example.pet.ui.components.ChoiceMenuItem
 import com.example.pet.ui.components.FilterPill
+import com.example.pet.ui.components.MenuFilterPill
+import com.example.pet.ui.components.revealEnter
+import com.example.pet.ui.components.revealExit
 import com.example.pet.ui.components.bleedHorizontally
 import com.example.pet.ui.components.IconLine
 import com.example.pet.ui.components.LocationOutcome
@@ -121,14 +128,6 @@ private enum class FeedSort(@param:StringRes val label: Int) {
     Shortest(R.string.text_12_15),
     Longest(R.string.text_12_16)
 }
-
-private val KindFilters = listOf(
-    PetKind.Cat to R.string.text_12_3,
-    PetKind.Dog to R.string.text_12_4,
-    PetKind.Rodent to R.string.text_12_50,
-    PetKind.Bird to R.string.text_12_51,
-    PetKind.Other to R.string.text_12_9
-)
 
 private val FormatFilters = listOf(
     CareFormat.AtVolunteer to R.string.text_12_52,
@@ -183,6 +182,10 @@ fun VolunteerFeedScreen(
     var sort by rememberSaveable { mutableStateOf(FeedSort.Soonest) }
     var mustHave by rememberSaveable { mutableStateOf(emptySet<PetTrait>()) }
     var exclude by rememberSaveable { mutableStateOf(emptySet<PetTrait>()) }
+    var noTraitsOnly by rememberSaveable { mutableStateOf(false) }
+    var suitsMe by rememberSaveable { mutableStateOf(false) }
+    val volunteers by AppContainer.volunteers.volunteers.collectAsStateWithLifecycle()
+    val me = volunteers.firstOrNull { it.id == MockData.CURRENT_VOLUNTEER_ID }
 
     var sortMenuOpen by remember { mutableStateOf(false) }
     var datesDialogOpen by remember { mutableStateOf(false) }
@@ -249,7 +252,7 @@ fun VolunteerFeedScreen(
         }
     }
 
-    val requests = remember(feed, kinds, formats, radiusKm, distances, freeFrom, freeTo, sort, mustHave, exclude) {
+    val requests = remember(feed, kinds, formats, radiusKm, distances, freeFrom, freeTo, sort, mustHave, exclude, noTraitsOnly, suitsMe, me) {
         feed
             .filter { it.acceptsResponses }
             .filter { request ->
@@ -262,9 +265,13 @@ fun VolunteerFeedScreen(
                 val to = freeTo
                 val datesOk = from == null || to == null ||
                         (!request.start.isBefore(from) && !request.end.isAfter(to))
-                val traitsOk = request.traits.containsAll(mustHave) &&
-                        request.traits.none { it in exclude }
-                kindOk && radiusOk && datesOk && traitsOk
+                val traitsOk = if (noTraitsOnly) {
+                    request.hasNoTraits
+                } else {
+                    request.traits.containsAll(mustHave) && request.traits.none { it in exclude }
+                }
+                val suitsOk = !suitsMe || me == null || request.suits(me)
+                kindOk && radiusOk && datesOk && traitsOk && suitsOk
             }
             .let { list ->
                 when (sort) {
@@ -305,6 +312,8 @@ fun VolunteerFeedScreen(
         datesState.setSelection(null, null)
         mustHave = emptySet()
         exclude = emptySet()
+        noTraitsOnly = false
+        suitsMe = false
     }
 
     fun openChat(requestId: String) {
@@ -352,6 +361,8 @@ fun VolunteerFeedScreen(
         TraitsFilterSheet(
             mustHave = mustHave,
             exclude = exclude,
+            noTraitsOnly = noTraitsOnly,
+            onNoTraitsToggle = { noTraitsOnly = !noTraitsOnly },
             onMustHaveToggle = { trait ->
                 mustHave = if (trait in mustHave) mustHave - trait else mustHave + trait
                 exclude = exclude - trait
@@ -363,6 +374,7 @@ fun VolunteerFeedScreen(
             onReset = {
                 mustHave = emptySet()
                 exclude = emptySet()
+                noTraitsOnly = false
             },
             onDismiss = { traitsSheetOpen = false }
         )
@@ -421,6 +433,7 @@ fun VolunteerFeedScreen(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
+                .bleedHorizontally(ScreenHorizontalPadding)
         ) { currentTab ->
             if (currentTab == 0) {
                 Column(modifier = Modifier.fillMaxSize()) {
@@ -435,7 +448,13 @@ fun VolunteerFeedScreen(
                         freeFrom = freeFrom,
                         freeTo = freeTo,
                         onDatesClick = { datesDialogOpen = true },
-                        traitsCount = mustHave.size + exclude.size,
+                        traitsCount = if (noTraitsOnly) 1 else mustHave.size + exclude.size,
+                        suitsMe = suitsMe,
+                        onSuitsMeClick = { suitsMe = !suitsMe },
+                        noFilters = kinds.isEmpty() && formats.isEmpty() && (radiusKm == null || myLocation == null) &&
+                            freeFrom == null && freeTo == null && mustHave.isEmpty() && exclude.isEmpty() &&
+                            !noTraitsOnly && !suitsMe,
+                        onAllClick = { resetFilters() },
                         onTraitsClick = { traitsSheetOpen = true },
                         sort = sort,
                         sortMenuOpen = sortMenuOpen,
@@ -455,6 +474,7 @@ fun VolunteerFeedScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
+                            .padding(horizontal = ScreenHorizontalPadding)
                     ) {
                         items(requests, key = { it.id }) { request ->
                             VolunteerRequestCard(
@@ -493,7 +513,9 @@ fun VolunteerFeedScreen(
                     state = myListState,
                     verticalArrangement = Arrangement.spacedBy(ListItemSpacing),
                     contentPadding = PaddingValues(bottom = ScreenBottomGap),
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = ScreenHorizontalPadding)
                 ) {
                     val responseCard: @Composable (PetRequest, MyResponseStatus, Modifier) -> Unit = { request, status, cardModifier ->
                         VolunteerRequestCard(
@@ -571,19 +593,30 @@ private fun FeedFilters(
     onDatesClick: () -> Unit,
     traitsCount: Int,
     onTraitsClick: () -> Unit,
+    suitsMe: Boolean,
+    onSuitsMeClick: () -> Unit,
+    noFilters: Boolean,
+    onAllClick: () -> Unit,
     sort: FeedSort,
     sortMenuOpen: Boolean,
     onSortMenuOpenChange: (Boolean) -> Unit,
     onSortChange: (FeedSort) -> Unit
 ) {
+    var kindsMenuOpen by remember { mutableStateOf(false) }
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .bleedHorizontally(ScreenHorizontalPadding)
             .horizontalScroll(rememberScrollState())
             .padding(horizontal = ScreenHorizontalPadding)
     ) {
+        FilterPill(
+            text = stringResource(R.string.common_all),
+            selected = noFilters,
+            onClick = onAllClick
+        )
+
         FilterPill(
             text = if (radiusKm != null && hasLocation) {
                 stringResource(R.string.text_12_26, radiusKm)
@@ -595,29 +628,42 @@ private fun FeedFilters(
             onClick = onLocationClick
         )
 
-        FormatFilters.forEach { (format, label) ->
-            FilterPill(
-                text = stringResource(label),
-                selected = format in formats,
-                leadingIcon = format.icon,
-                onClick = { onFormatsChange(if (formats == setOf(format)) emptySet() else setOf(format)) }
-            )
-        }
-
         FilterPill(
-            text = stringResource(R.string.common_all),
-            selected = kinds.isEmpty(),
-            onClick = { onKindsChange(emptySet()) }
+            text = stringResource(R.string.text_12_56),
+            selected = suitsMe,
+            leadingIcon = Icons.Default.AutoAwesome,
+            onClick = onSuitsMeClick
         )
-        KindFilters.forEach { (kind, label) ->
-            FilterPill(
-                text = stringResource(label),
-                selected = kind in kinds,
+
+        MenuFilterPill(
+            text = when (kinds.size) {
+                0 -> stringResource(R.string.text_12_58)
+                1 -> stringResource(kinds.first().label)
+                else -> stringResource(R.string.text_12_59, kinds.size)
+            },
+            selected = kinds.isNotEmpty(),
+            leadingIcon = Icons.Default.Pets,
+            expanded = kindsMenuOpen,
+            onExpandedChange = { kindsMenuOpen = it }
+        ) {
+            ChoiceMenuItem(
+                text = stringResource(R.string.common_all),
+                selected = kinds.isEmpty(),
                 onClick = {
-                    val updated = if (kind in kinds) kinds - kind else kinds + kind
-                    onKindsChange(if (updated.size == PetKind.entries.size) emptySet() else updated)
+                    onKindsChange(emptySet())
+                    kindsMenuOpen = false
                 }
             )
+            PetKind.entries.forEach { kind ->
+                ChoiceMenuItem(
+                    text = stringResource(kind.label),
+                    selected = kind in kinds,
+                    onClick = {
+                        val updated = if (kind in kinds) kinds - kind else kinds + kind
+                        onKindsChange(if (updated.size == PetKind.entries.size) emptySet() else updated)
+                    }
+                )
+            }
         }
 
         FilterPill(
@@ -631,6 +677,15 @@ private fun FeedFilters(
             onClick = onDatesClick
         )
 
+        FormatFilters.forEach { (format, label) ->
+            FilterPill(
+                text = stringResource(label),
+                selected = format in formats,
+                leadingIcon = format.icon,
+                onClick = { onFormatsChange(if (formats == setOf(format)) emptySet() else setOf(format)) }
+            )
+        }
+
         FilterPill(
             text = if (traitsCount > 0) {
                 stringResource(R.string.text_12_20, traitsCount)
@@ -642,31 +697,22 @@ private fun FeedFilters(
             onClick = onTraitsClick
         )
 
-        Box {
-            FilterPill(
-                text = stringResource(sort.label),
-                selected = sort != FeedSort.Soonest,
-                leadingIcon = Icons.AutoMirrored.Filled.Sort,
-                onClick = { onSortMenuOpenChange(true) }
-            )
-            DropdownMenu(
-                expanded = sortMenuOpen,
-                onDismissRequest = { onSortMenuOpenChange(false) }
-            ) {
-                FeedSort.entries.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(stringResource(option.label)) },
-                        leadingIcon = if (option == sort) {
-                            { Icon(Icons.Default.Check, contentDescription = null) }
-                        } else {
-                            null
-                        },
-                        onClick = {
-                            onSortChange(option)
-                            onSortMenuOpenChange(false)
-                        }
-                    )
-                }
+        MenuFilterPill(
+            text = stringResource(sort.label),
+            selected = sort != FeedSort.Soonest,
+            leadingIcon = Icons.AutoMirrored.Filled.Sort,
+            expanded = sortMenuOpen,
+            onExpandedChange = onSortMenuOpenChange
+        ) {
+            FeedSort.entries.forEach { option ->
+                ChoiceMenuItem(
+                    text = stringResource(option.label),
+                    selected = option == sort,
+                    onClick = {
+                        onSortChange(option)
+                        onSortMenuOpenChange(false)
+                    }
+                )
             }
         }
     }
@@ -744,6 +790,7 @@ private fun VolunteerRequestCard(
         if (status == null) {
             PetTraitChips(
                 traits = request.traits,
+                other = request.traitsOther,
                 singleLine = true,
                 modifier = Modifier.padding(top = 4.dp)
             )
@@ -900,6 +947,8 @@ private fun LocationFilterSheet(
 private fun TraitsFilterSheet(
     mustHave: Set<PetTrait>,
     exclude: Set<PetTrait>,
+    noTraitsOnly: Boolean,
+    onNoTraitsToggle: () -> Unit,
     onMustHaveToggle: (PetTrait) -> Unit,
     onExcludeToggle: (PetTrait) -> Unit,
     onReset: () -> Unit,
@@ -923,13 +972,27 @@ private fun TraitsFilterSheet(
         ) {
             SheetTitle(text = stringResource(R.string.text_12_19))
 
-            FieldLabel(text = stringResource(R.string.text_12_21))
-            PetTraitSelector(selected = mustHave, onToggle = onMustHaveToggle)
+            FilterPill(
+                text = stringResource(R.string.text_12_57),
+                selected = noTraitsOnly,
+                onClick = onNoTraitsToggle
+            )
 
-            Spacer(Modifier.height(20.dp))
+            AnimatedVisibility(
+                visible = !noTraitsOnly,
+                enter = revealEnter(),
+                exit = revealExit()
+            ) {
+                Column(modifier = Modifier.padding(top = 20.dp)) {
+                    FieldLabel(text = stringResource(R.string.text_12_21))
+                    PetTraitSelector(selected = mustHave, onToggle = onMustHaveToggle)
 
-            FieldLabel(text = stringResource(R.string.text_12_22))
-            PetTraitSelector(selected = exclude, onToggle = onExcludeToggle)
+                    Spacer(Modifier.height(20.dp))
+
+                    FieldLabel(text = stringResource(R.string.text_12_22))
+                    PetTraitSelector(selected = exclude, onToggle = onExcludeToggle)
+                }
+            }
 
             Spacer(Modifier.height(FormButtonGap))
 

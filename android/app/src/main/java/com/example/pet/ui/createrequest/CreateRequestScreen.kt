@@ -4,7 +4,6 @@ import com.example.pet.ui.components.ScreenContentInset
 import com.example.pet.ui.components.ScreenHorizontalPadding
 import com.example.pet.ui.components.FieldLabel
 import com.example.pet.ui.components.FieldError
-import com.example.pet.ui.components.FieldSupportingInset
 import com.example.pet.ui.components.SmallThumbnailSize
 import com.example.pet.ui.components.FieldSupportingText
 import com.example.pet.ui.components.ScreenTopGap
@@ -21,9 +20,6 @@ import com.example.pet.data.CareFormat
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -268,6 +264,7 @@ fun CreateRequestScreen(
             location = location,
             comment = comment.trim(),
             traits = pet.traits,
+            traitsOther = pet.traitsOther,
             features = pet.features,
             petPhotoUri = pet.photoUri,
             status = existing?.status ?: RequestStatus.Open,
@@ -702,6 +699,7 @@ private fun PetCard(
                 if (current != null) {
                     PetTraitChips(
                         traits = current.traits,
+                        other = current.traitsOther,
                         modifier = Modifier.padding(top = 6.dp)
                     )
                 }

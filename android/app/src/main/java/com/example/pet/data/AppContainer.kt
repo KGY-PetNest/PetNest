@@ -10,6 +10,8 @@ import com.example.pet.data.repository.InMemoryPetRepository
 import com.example.pet.data.repository.InMemoryProfileRepository
 import com.example.pet.data.repository.InMemoryRequestRepository
 import com.example.pet.data.repository.InMemoryReviewRepository
+import com.example.pet.data.repository.InMemoryOwnerRepository
+import com.example.pet.data.repository.OwnerRepository
 import com.example.pet.data.repository.InMemoryVolunteerRepository
 import com.example.pet.data.repository.PetRepository
 import com.example.pet.data.repository.PrefsSettingsRepository
@@ -28,6 +30,7 @@ object AppContainer {
     val requests: RequestRepository = requestStore
     val pets: PetRepository = InMemoryPetRepository(requestStore)
     val reviews: ReviewRepository = InMemoryReviewRepository()
+    val owners: OwnerRepository = InMemoryOwnerRepository(profiles, requests)
     val chats: ChatRepository = InMemoryChatRepository(requests, volunteers)
     val push: PushRepository = FakePushRepository()
 

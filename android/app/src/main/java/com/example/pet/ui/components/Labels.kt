@@ -163,11 +163,12 @@ val MyResponseStatus.label: Int
 @get:StringRes
 val ReportReason.label: Int
     get() = when (this) {
-        ReportReason.Spam -> R.string.text_10_41
-        ReportReason.Rude -> R.string.text_10_42
-        ReportReason.Fraud -> R.string.text_10_43
-        ReportReason.Inappropriate -> R.string.text_10_44
-        ReportReason.Other -> R.string.text_10_45
+        ReportReason.Spam -> R.string.common_report_spam
+        ReportReason.Rude -> R.string.common_report_rude
+        ReportReason.Fraud -> R.string.common_report_fraud
+        ReportReason.Inappropriate -> R.string.common_report_inappropriate
+        ReportReason.Fake -> R.string.common_report_fake
+        ReportReason.Other -> R.string.common_report_other
     }
 
 @StringRes

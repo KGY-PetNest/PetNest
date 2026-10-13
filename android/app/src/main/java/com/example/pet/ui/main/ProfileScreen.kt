@@ -47,6 +47,7 @@ import com.example.pet.ui.components.IconLine
 import com.example.pet.ui.components.ListThumbnailSize
 import com.example.pet.ui.components.PetThumbnail
 import com.example.pet.ui.components.ProfileHeader
+import com.example.pet.ui.components.JoinedSinceLine
 import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.ScreenSection
 import com.example.pet.ui.components.ScreenTopGap
@@ -97,6 +98,7 @@ fun ProfileScreen(
             Spacer(Modifier.height(ScreenTopGap))
 
             ProfileHeader(name = profile.name, photoUri = profile.avatarUri) {
+                JoinedSinceLine(profile.joinedAt)
                 IconLine(
                     icon = Icons.Default.Phone,
                     text = formatPhone(profile.phone),

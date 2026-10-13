@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Pets
@@ -260,6 +261,18 @@ private fun RequestCard(
                     icon = Icons.Default.Info,
                     text = stringResource(R.string.text_8_8),
                     textColor = MaterialTheme.colorScheme.error
+                )
+            } else if (request.status == RequestStatus.VolunteerChosen && request.ownerConfirmedCompletion) {
+                IconLine(
+                    icon = Icons.Default.HourglassTop,
+                    text = stringResource(R.string.text_8_12),
+                    textColor = MaterialTheme.colorScheme.primary
+                )
+            } else if (request.status == RequestStatus.VolunteerChosen && request.volunteerConfirmedCompletion) {
+                IconLine(
+                    icon = Icons.Default.Info,
+                    text = stringResource(R.string.text_8_13),
+                    textColor = MaterialTheme.colorScheme.primary
                 )
             } else if (request.status == RequestStatus.VolunteerChosen && !LocalDate.now().isBefore(request.end)) {
                 IconLine(

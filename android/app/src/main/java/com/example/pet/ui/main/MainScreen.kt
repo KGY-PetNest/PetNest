@@ -70,7 +70,8 @@ fun MainScreen(
                 onEditPet = { navigateOuter(Routes.petProfile(it)) },
                 onOpenSettings = { navigateOuter(Routes.settings(role)) },
                 onOpenReviews = { navigateOuter(Routes.reviews(it)) },
-                onOpenChat = { navigateOuter(Routes.conversation(it, role)) }
+                onOpenChat = { navigateOuter(Routes.conversation(it, role)) },
+                onOpenOwnerProfile = { navigateOuter(Routes.ownerProfile(it)) }
             ),
             modifier = Modifier.weight(1f)
         )

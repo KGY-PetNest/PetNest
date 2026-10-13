@@ -61,12 +61,11 @@ import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import com.example.pet.ui.components.ActionMenuItem
+import com.example.pet.ui.components.MoreMenuButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
@@ -252,7 +251,7 @@ fun ConversationScreen(
             if (failed) {
                 if (draft.isEmpty()) draft = text
                 if (pending.isEmpty()) pending = files
-                errorRes = R.string.text_10_52
+                errorRes = R.string.common_send_failed
             }
         }
     }
@@ -438,62 +437,37 @@ private fun ConversationHeader(
                 )
             }
         }
-        Box {
-            IconButton(onClick = { menuOpen = true }) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = stringResource(R.string.text_10_53),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.text_10_32)) },
-                    leadingIcon = { Icon(Icons.Default.Flag, contentDescription = null) },
-                    onClick = {
-                        menuOpen = false
-                        onReport()
-                    }
-                )
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = stringResource(if (chat.blocked) R.string.text_10_34 else R.string.text_10_33),
-                            color = if (chat.blocked) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Block,
-                            contentDescription = null,
-                            tint = if (chat.blocked) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error
-                        )
-                    },
-                    onClick = {
-                        menuOpen = false
-                        onToggleBlock()
-                    }
-                )
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = stringResource(R.string.text_10_58),
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    },
-                    onClick = {
-                        menuOpen = false
-                        onDelete()
-                    }
-                )
-            }
+        MoreMenuButton(
+            expanded = menuOpen,
+            onExpandedChange = { menuOpen = it },
+            tint = MaterialTheme.colorScheme.primary
+        ) {
+            ActionMenuItem(
+                text = stringResource(R.string.common_report),
+                icon = Icons.Default.Flag,
+                onClick = {
+                    menuOpen = false
+                    onReport()
+                }
+            )
+            ActionMenuItem(
+                text = stringResource(if (chat.blocked) R.string.text_10_34 else R.string.text_10_33),
+                icon = Icons.Default.Block,
+                destructive = !chat.blocked,
+                onClick = {
+                    menuOpen = false
+                    onToggleBlock()
+                }
+            )
+            ActionMenuItem(
+                text = stringResource(R.string.text_10_58),
+                icon = Icons.Default.Delete,
+                destructive = true,
+                onClick = {
+                    menuOpen = false
+                    onDelete()
+                }
+            )
         }
     }
 }

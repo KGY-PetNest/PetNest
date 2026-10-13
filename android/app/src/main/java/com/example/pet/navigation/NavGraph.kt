@@ -61,6 +61,7 @@ import com.example.pet.ui.responses.ResponsesScreen
 import com.example.pet.ui.reviews.ReviewsScreen
 import com.example.pet.ui.settings.SettingsScreen
 import com.example.pet.ui.volunteerprofile.VolunteerProfileScreen
+import com.example.pet.ui.ownerprofile.OwnerProfileScreen
 import com.example.pet.ui.welcome.WelcomeScreen
 import kotlinx.coroutines.launch
 
@@ -609,6 +610,28 @@ fun NavGraph(
                         entry.ifResumed {
                             navController.navigate(Routes.reviews(id)) { launchSingleTop = true }
                         }
+                    },
+                    onOpenOwner = { id ->
+                        entry.ifResumed {
+                            navController.navigate(Routes.ownerProfile(id)) { launchSingleTop = true }
+                        }
+                    }
+                )
+            }
+        }
+
+        composable(
+            route = Routes.OWNER_PROFILE,
+            arguments = listOf(navArgument(Routes.OWNER_ID_ARG) { type = NavType.StringType })
+        ) { entry ->
+            BottomInsetsPane {
+                OwnerProfileScreen(
+                    ownerId = entry.stringArg(Routes.OWNER_ID_ARG).orEmpty(),
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onOpenVolunteer = { id ->
+                        entry.ifResumed {
+                            navController.navigate(Routes.volunteerProfile(id)) { launchSingleTop = true }
+                        }
                     }
                 )
             }
@@ -621,7 +644,12 @@ fun NavGraph(
             BottomInsetsPane {
                 ReviewsScreen(
                     volunteerId = entry.stringArg(Routes.VOLUNTEER_ID_ARG).orEmpty(),
-                    onBack = { entry.ifResumed { navController.popBackStack() } }
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onOpenOwner = { id ->
+                        entry.ifResumed {
+                            navController.navigate(Routes.ownerProfile(id)) { launchSingleTop = true }
+                        }
+                    }
                 )
             }
         }

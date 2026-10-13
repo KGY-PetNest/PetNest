@@ -9,6 +9,7 @@ import com.example.pet.ui.components.FieldLabel
 import com.example.pet.ui.components.ScreenTopGap
 import com.example.pet.ui.components.ScrollEndGap
 import com.example.pet.ui.components.FormFieldSpacing
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -34,6 +35,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,12 +56,17 @@ import com.example.pet.R
 import com.example.pet.data.AppContainer
 import com.example.pet.data.Pet
 import com.example.pet.data.PetKind
+import com.example.pet.data.kindFromAnimal
 import com.example.pet.data.recognizedKind
 import com.example.pet.data.repository.PetInUseException
 import com.example.pet.data.PetTrait
 import com.example.pet.data.RequestStatus
 import com.example.pet.ui.components.FormRules
 import com.example.pet.ui.components.PetTraitSelector
+import com.example.pet.ui.components.FilterPill
+import com.example.pet.ui.components.revealEnter
+import com.example.pet.ui.components.revealExit
+import com.example.pet.ui.components.OtherOption
 import com.example.pet.ui.components.PinnedBottomBarLayout
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.ScreenHeader
@@ -68,6 +75,7 @@ import com.example.pet.ui.components.label
 import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.clearFocusOnTap
 import java.util.UUID
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.example.pet.ui.components.rememberLeaveGuard
 
@@ -90,11 +98,14 @@ fun PetProfileScreen(
     var animal by rememberSaveable { mutableStateOf(existing?.animal.orEmpty()) }
     var kind by rememberSaveable { mutableStateOf(existing?.kind) }
     var kindManual by rememberSaveable {
-        mutableStateOf(existing != null && existing.kind != recognizedKind(existing.animal))
+        mutableStateOf(existing != null && existing.kind != kindFromAnimal(existing.animal))
     }
     var age by rememberSaveable { mutableStateOf(existing?.age?.toString().orEmpty()) }
     var features by rememberSaveable { mutableStateOf(existing?.features.orEmpty()) }
     var traits by rememberSaveable { mutableStateOf(existing?.traits?.toSet() ?: emptySet()) }
+    var traitsOther by rememberSaveable { mutableStateOf(existing?.traitsOther.orEmpty()) }
+    val initialNoTraits = existing != null && existing.traits.isEmpty() && existing.traitsOther.isBlank()
+    var noTraits by rememberSaveable { mutableStateOf(initialNoTraits) }
     var saving by remember { mutableStateOf(false) }
 
     val hasChanges = photoUri != existing?.photoUri ||
@@ -103,35 +114,50 @@ fun PetProfileScreen(
             kind != existing?.kind ||
             age != existing?.age?.toString().orEmpty() ||
             features != existing?.features.orEmpty() ||
-            traits != (existing?.traits?.toSet() ?: emptySet<PetTrait>())
+            noTraits != initialNoTraits ||
+            !noTraits && (
+                traits != (existing?.traits?.toSet() ?: emptySet<PetTrait>()) ||
+                    traitsOther != existing?.traitsOther.orEmpty()
+                )
     val leave = rememberLeaveGuard(hasChanges = hasChanges && !saving, onLeave = onBack)
     var confirmDelete by remember { mutableStateOf(false) }
 
     var nameError by rememberSaveable { mutableStateOf(false) }
     var animalError by rememberSaveable { mutableStateOf(false) }
     var kindError by rememberSaveable { mutableStateOf(false) }
+    var traitsError by rememberSaveable { mutableStateOf(false) }
     var ageError by rememberSaveable { mutableStateOf(false) }
     var featuresError by rememberSaveable { mutableStateOf<Int?>(null) }
+
+    LaunchedEffect(animal, kindManual) {
+        if (kindManual || animal.isBlank() || recognizedKind(animal) != null) return@LaunchedEffect
+        delay(KIND_FALLBACK_DELAY_MS)
+        kind = PetKind.Other
+        kindError = false
+    }
 
     fun submit() {
         if (saving) return
         nameError = name.isBlank()
         animalError = animal.isBlank()
+        if (kind == null && !kindManual && !animalError) kind = kindFromAnimal(animal)
         kindError = kind == null
+        traitsError = !noTraits && traits.isEmpty() && traitsOther.isBlank()
         ageError = age.isBlank()
         featuresError = FormRules.descriptionError(features, R.string.text_4_13)
         val selectedKind = kind
-        if (!nameError && !animalError && selectedKind != null && !ageError && featuresError == null) {
+        if (!nameError && !animalError && selectedKind != null && !traitsError && !ageError && featuresError == null) {
             focusManager.clearFocus()
             val pet = Pet(
                 id = existing?.id ?: UUID.randomUUID().toString(),
                 name = name.trim(),
                 animal = animal.trim(),
                 age = age.toIntOrNull() ?: 0,
-                traits = PetTrait.entries.filter { it in traits },
+                traits = if (noTraits) emptyList() else PetTrait.entries.filter { it in traits },
                 features = features.trim(),
                 photoUri = photoUri,
-                kind = selectedKind
+                kind = selectedKind,
+                traitsOther = if (noTraits) "" else traitsOther.trim()
             )
             saving = true
             scope.launch {
@@ -336,14 +362,43 @@ fun PetProfileScreen(
                             FieldLabel(text = stringResource(R.string.text_4_6), required = true)
                             FieldHint(stringResource(R.string.text_4_23))
 
-                            PetTraitSelector(
-                                selected = traits,
-                                onToggle = { trait ->
-                                    traits = if (trait in traits) traits - trait else traits + trait
+                            FilterPill(
+                                text = stringResource(R.string.text_4_36),
+                                selected = noTraits,
+                                onClick = {
+                                    noTraits = !noTraits
+                                    traitsError = false
                                 }
                             )
 
-                            Spacer(Modifier.height(12.dp))
+                            AnimatedVisibility(
+                                visible = !noTraits,
+                                enter = revealEnter(),
+                                exit = revealExit()
+                            ) {
+                                PetTraitSelector(
+                                    selected = traits,
+                                    onToggle = { trait ->
+                                        traits = if (trait in traits) traits - trait else traits + trait
+                                        traitsError = false
+                                    },
+                                    other = OtherOption(
+                                        value = traitsOther,
+                                        onValueChange = {
+                                            traitsOther = it
+                                            if (it.isNotBlank()) traitsError = false
+                                        },
+                                        placeholder = stringResource(R.string.text_4_31)
+                                    ),
+                                    modifier = Modifier.padding(top = 12.dp)
+                                )
+                            }
+                            FieldError(visible = traitsError, text = stringResource(R.string.text_4_37))
+
+                            Spacer(Modifier.height(FormFieldSpacing))
+
+                            FieldLabel(text = stringResource(R.string.text_4_32), required = true)
+                            FieldHint(stringResource(R.string.text_4_33))
                         }
 
                         val featuresErrorText = featuresError?.let {
@@ -374,6 +429,7 @@ fun PetProfileScreen(
 }
 
 private val FEATURES_MIN_HEIGHT = 136.dp
+private const val KIND_FALLBACK_DELAY_MS = 800L
 
 @Composable
 private fun LabeledField(

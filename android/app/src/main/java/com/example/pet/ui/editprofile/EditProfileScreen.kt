@@ -67,6 +67,8 @@ import com.example.pet.ui.components.PinnedBottomBarLayout
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.ScreenHeader
 import com.example.pet.ui.components.SelectableChips
+import com.example.pet.ui.components.OtherOption
+import com.example.pet.ui.components.OtherDetailsField
 import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.clearFocusOnTap
 import com.example.pet.ui.components.label
@@ -103,6 +105,8 @@ fun EditProfileScreen(
     val startHome = filled?.homeConditions?.toSet() ?: emptySet()
     val startAccepted = filled?.acceptedPets?.toSet() ?: emptySet()
     val startFormats = filled?.formats?.toSet() ?: emptySet()
+    val startHomeOther = filled?.homeConditionsOther.orEmpty()
+    val startAcceptedOther = filled?.acceptedPetsOther.orEmpty()
 
     var name by rememberSaveable { mutableStateOf(profile.name) }
     var avatarUri by rememberSaveable { mutableStateOf(startAvatar) }
@@ -113,6 +117,8 @@ fun EditProfileScreen(
     var homeConditions by rememberSaveable { mutableStateOf(startHome) }
     var acceptedPets by rememberSaveable { mutableStateOf(startAccepted) }
     var formats by rememberSaveable { mutableStateOf(startFormats) }
+    var homeOther by rememberSaveable { mutableStateOf(startHomeOther) }
+    var acceptedOther by rememberSaveable { mutableStateOf(startAcceptedOther) }
 
     var nameError by rememberSaveable { mutableStateOf<Int?>(null) }
     var phoneError by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -120,6 +126,7 @@ fun EditProfileScreen(
     var experienceError by rememberSaveable { mutableStateOf<Int?>(null) }
     var aboutError by rememberSaveable { mutableStateOf<Int?>(null) }
     var acceptedError by rememberSaveable { mutableStateOf(false) }
+    var acceptedOtherError by rememberSaveable { mutableStateOf(false) }
     var formatsError by rememberSaveable { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     var saveError by remember { mutableStateOf(false) }
@@ -132,7 +139,9 @@ fun EditProfileScreen(
             about != startAbout ||
             homeConditions != startHome ||
             acceptedPets != startAccepted ||
-            formats != startFormats
+            formats != startFormats ||
+            homeOther != startHomeOther ||
+            acceptedOther != startAcceptedOther
     val leave = rememberLeaveGuard(hasChanges = hasChanges && !saving, onLeave = onBack)
 
     var confirmEmail by rememberSaveable { mutableStateOf(false) }
@@ -151,10 +160,11 @@ fun EditProfileScreen(
             experienceError = if (experience.isBlank()) R.string.text_17_6 else null
             aboutError = FormRules.descriptionError(about, R.string.text_17_7)
             acceptedError = acceptedPets.isEmpty()
+            acceptedOtherError = AcceptedPet.Other in acceptedPets && acceptedOther.isBlank()
             formatsError = formats.isEmpty()
         }
         val hasErrors = listOf(nameError, phoneError, emailError, experienceError, aboutError).any { it != null } ||
-                acceptedError || formatsError
+                acceptedError || acceptedOtherError || formatsError
         if (hasErrors) return
         if (!emailConfirmed && email.trim() != profile.email) {
             confirmEmail = true
@@ -184,7 +194,8 @@ fun EditProfileScreen(
                     name = FormRules.normalizeFullName(name),
                     phone = phone,
                     email = email.trim(),
-                    avatarUri = avatarUri
+                    avatarUri = avatarUri,
+                    joinedAt = profile.joinedAt
                 )
             )
             val otherRole = if (role == UserRole.Owner) UserRole.Volunteer else UserRole.Owner
@@ -205,7 +216,9 @@ fun EditProfileScreen(
                         } else {
                             emptyList()
                         },
+                        homeConditionsOther = if (CareFormat.AtVolunteer in formats) homeOther.trim() else "",
                         acceptedPets = AcceptedPet.entries.filter { it in acceptedPets },
+                        acceptedPetsOther = if (AcceptedPet.Other in acceptedPets) acceptedOther.trim() else "",
                         formats = CareFormat.entries.filter { it in formats }
                     )
                 )
@@ -410,7 +423,12 @@ fun EditProfileScreen(
                                 FieldHint(stringResource(R.string.text_17_14))
                                 HomeConditionSelector(
                                     selected = homeConditions,
-                                    onToggle = { item -> homeConditions = homeConditions.toggled(item) }
+                                    onToggle = { item -> homeConditions = homeConditions.toggled(item) },
+                                    other = OtherOption(
+                                        value = homeOther,
+                                        onValueChange = { homeOther = it },
+                                        placeholder = stringResource(R.string.text_17_21)
+                                    )
                                 )
                             }
                         }
@@ -424,9 +442,21 @@ fun EditProfileScreen(
                                 onToggle = { item ->
                                     acceptedPets = if (item in acceptedPets) acceptedPets - item else acceptedPets + item
                                     acceptedError = false
+                                    if (item == AcceptedPet.Other) acceptedOtherError = false
                                 }
                             )
                             FieldError(visible = acceptedError, text = stringResource(R.string.text_17_10))
+                            OtherDetailsField(
+                                visible = AcceptedPet.Other in acceptedPets,
+                                value = acceptedOther,
+                                onValueChange = {
+                                    acceptedOther = it
+                                    acceptedOtherError = false
+                                },
+                                placeholder = stringResource(R.string.text_17_22),
+                                errorText = if (acceptedOtherError) stringResource(R.string.text_17_23) else null,
+                                modifier = Modifier.padding(top = 12.dp)
+                            )
                         }
                     }
 

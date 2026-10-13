@@ -1,17 +1,11 @@
 package com.example.pet.ui.components
 
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.fadeIn
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.ui.graphics.graphicsLayer
 import com.example.pet.data.displayPersonName
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -38,7 +32,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.HorizontalDivider
@@ -57,10 +50,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -82,6 +75,14 @@ import com.example.pet.data.PetTrait
 import com.example.pet.data.PetTraitGroup
 import com.example.pet.ui.theme.PetStar
 import com.example.pet.ui.theme.extraColors
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.material.icons.filled.CalendarMonth
+import com.example.pet.data.MonthYearFormat
+import java.time.LocalDate
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.compose.foundation.layout.ColumnScope
@@ -160,13 +161,16 @@ fun TagChip(
     )
 }
 
+val FilterPillCorner = 20.dp
+
 @Composable
 fun FilterPill(
     text: String,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    leadingIcon: ImageVector? = null
+    leadingIcon: ImageVector? = null,
+    shape: Shape = RoundedCornerShape(FilterPillCorner)
 ) {
     val container by animateColorAsState(
         targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer,
@@ -185,7 +189,7 @@ fun FilterPill(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         modifier = modifier
             .pressScale(interaction)
-            .clip(RoundedCornerShape(20.dp))
+            .clip(shape)
             .background(container)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -629,12 +633,14 @@ fun SettingsRow(
 fun PetTraitChips(
     traits: List<PetTrait>,
     modifier: Modifier = Modifier,
+    other: String = "",
     large: Boolean = false,
     singleLine: Boolean = false
 ) {
-    if (traits.isEmpty()) return
+    val labels = traits.map { stringResource(it.label) } + splitOtherItems(other)
+    if (labels.isEmpty()) return
     if (singleLine) {
-        SingleLineChips(labels = traits.map { stringResource(it.label) }, modifier = modifier)
+        SingleLineChips(labels = labels, modifier = modifier)
         return
     }
     FlowRow(
@@ -642,7 +648,7 @@ fun PetTraitChips(
         verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = modifier
     ) {
-        traits.forEach { TagChip(stringResource(it.label), large = large) }
+        labels.forEach { TagChip(it, large = large) }
     }
 }
 
@@ -680,7 +686,8 @@ fun <G, T> GroupedChipSelector(
     selected: Set<T>,
     onToggle: (T) -> Unit,
     modifier: Modifier = Modifier,
-    itemIcon: ((T) -> ImageVector)? = null
+    itemIcon: ((T) -> ImageVector)? = null,
+    other: OtherOption? = null
 ) {
     Column(
         modifier = modifier
@@ -701,6 +708,147 @@ fun <G, T> GroupedChipSelector(
                     selected = selected,
                     onToggle = onToggle
                 )
+            }
+        }
+        if (other != null) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+            OtherOptionSection(other)
+        }
+    }
+}
+
+private const val OTHER_ITEMS_MAX = 5
+
+fun splitOtherItems(text: String): List<String> =
+    text.split(',', ';', '\n')
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .map { item -> item.replaceFirstChar { it.uppercase() } }
+        .distinct()
+        .take(OTHER_ITEMS_MAX)
+
+class OtherOption(
+    val value: String,
+    val onValueChange: (String) -> Unit,
+    val placeholder: String
+)
+
+@Composable
+private fun OtherOptionSection(option: OtherOption) {
+    var expanded by rememberSaveable { mutableStateOf(option.value.isNotBlank()) }
+    var openedByUser by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(tween(ShortAnimMs))
+    ) {
+        ChipGroupHeader(
+            title = stringResource(R.string.common_other_option),
+            count = if (option.value.isNotBlank()) 1 else 0,
+            expanded = expanded,
+            onClick = {
+                expanded = !expanded
+                openedByUser = expanded
+            }
+        )
+        if (expanded) {
+            OtherDetailsField(
+                visible = true,
+                value = option.value,
+                onValueChange = option.onValueChange,
+                placeholder = option.placeholder,
+                focusOnShow = openedByUser,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 16.dp)
+            )
+        } else if (option.value.isNotBlank()) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 16.dp)
+            ) {
+                splitOtherItems(option.value).forEach { item ->
+                    FilterPill(
+                        text = item,
+                        selected = true,
+                        onClick = { expanded = true }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChipGroupHeader(
+    title: String,
+    count: Int,
+    expanded: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+        if (count > 0) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .padding(end = 8.dp)
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+            ) {
+                Text(
+                    text = count.toString(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+        }
+        ExpandChevron(expanded = expanded)
+    }
+}
+
+@Composable
+fun OtherDetailsField(
+    visible: Boolean,
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    errorText: String? = null,
+    focusOnShow: Boolean = true
+) {
+    val focusRequester = remember { FocusRequester() }
+    AnimatedVisibility(
+        visible = visible,
+        enter = revealEnter(),
+        exit = revealExit(),
+        modifier = modifier
+    ) {
+        AppTextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = placeholder,
+            errorText = errorText,
+            maxLength = FormRules.DEFAULT_MAX_LENGTH,
+            imeAction = ImeAction.Done,
+            modifier = Modifier.focusRequester(focusRequester)
+        )
+        LaunchedEffect(Unit) {
+            if (focusOnShow && value.isBlank()) {
+                delay(ShortAnimMs.toLong())
+                runCatching { focusRequester.requestFocus() }
             }
         }
     }
@@ -724,37 +872,12 @@ private fun <T> ChipGroupSection(
             .fillMaxWidth()
             .animateContentSize(tween(ShortAnimMs))
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = !expanded }
-                .padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
-            )
-            if (selectedCount > 0) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
-                ) {
-                    Text(
-                        text = selectedCount.toString(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-            }
-            ExpandChevron(expanded = expanded)
-        }
+        ChipGroupHeader(
+            title = title,
+            count = selectedCount,
+            expanded = expanded,
+            onClick = { expanded = !expanded }
+        )
         if (visibleItems.isNotEmpty()) {
             SelectableChips(
                 items = visibleItems,
@@ -772,7 +895,8 @@ private fun <T> ChipGroupSection(
 fun PetTraitSelector(
     selected: Set<PetTrait>,
     onToggle: (PetTrait) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    other: OtherOption? = null
 ) {
     GroupedChipSelector(
         groups = PetTraitGroup.entries,
@@ -781,7 +905,8 @@ fun PetTraitSelector(
         itemLabel = { stringResource(it.label) },
         selected = selected,
         onToggle = onToggle,
-        modifier = modifier
+        modifier = modifier,
+        other = other
     )
 }
 
@@ -789,7 +914,8 @@ fun PetTraitSelector(
 fun HomeConditionSelector(
     selected: Set<HomeConditionType>,
     onToggle: (HomeConditionType) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    other: OtherOption? = null
 ) {
     GroupedChipSelector(
         groups = HomeConditionGroup.entries,
@@ -799,7 +925,8 @@ fun HomeConditionSelector(
         itemIcon = { it.icon },
         selected = selected,
         onToggle = onToggle,
-        modifier = modifier
+        modifier = modifier,
+        other = other
     )
 }
 
@@ -900,6 +1027,16 @@ val SectionDividerBottomGap = 20.dp
 val SectionTitleGap = 12.dp
 val FieldLabelInset = 4.dp
 val FieldSupportingInset = 16.dp
+
+@Composable
+fun JoinedSinceLine(joinedAt: LocalDate, modifier: Modifier = Modifier) {
+    IconLine(
+        icon = Icons.Default.CalendarMonth,
+        text = stringResource(R.string.common_joined_since, joinedAt.format(MonthYearFormat)),
+        textStyle = MaterialTheme.typography.bodyMedium,
+        modifier = modifier
+    )
+}
 
 @Composable
 fun ProfileHeader(

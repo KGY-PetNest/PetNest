@@ -26,7 +26,8 @@ class MainActions(
     val onEditPet: (String) -> Unit,
     val onOpenSettings: () -> Unit,
     val onOpenReviews: (String) -> Unit,
-    val onOpenChat: (String) -> Unit
+    val onOpenChat: (String) -> Unit,
+    val onOpenOwnerProfile: (String) -> Unit
 )
 
 @Composable
@@ -87,7 +88,8 @@ fun BottomNavGraph(
                     UserRole.Volunteer -> VolunteerProfileScreen(
                         volunteerId = MockData.CURRENT_VOLUNTEER_ID,
                         onAllReviews = actions.onOpenReviews,
-                        onOpenSettings = actions.onOpenSettings
+                        onOpenSettings = actions.onOpenSettings,
+                        onOpenOwner = actions.onOpenOwnerProfile
                     )
                 }
             }
