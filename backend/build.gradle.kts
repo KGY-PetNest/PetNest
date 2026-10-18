@@ -14,18 +14,26 @@ repositories {
 val ktorVersion = "3.1.2"
 
 dependencies {
-    // Ktor server
     implementation("io.ktor:ktor-server-core:$ktorVersion")
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
-    implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
     implementation("io.ktor:ktor-server-call-logging:$ktorVersion")
-
     implementation("ch.qos.logback:logback-classic:1.5.12")
-
-    testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
-    testImplementation(kotlin("test"))
+    implementation("io.ktor:ktor-server-rate-limit:$ktorVersion")
+    implementation("io.ktor:ktor-server-sessions:$ktorVersion")
+    implementation("io.lettuce:lettuce-core:7.8.0.RELEASE")
+    implementation("io.ktor:ktor-server-auth:$ktorVersion")
+    implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
+    implementation("org.jetbrains.exposed:exposed-core:1.5.0")
+    implementation("org.jetbrains.exposed:exposed-jdbc:1.5.0")
+    implementation("org.jetbrains.exposed:exposed-dao:1.5.0")
+    implementation("org.mindrot:jbcrypt:0.4")
+    implementation("org.eclipse.angus:angus-mail:2.0.5")
+    implementation("org.postgresql:postgresql:42.7.13")
+    implementation("com.zaxxer:HikariCP:7.1.0")
+    implementation("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")
+    implementation("io.micrometer:micrometer-registry-prometheus:1.14.4")
 }
 
 application {
@@ -34,8 +42,4 @@ application {
 
 kotlin {
     jvmToolchain(21)
-}
-
-tasks.test {
-    useJUnitPlatform()
 }

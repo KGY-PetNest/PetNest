@@ -1,0 +1,8 @@
+.gradle
+.kotlin
+build
+monitoring
+.env
+.env.*
+docker-compose.yml
+Dockerfile
