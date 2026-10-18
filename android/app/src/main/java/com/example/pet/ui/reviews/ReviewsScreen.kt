@@ -1,0 +1,85 @@
+package com.example.pet.ui.reviews
+
+import com.example.pet.ui.components.ReviewReportSheet
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.example.pet.ui.components.ScreenHorizontalPadding
+import com.example.pet.ui.components.ScreenTopGap
+import com.example.pet.ui.components.ScreenBottomGap
+import com.example.pet.ui.components.ListItemSpacing
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.pet.R
+import com.example.pet.data.AppContainer
+import com.example.pet.ui.components.ReviewCard
+import com.example.pet.ui.components.ReviewSummary
+import com.example.pet.ui.components.ScreenHeader
+import com.example.pet.ui.components.adaptiveContentWidth
+
+@Composable
+fun ReviewsScreen(
+    volunteerId: String,
+    onBack: () -> Unit,
+    onOpenOwner: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val allReviews by AppContainer.reviews.reviews.collectAsStateWithLifecycle()
+    val owners by AppContainer.owners.owners.collectAsStateWithLifecycle()
+    var reportReviewId by rememberSaveable { mutableStateOf<String?>(null) }
+
+    reportReviewId?.let { id -> ReviewReportSheet(reviewId = id, onDismiss = { reportReviewId = null }) }
+    val reviews = allReviews.filter { it.volunteerId == volunteerId }
+
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .adaptiveContentWidth()
+                .padding(horizontal = ScreenHorizontalPadding)
+        ) {
+            ScreenHeader(title = stringResource(R.string.text_15_1), onBack = onBack)
+
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(ListItemSpacing),
+                contentPadding = PaddingValues(top = ScreenTopGap, bottom = ScreenBottomGap),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                item(key = "summary") { ReviewSummary(reviews) }
+                items(reviews, key = { it.id }) { review ->
+                    val author = owners.firstOrNull { it.id == review.authorId }
+                    ReviewCard(
+                        review = review,
+                        personPhotoUri = author?.avatarUri,
+                        onPersonClick = author?.let { { onOpenOwner(it.id) } },
+                        onReport = if (review.authorId != AppContainer.owners.currentOwnerId) {
+                            { reportReviewId = review.id }
+                        } else {
+                            null
+                        },
+                        modifier = Modifier.animateItem()
+                    )
+                }
+            }
+        }
+    }
+}

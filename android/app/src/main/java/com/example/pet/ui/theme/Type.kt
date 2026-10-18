@@ -1,62 +1,43 @@
 package com.example.pet.ui.theme
 
-
-import com.example.pet.R
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.example.pet.R
 
-val JetBrainsMono = FontFamily(
-    Font(R.font.jetbrains_mono_light, weight = FontWeight.Light),
-    Font(R.font.jetbrains_mono_regular, FontWeight.Normal),
-    Font(R.font.jetbrains_mono_semibold, FontWeight.SemiBold),
-    Font(R.font.jetbrains_mono_bold, FontWeight.Bold)
+val Nunito = FontFamily(
+    Font(R.font.nunito_regular, weight = FontWeight.Normal),
+    Font(R.font.nunito_medium, weight = FontWeight.Medium),
+    Font(R.font.nunito_semibold, weight = FontWeight.SemiBold),
+    Font(R.font.nunito_bold, weight = FontWeight.Bold),
+    Font(R.font.nunito_extrabold, weight = FontWeight.ExtraBold)
 )
 
-val IBMPlexMono = FontFamily(
-    Font(R.font.ibm_plex_mono_light, weight = FontWeight.Light),
-    Font(R.font.ibm_plex_mono_regular, FontWeight.Normal),
-    Font(R.font.ibm_plex_mono_semibold, FontWeight.SemiBold),
-    Font(R.font.ibm_plex_mono_bold, FontWeight.Bold)
+private fun style(size: Int, lineHeight: Int, weight: FontWeight, letterSpacing: Double = 0.0) = TextStyle(
+    fontFamily = Nunito,
+    fontWeight = weight,
+    fontSize = size.sp,
+    lineHeight = lineHeight.sp,
+    letterSpacing = letterSpacing.sp
 )
 
 val Typography = Typography(
-    headlineLarge = TextStyle(
-        fontFamily = IBMPlexMono,
-        fontWeight = FontWeight.Bold,
-        fontSize = 32.sp,
-        lineHeight = 40.sp
-    ),
-    titleLarge = TextStyle(
-        fontFamily = JetBrainsMono,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp,
-        lineHeight = 28.sp
-    ),
-    bodyLarge = TextStyle(
-        fontFamily = JetBrainsMono,
-        fontWeight = FontWeight.Normal,
-        fontSize = 18.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    ),
-    bodyMedium = TextStyle(
-        fontFamily = JetBrainsMono,
-        fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.25.sp
-    ),
-    labelLarge = TextStyle(
-        fontFamily = JetBrainsMono,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.1.sp
-    )
+    displayLarge = style(56, 64, FontWeight.ExtraBold),
+    displayMedium = style(44, 52, FontWeight.ExtraBold),
+    displaySmall = style(36, 44, FontWeight.ExtraBold),
+    headlineLarge = style(32, 40, FontWeight.ExtraBold),
+    headlineMedium = style(28, 36, FontWeight.ExtraBold),
+    headlineSmall = style(24, 32, FontWeight.Bold),
+    titleLarge = style(22, 28, FontWeight.Bold),
+    titleMedium = style(17, 24, FontWeight.Bold),
+    titleSmall = style(15, 20, FontWeight.Bold),
+    bodyLarge = style(16, 24, FontWeight.Normal, 0.15),
+    bodyMedium = style(14, 20, FontWeight.Normal, 0.15),
+    bodySmall = style(12, 16, FontWeight.Medium, 0.2),
+    labelLarge = style(15, 20, FontWeight.Bold, 0.1),
+    labelMedium = style(13, 16, FontWeight.Bold, 0.2),
+    labelSmall = style(12, 16, FontWeight.SemiBold, 0.2)
 )
-
-

@@ -1,7 +1,31 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
+
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
+val appVersionCode = 13
+val appVersionName = "6.4"
+
+base {
+    archivesName = "PetNest-$appVersionName"
+}
+
+val mapkitApiKey: String = providers
+    .fileContents(rootProject.layout.projectDirectory.file("local.properties"))
+    .asText
+    .map { text ->
+        Properties().apply { load(text.reader()) }
+            .getProperty("MAPKIT_API_KEY")
+            ?.takeIf { it.isNotBlank() }
+    }
+    .orElse("22129295-8bba-49a4-ae12-a3aef98532d1")
+    .get()
 
 android {
     namespace = "com.example.pet"
@@ -11,27 +35,45 @@ android {
 
     defaultConfig {
         applicationId = "com.example.pet"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
+
+        buildConfigField("String", "MAPKIT_API_KEY", "\"$mapkitApiKey\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            ndk {
+                abiFilters += setOf("arm64-v8a", "x86_64")
+            }
+        }
         release {
+            ndk {
+                abiFilters += setOf("arm64-v8a")
+            }
             optimization {
-                enable = false
+                enable = true
             }
         }
     }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -48,6 +90,11 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.yandex.mapkit)
+    implementation(libs.play.services.location)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)

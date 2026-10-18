@@ -1,157 +1,214 @@
 package com.example.pet.ui.login
 
-import android.R.id.primary
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import com.example.pet.ui.components.ScreenTextPadding
+import com.example.pet.ui.components.FieldLabelInset
+import com.example.pet.ui.components.FormFieldSpacing
+import com.example.pet.ui.components.FormFooterGap
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.pet.R
-import com.example.pet.ui.components.PrimaryButton
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import com.example.pet.ui.components.SegmentButton
-import com.example.pet.ui.theme.IBMPlexMono
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.example.pet.R
+import kotlinx.coroutines.launch
+import com.example.pet.data.AppContainer
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
+import androidx.compose.material3.TextButton
+import com.example.pet.data.UserRole
+import com.example.pet.data.repository.AccountNotFoundException
+import com.example.pet.ui.components.AppTextField
+import com.example.pet.ui.components.AuthFooterLink
+import com.example.pet.ui.components.FormRules
+import com.example.pet.ui.components.PasswordField
+import com.example.pet.ui.components.PrimaryButton
+import com.example.pet.ui.components.PrivacyPolicyLink
+import com.example.pet.ui.components.adaptiveContentWidth
+import com.example.pet.ui.components.clearFocusOnTap
+
+private const val DEMO_PASSWORD = "demo1234"
+private val AuthTitleGap = 24.dp
 
 @Composable
 fun LoginScreen(
-    onBack: () -> Unit,
     onRegisterClick: () -> Unit,
-    onSuccess: () -> Unit,
+    onSuccess: (UserRole) -> Unit,
+    onForgotPassword: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedRole by rememberSaveable { mutableStateOf(0) }
+    val focusManager = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
+    var loading by remember { mutableStateOf(false) }
+
+    val demoLogin = remember { AppContainer.auth.demoLogin }
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
 
-    Column(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.Center) {
-        Spacer(modifier = Modifier.weight(1f))
+    var emailError by rememberSaveable { mutableStateOf<Int?>(null) }
+    var passwordError by rememberSaveable { mutableStateOf<Int?>(null) }
 
-        Text(
-            text = stringResource(R.string.text_2_1),
-            fontSize = 28.sp,
-            fontFamily = IBMPlexMono,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 8.dp)
-            )
-
-        Spacer(Modifier.height(20.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(24.dp))
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .padding(4.dp)
-        ) {
-            SegmentButton(
-                text = stringResource(R.string.text_2_2),
-                selected = selectedRole == 0,
-                onClick = { selectedRole = 0 },
-                modifier = Modifier.weight(1f)
-            )
-            SegmentButton(
-                text = stringResource(R.string.text_2_3),
-                selected = selectedRole == 1,
-                onClick = { selectedRole = 1 },
-                modifier = Modifier.weight(1f)
-            )
+    fun submit() {
+        if (loading) return
+        emailError = when {
+            email.isBlank() -> R.string.text_2_10
+            !FormRules.isEmailValid(email) -> R.string.text_2_11
+            else -> null
         }
+        passwordError = if (password.isEmpty()) R.string.text_2_12 else null
 
-        Spacer(modifier = Modifier.height(24.dp))
+        if (emailError == null && passwordError == null) {
+            focusManager.clearFocus()
+            scope.launch {
+                loading = true
+                val result = AppContainer.auth.login(email.trim(), password)
+                loading = false
+                result
+                    .onSuccess { role -> onSuccess(role) }
+                    .onFailure { error ->
+                        if (error is AccountNotFoundException) {
+                            emailError = R.string.text_2_17
+                        } else {
+                            passwordError = R.string.text_2_15
+                        }
+                    }
+            }
+        }
+    }
 
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            placeholder = { Text(stringResource(R.string.text_2_4)) },
-            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            maxLines = 1
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            placeholder = { Text(stringResource(R.string.text_2_5)) },
-            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-            visualTransformation = PasswordVisualTransformation(),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            maxLines = 1
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        PrimaryButton(
-            text = stringResource(R.string.text_2_6),
-            height = 56.dp,
-            fontSize = 16.sp,
-            onClick = onSuccess
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .clearFocusOnTap(),
+        contentAlignment = Alignment.Center
+    ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier
+                .adaptiveContentWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = ScreenTextPadding, vertical = 24.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.text_2_1),
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(start = FieldLabelInset)
+            )
+
+            Spacer(Modifier.height(AuthTitleGap))
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(FormFieldSpacing),
+                modifier = Modifier.animateContentSize()
             ) {
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = stringResource(R.string.text_2_7),
-                    color = Color.Gray,
+                AppTextField(
+                    value = email,
+                    maxLength = FormRules.EMAIL_MAX_LENGTH,
+                    onValueChange = {
+                        email = it.trim()
+                        emailError = null
+                    },
+                    placeholder = stringResource(R.string.text_2_4),
+                    leadingIcon = Icons.Default.Email,
+                    errorText = emailError?.let { stringResource(it) },
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next,
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                    )
                 )
-                Text(
-                    text = stringResource(R.string.text_2_8),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { onRegisterClick() }
+
+                PasswordField(
+                    value = password,
+                    onValueChange = {
+                        password = it
+                        passwordError = null
+                    },
+                    placeholder = stringResource(R.string.text_2_5),
+                    errorText = passwordError?.let { stringResource(it) },
+                    imeAction = ImeAction.Done,
+                    keyboardActions = KeyboardActions(onDone = { submit() })
                 )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            TextButton(
+                onClick = onForgotPassword,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text(stringResource(R.string.text_2_16))
+            }
 
-            Text(
-                text = stringResource(R.string.text_2_9),
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable { /* TODO */ },
-                style = MaterialTheme.typography.bodyMedium
+            Spacer(Modifier.height(8.dp))
+
+            PrimaryButton(
+                text = stringResource(R.string.text_2_6),
+                loading = loading,
+                onClick = { submit() }
             )
+
+            Spacer(Modifier.height(FormFooterGap))
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                AuthFooterLink(
+                    plainText = stringResource(R.string.text_2_7),
+                    linkText = stringResource(R.string.text_2_8),
+                    onClick = onRegisterClick
+                )
+
+                Spacer(Modifier.height(4.dp))
+
+                PrivacyPolicyLink()
+
+                if (demoLogin != null) {
+                    Spacer(Modifier.height(12.dp))
+
+                    TextButton(
+                        enabled = !loading,
+                        onClick = {
+                            email = demoLogin
+                            password = DEMO_PASSWORD
+                            emailError = null
+                            passwordError = null
+                            submit()
+                        }
+                    ) {
+                        Text(stringResource(R.string.text_2_18))
+                    }
+
+                    Text(
+                        text = stringResource(R.string.text_2_19, demoLogin),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
         }
-        Spacer(modifier = Modifier.weight(2f))
     }
 }
