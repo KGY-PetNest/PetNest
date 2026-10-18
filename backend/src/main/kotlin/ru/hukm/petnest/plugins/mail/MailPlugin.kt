@@ -14,7 +14,7 @@ import java.util.Properties
 
 object Mailer {
     private lateinit var session: Session
-    private lateinit var sender: InternetAddress
+    private lateinit var fromAddress: InternetAddress
 
     fun init(host: String, port: Int, user: String, password: String) {
         val props = Properties().apply {
@@ -28,12 +28,12 @@ object Mailer {
         session = Session.getInstance(props, object : Authenticator() {
             override fun getPasswordAuthentication() = PasswordAuthentication(user, password)
         })
-        sender = InternetAddress(user, "PetNest", "UTF-8")
+        fromAddress = InternetAddress(user, "PetNest", "UTF-8")
     }
 
     suspend fun send(to: String, subject: String, text: String) = withContext(Dispatchers.IO) {
         val message = MimeMessage(session).apply {
-            setFrom(sender)
+            setFrom(fromAddress)
             setRecipients(Message.RecipientType.TO, InternetAddress.parse(to))
             setSubject(subject, "UTF-8")
             setText(text, "UTF-8")

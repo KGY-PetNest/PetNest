@@ -8,7 +8,7 @@ import ru.hukm.petnest.plugins.statuspages.UnauthorizedException
 import ru.hukm.petnest.plugins.validation.Validatable
 import ru.hukm.petnest.plugins.validation.ValidationException
 import ru.hukm.petnest.plugins.validation.requireValid
-import kotlin.random.Random
+import java.security.SecureRandom
 
 const val MAX_ATTEMPTS = 3
 
@@ -75,6 +75,8 @@ data class UserLoginRequest(
 }
 
 object UserService {
+    private val random = SecureRandom()
+
     suspend fun register(dto: UserRegisterRequest) {
         val email = dto.email.lowercase()
 
@@ -84,7 +86,7 @@ object UserService {
 
         val passwordHash = BCrypt.hashpw(dto.password, BCrypt.gensalt())
 
-        val code = (Random.nextInt(900_000) + 100_000).toString()
+        val code = (random.nextInt(900_000) + 100_000).toString()
         PendingRegistrationRepository.save(
             PendingRegistration(
                 fullName = dto.fullName,
