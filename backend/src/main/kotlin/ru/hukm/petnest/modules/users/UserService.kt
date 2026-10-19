@@ -134,4 +134,8 @@ object UserService {
         }
         return UserRepository.create(pending.fullName, pending.phone, pending.email, pending.passwordHash, pending.role)
     }
+
+    suspend fun me(userId: Long): UserResponse =
+        UserRepository.findById(userId)?.toResponse()
+            ?: throw UnauthorizedException("Требуется авторизация")
 }

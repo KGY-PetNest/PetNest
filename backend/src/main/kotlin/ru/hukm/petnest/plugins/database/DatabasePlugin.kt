@@ -8,9 +8,12 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import ru.hukm.petnest.modules.pets.PetTraitsTable
+import ru.hukm.petnest.modules.pets.PetsTable
+import ru.hukm.petnest.modules.requests.RequestsTable
 import ru.hukm.petnest.modules.users.UsersTable
 
-private val tables = arrayOf<Table>(UsersTable)
+private val tables = arrayOf<Table>(UsersTable, PetsTable, PetTraitsTable, RequestsTable)
 
 fun Application.configureDatabase() {
     val config = environment.config

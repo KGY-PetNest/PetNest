@@ -28,6 +28,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-core:1.5.0")
     implementation("org.jetbrains.exposed:exposed-jdbc:1.5.0")
     implementation("org.jetbrains.exposed:exposed-dao:1.5.0")
+    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:1.5.0")
     implementation("org.mindrot:jbcrypt:0.4")
     implementation("org.eclipse.angus:angus-mail:2.0.5")
     implementation("org.postgresql:postgresql:42.7.13")
