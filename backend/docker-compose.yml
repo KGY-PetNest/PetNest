@@ -12,7 +12,7 @@ services:
       METRICS_PASSWORD: ${METRICS_PASSWORD:?METRICS_PASSWORD is not set in .env}
       SMTP_PASSWORD: ${SMTP_PASSWORD:?SMTP_PASSWORD is not set in .env}
     ports:
-      - "8080:8080"
+      - "58080:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -76,7 +76,7 @@ services:
     container_name: petnest-prometheus
     restart: unless-stopped
     ports:
-      - "127.0.0.1:9090:9090"
+      - "127.0.0.1:59090:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
@@ -92,7 +92,7 @@ services:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is not set in .env}
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:53000:3000"
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
