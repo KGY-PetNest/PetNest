@@ -1,5 +1,6 @@
 package ru.hukm.petnest.modules.users
 
+import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.dao.id.LongIdTable
 import org.jetbrains.exposed.v1.dao.LongEntity
@@ -22,3 +23,13 @@ class User(id: EntityID<Long>) : LongEntity(id) {
     var passwordHash by UsersTable.passwordHash
     var role by UsersTable.role
 }
+
+@Serializable
+data class UserResponse(
+    val fullName: String,
+    val email: String,
+    val phone: String,
+    val role: UserRole,
+)
+
+fun User.toResponse() = UserResponse(fullName, email, phone, role)

@@ -4,6 +4,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.sessions.sessions
@@ -14,9 +15,14 @@ import ru.hukm.petnest.modules.users.UserLoginRequest
 import ru.hukm.petnest.modules.users.UserRegisterRequest
 import ru.hukm.petnest.modules.users.UserService
 import ru.hukm.petnest.plugins.sessions.UserSession
+import ru.hukm.petnest.plugins.sessions.currentUserId
 
 fun Route.useUsersRoute() {
     route("/users") {
+        get("/me") {
+            call.respond(UserService.me(call.currentUserId()))
+        }
+
         post("/register") {
             val request = call.receive<UserRegisterRequest>()
             UserService.register(request)

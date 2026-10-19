@@ -34,6 +34,9 @@ fun Application.configureStatusPages() {
         exception<UnauthorizedException> { call, cause ->
             call.respond(HttpStatusCode.Unauthorized, mapOf("errors" to listOf(cause.message)))
         }
+        exception<NotFoundException> { call, cause ->
+            call.respond(HttpStatusCode.NotFound, mapOf("errors" to listOf(cause.message)))
+        }
     }
 }
 
