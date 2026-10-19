@@ -1,11 +1,5 @@
 package com.example.pet.ui.registration
 
-import com.example.pet.ui.components.ScreenTextPadding
-import com.example.pet.ui.components.FieldLabelInset
-import com.example.pet.ui.components.FieldSupportingText
-import com.example.pet.ui.components.FormFieldSpacing
-import com.example.pet.ui.components.FormButtonGap
-import com.example.pet.ui.components.FormFooterGap
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -37,24 +33,28 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.pet.R
+import com.example.pet.data.AppContainer
+import com.example.pet.data.UserRole
+import com.example.pet.data.repository.AccountExistsException
 import com.example.pet.ui.components.AppTextField
 import com.example.pet.ui.components.AuthFooterLink
+import com.example.pet.ui.components.FieldLabelInset
+import com.example.pet.ui.components.FieldSupportingText
+import com.example.pet.ui.components.FormButtonGap
+import com.example.pet.ui.components.FormFieldSpacing
+import com.example.pet.ui.components.FormFooterGap
 import com.example.pet.ui.components.FormRules
 import com.example.pet.ui.components.PasswordField
 import com.example.pet.ui.components.PhoneVisualTransformation
 import com.example.pet.ui.components.PrimaryButton
 import com.example.pet.ui.components.PrivacyPolicyLink
+import com.example.pet.ui.components.ScreenTextPadding
 import com.example.pet.ui.components.SegmentedToggle
 import com.example.pet.ui.components.adaptiveContentWidth
 import com.example.pet.ui.components.clearFocusOnTap
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.text.style.TextAlign
-import com.example.pet.data.AppContainer
-import com.example.pet.data.UserRole
-import com.example.pet.data.repository.AccountExistsException
 import kotlinx.coroutines.launch
 
 private val AuthTitleGap = 24.dp
@@ -82,7 +82,7 @@ fun RegistrationScreen(
     var emailError by rememberSaveable { mutableStateOf<Int?>(null) }
     var passwordError by rememberSaveable { mutableStateOf<Int?>(null) }
     var passwordRepeatError by rememberSaveable { mutableStateOf<Int?>(null) }
-
+    var submitErrorText by rememberSaveable { mutableStateOf<String?>(null) }
     fun submit() {
         if (loading) return
         submitError = false
@@ -122,7 +122,12 @@ fun RegistrationScreen(
                 result
                     .onSuccess { onSuccess(role) }
                     .onFailure { error ->
-                        if (error is AccountExistsException) emailError = R.string.text_3_14 else submitError = true
+                        android.util.Log.e("Auth", "register failed", error)
+                        if (error is AccountExistsException) emailError = R.string.text_3_14
+                        else {
+                            submitError = true
+                            submitErrorText = if (error is java.io.IOException) null else error.message
+                        }
                     }
             }
         }

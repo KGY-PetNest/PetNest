@@ -42,7 +42,8 @@ fun EmailConfirmScreen(
     onResend: () -> Unit,
     modifier: Modifier = Modifier,
     verify: (suspend (String) -> Result<Unit>)? = null,
-    message: String? = null
+    message: String? = null,
+    resend: (suspend () -> Result<Unit>)? = null,
 ) {
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
@@ -50,6 +51,7 @@ fun EmailConfirmScreen(
 
     var code by rememberSaveable { mutableStateOf("") }
     var isError by rememberSaveable { mutableStateOf(false) }
+    var errorMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var secondsLeft by rememberSaveable { mutableIntStateOf(RESEND_SECONDS) }
 
     LaunchedEffect(secondsLeft) {
@@ -75,7 +77,12 @@ fun EmailConfirmScreen(
             checking = true
             val result = check(code)
             checking = false
-            if (result.isSuccess) onSuccess() else isError = true
+            if (result.isSuccess) {
+                onSuccess()
+            } else {
+                errorMessage = result.exceptionOrNull()?.message
+                isError = true
+            }
         }
     }
 
@@ -110,8 +117,24 @@ fun EmailConfirmScreen(
                         plainText = stringResource(R.string.text_6_6),
                         linkText = stringResource(R.string.text_6_7),
                         onClick = {
-                            onResend()
-                            secondsLeft = RESEND_SECONDS
+                            val send = resend
+                            if (send == null) {
+                                onResend()
+                                secondsLeft = RESEND_SECONDS
+                            } else {
+                                scope.launch {
+                                    val result = send()
+                                    if (result.isSuccess) {
+                                        code = ""
+                                        isError = false
+                                        errorMessage = null
+                                        secondsLeft = RESEND_SECONDS
+                                    } else {
+                                        errorMessage = result.exceptionOrNull()?.message
+                                        isError = true
+                                    }
+                                }
+                            }
                         }
                     )
                 }
@@ -124,14 +147,15 @@ fun EmailConfirmScreen(
             onValueChange = {
                 code = it.filter(Char::isDigit).take(FormRules.CODE_LENGTH)
                 isError = false
+                errorMessage = null
                 if (code.length == FormRules.CODE_LENGTH) focusManager.clearFocus()
             },
             placeholder = stringResource(R.string.text_6_3),
             leadingIcon = Icons.Default.Email,
-            errorText = if (isError) stringResource(R.string.text_6_4) else null,
+            errorText = if (isError) (errorMessage ?: stringResource(R.string.text_6_4)) else null,
             keyboardType = KeyboardType.Number,
             imeAction = ImeAction.Done,
-            keyboardActions = KeyboardActions(onDone = { submit() })
+            keyboardActions = KeyboardActions(onDone = { submit() }),
         )
     }
 }

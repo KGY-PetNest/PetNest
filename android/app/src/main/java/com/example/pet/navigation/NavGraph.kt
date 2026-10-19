@@ -1,5 +1,6 @@
 package com.example.pet.navigation
 
+import android.content.Context
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection
 import androidx.compose.animation.EnterTransition
@@ -12,7 +13,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -51,6 +51,7 @@ import com.example.pet.ui.emailconfirm.EmailConfirmScreen
 import com.example.pet.ui.login.LoginScreen
 import com.example.pet.ui.main.MainScreen
 import com.example.pet.ui.mappicker.MapPickerScreen
+import com.example.pet.ui.ownerprofile.OwnerProfileScreen
 import com.example.pet.ui.password.ChangePasswordScreen
 import com.example.pet.ui.password.ForgotPasswordScreen
 import com.example.pet.ui.password.ResetPasswordScreen
@@ -61,7 +62,6 @@ import com.example.pet.ui.responses.ResponsesScreen
 import com.example.pet.ui.reviews.ReviewsScreen
 import com.example.pet.ui.settings.SettingsScreen
 import com.example.pet.ui.volunteerprofile.VolunteerProfileScreen
-import com.example.pet.ui.ownerprofile.OwnerProfileScreen
 import com.example.pet.ui.welcome.WelcomeScreen
 import kotlinx.coroutines.launch
 
@@ -291,7 +291,8 @@ fun NavGraph(
                     onSuccess = {
                         entry.ifTop(navController) { navController.openLogin() }
                     },
-                    onResend = { }
+                    onResend = { },
+                    resend = { AppContainer.auth.resendCode() }
                 )
             }
         }
@@ -323,7 +324,8 @@ fun NavGraph(
                             navController.navigate(Screen.ResetPassword.name) { launchSingleTop = true }
                         }
                     },
-                    onResend = { }
+                    onResend = { },
+                    verify = { code -> AppContainer.auth.confirmCode(code) }
                 )
             }
         }

@@ -40,6 +40,7 @@ interface AuthRepository {
     suspend fun switchRole(role: UserRole): Result<Unit>
     suspend fun changeEmail(email: String): Result<Unit>
     suspend fun confirmCode(code: String): Result<Unit>
+    suspend fun resendCode(): Result<Unit>
     suspend fun requestPasswordReset(target: String): Result<Unit>
     suspend fun resetPassword(newPassword: String): Result<Unit>
     suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit>
